@@ -6,11 +6,13 @@ from skimage import color, exposure, transform
 from skimage.exposure import equalize_hist
 
 import keyboard
+from PIL import Image
 
-dark_image = imread('test images\\against_the_light.png')
+dark_image = Image.open('PA8506K Higer 49 seats-clean-1-1 DualEnergy.tiff')
 
-# Converts image into grey scale
+# Converts image into grey scale (TURN THIS ON FOR IMAGES WITH COLOUR)
 dark_image_grey = rgb2gray(dark_image)
+
 # plt.figure(num=None, figsize=(8, 6), dpi=80)
 # plt.imshow(dark_image_grey, cmap='gray')
 
@@ -56,7 +58,7 @@ def fourier_masker_horizontal(image, i):
 
 def fourier_iterator(image, value_list):
     for i in value_list:
-        fourier_masker_vertical(image, i)
+        fourier_masker_horizontal(image, i)
 
 
 def fourier_transform_rgb(image):

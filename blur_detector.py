@@ -1,14 +1,16 @@
+"""
+A script that utilises FFT to detect blur images.
+"""
+
 # https://pyimagesearch.com/2020/06/15/opencv-fast-fourier-transform-fft-for-blur-detection-in-images-and-video-streams/
 # import the necessary packages
 import matplotlib.pyplot as plt
 import numpy as np
-# def pyimagesearch():
 
-	# image: Our input image for blur detection
-	# size: The size of the radius around the centerpoint of the image for which we will zero out the FFT shift
-	# thresh: A value which the mean value of the magnitudes (more on that later) will be compared to for determining whether an image is considered blurry or not blurry
-	# vis: A boolean indicating whether to visualize/plot the original input image and magnitude image using matplotlib
-
+# image: Our input image for blur detection
+# size: The size of the radius around the centerpoint of the image for which we will zero out the FFT shift
+# thresh: A value which the mean value of the magnitudes (more on that later) will be compared to for determining whether an image is considered blurry or not blurry
+# vis: A boolean indicating whether to visualize/plot the original input image and magnitude image using matplotlib
 def detect_blur_fft(image, size=60, thresh=10, vis=False):
 	# grab the dimensions of the image and use the dimensions to
 	# derive the center (x, y)-coordinates
@@ -54,37 +56,6 @@ def detect_blur_fft(image, size=60, thresh=10, vis=False):
 	# the image will be considered "blurry" if the mean value of the
 	# magnitudes is less than the threshold value
 	return (mean, mean <= thresh)
-
-# https://www.analyticsvidhya.com/blog/2020/09/how-to-perform-blur-detection-using-opencv-in-python/
-def analyticsvidhya():
-	import cv2
-	import argparse
-	import os
-	ap = argparse.ArgumentParser()
-	ap.add_argument('-i', '--images', required=True,)
-	ap.add_argument('-t', '--threshold', type=float)
-	args = vars(ap.parse_args())
-
-	cwd = "C:\\Users\\alpha\\OneDrive\\Desktop\\Life\\NTU\\Internship\\HTX\\FFT blurring images\\test images"
-
-	images = []
-
-	for image in os.listdir(cwd):
-		img = cv2.imread(f'{cwd}\\{image}')
-		images.append(img)
-
-	for image in images:
-		gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-		fm = cv2.Laplacian(gray, cv2.CV_64F).var()
-		text = "Not Blurry"
-
-		if fm < args["threshold"]:
-			text = "Blurry"
-
-		cv2.putText(image, "{}: {:.2f}".format(text, fm), (10, 30),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
-		cv2.imshow("Image", image)
-		cv2.waitKey(0)
 
 if __name__ == "__main__":
 	print("Wrong function called, use detect_blur_image.py")
