@@ -1,0 +1,52 @@
+{
+    "id": "aeb88127b92a4c36b52516b146eb0bd7",
+    "meta": {
+        "api_key": "b0a7085319e74bb18574156cdb73b270",
+        "app_name": "eyefox_capture",
+        "app_ver": 6.5,
+        "color_mode": "color",
+        "created": "2023-01-16T02:37:46.002918+00:00",
+        "created_ts": 1673836666002,
+        "created_user": "import",
+        "emulator": false,
+        "folder": "eyefox_capture/eyefox-00092/2023_01_16",
+        "host": "eyefox-00092",
+        "input_type": "capture",
+        "local_path": "/opt/ng/eyefox_capture/archive/2023/01/16/20230116_103746_view2.png",
+        "manual_save": false,
+        "name": "20230116_103746_view2",
+        "scanner_alias": null,
+        "scanner_model": null,
+        "view": 2
+    },
+    "rois": [
+        {
+            "confidence": 0.9666987061500549,
+            "id": "897b03c32e4d4b8ea06e44879eebad98",
+            "label": [
+                "bottle"
+            ],
+            "meta": {
+                "acked": false,
+                "created_by": "eyefox_capture",
+                "display_label": "LAG",
+                "is_fp": false,
+                "task_id": "483107b6ef1649eca505979a9db6e700"
+            },
+            "poly": [
+                329,
+                518,
+                419,
+                518,
+                419,
+                550,
+                329,
+                550
+            ],
+            "sources": [
+                "default"
+            ]
+        }
+    ],
+    "timestamp": 1673836666002
+}

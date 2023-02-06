@@ -1,0 +1,79 @@
+{
+    "id": "55b476e571b84335b57574fdabed22d9",
+    "meta": {
+        "api_key": "b0a7085319e74bb18574156cdb73b270",
+        "app_name": "eyefox_capture",
+        "app_ver": 6.5,
+        "color_mode": "color",
+        "created": "2023-01-16T02:37:46.002918+00:00",
+        "created_ts": 1673836666002,
+        "created_user": "import",
+        "emulator": false,
+        "folder": "eyefox_capture/eyefox-00092/2023_01_16",
+        "host": "eyefox-00092",
+        "input_type": "capture",
+        "local_path": "/opt/ng/eyefox_capture/archive/2023/01/16/20230116_103746_view1.png",
+        "manual_save": false,
+        "name": "20230116_103746_view1",
+        "scanner_alias": null,
+        "scanner_model": null,
+        "view": 1
+    },
+    "rois": [
+        {
+            "confidence": 0.9887214303016663,
+            "id": "49fd46d718c54641afc83f356f22f05e",
+            "label": [
+                "bottle"
+            ],
+            "meta": {
+                "acked": false,
+                "created_by": "eyefox_capture",
+                "display_label": "LAG",
+                "is_fp": false,
+                "task_id": "483107b6ef1649eca505979a9db6e700"
+            },
+            "poly": [
+                -98,
+                446,
+                39,
+                446,
+                39,
+                565,
+                -98,
+                565
+            ],
+            "sources": [
+                "default"
+            ]
+        },
+        {
+            "confidence": 0.9990724325180054,
+            "id": "5a24a889d83b43b0804d90df64de919d",
+            "label": [
+                "knife_blade"
+            ],
+            "meta": {
+                "acked": false,
+                "created_by": "eyefox_capture",
+                "display_label": "Sharp",
+                "is_fp": false,
+                "task_id": "483107b6ef1649eca505979a9db6e700"
+            },
+            "poly": [
+                430,
+                442,
+                552,
+                442,
+                552,
+                475,
+                430,
+                475
+            ],
+            "sources": [
+                "default"
+            ]
+        }
+    ],
+    "timestamp": 1673836666002
+}
