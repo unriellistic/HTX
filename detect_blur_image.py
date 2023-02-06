@@ -1,13 +1,13 @@
 """
-This script calls on the original blur_detector.py script for blur detection
-OR
-compare_images_before_after_FFT_masking.py script for FFT checking.
-It has a -s to save the images to the current folder
+This script calls the performs blur detection for images.
+It has a -s to save the images to the current folder.
+-z is to alter the size of the blur masking. Leave it at default 60
 """
 
 # import the necessary packages
 # from blur_detector import detect_blur_fft
-from compare_images_before_after_FFT_masking import detect_blur_fft
+from compare_FFT_images import compare_fft_image
+from general_scripts import load_images_from_folder
 import numpy as np
 import argparse
 import imutils
@@ -42,19 +42,6 @@ info = []
 def main(args):
     args = vars(ap.parse_args())
     return args
-
-
-image
-
-
-def load_images_from_folder(folder):
-    images = []
-    for filename in os.listdir(folder):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')) and filename is not None:
-            images.append(filename)
-    return images
-
-
 def detect_single_image(image, save):
     # orig = image
     orig = cv2.imread(image)
@@ -77,8 +64,8 @@ def detect_single_image(image, save):
     print("[INFO] {}".format(text))
 
     # Show the output image until a key is pressed
-    # cv2.imshow("Output", image)
-    # cv2.waitKey(0)
+    cv2.imshow("Output", image)
+    cv2.waitKey(0)
 
     # If user sets --save 1, save threshold and output into excel file
     if save != "-1":
@@ -110,9 +97,9 @@ def detect_single_image(image, save):
                 cv2.putText(image, text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX,
                             0.7, color, 2)
                 print("[INFO] Kernel: {}, Result: {}".format(radius, text))
-            # show the image
-            cv2.imshow("Test Image", image)
-            cv2.waitKey(0)
+                # show the image
+                cv2.imshow("Test Image", image)
+                cv2.waitKey(0)
 
 
 def detect_blur_fft(image, size=60, thresh=10, vis=False):
@@ -131,28 +118,29 @@ def detect_blur_fft(image, size=60, thresh=10, vis=False):
 
     # compute the magnitude spectrum of the transform
     magnitude = 20 * np.log(np.abs(fftShift))
-    # display the original input image
-    (fig, ax) = plt.subplots(2, 3, )
-    ax[0][0].imshow(image, cmap="gray")
-    ax[0][0].set_title("Input")
-    ax[0][0].set_xticks([])
-    ax[0][0].set_yticks([])
-    # display the magnitude image
-    ax[0][1].imshow(magnitude, cmap="gray")
-    ax[0][1].set_title("Magnitude Spectrum")
-    ax[0][1].set_xticks([])
-    ax[0][1].set_yticks([])
-    # display size reduction image
-    magnitude_reduced = magnitude
-    magnitude_reduced[cY - size:cY + size, cX - size:cX + size] = 0
-    ax[0][2].imshow(magnitude_reduced, cmap="gray")
-    ax[0][2].set_title("Magnitude Reduced Spectrum")
-    ax[0][2].set_xticks([])
-    ax[0][2].set_yticks([])
+    if vis:
+        # display the original input image
+        (fig, ax) = plt.subplots(2, 3, )
+        ax[0][0].imshow(image, cmap="gray")
+        ax[0][0].set_title("Input")
+        ax[0][0].set_xticks([])
+        ax[0][0].set_yticks([])
+        # display the magnitude image
+        ax[0][1].imshow(magnitude, cmap="gray")
+        ax[0][1].set_title("Magnitude Spectrum")
+        ax[0][1].set_xticks([])
+        ax[0][1].set_yticks([])
+        # display size reduction image
+        magnitude_reduced = magnitude
+        magnitude_reduced[cY - size:cY + size, cX - size:cX + size] = 0
+        ax[0][2].imshow(magnitude_reduced, cmap="gray")
+        ax[0][2].set_title("Magnitude Reduced Spectrum")
+        ax[0][2].set_xticks([])
+        ax[0][2].set_yticks([])
 
-    # show our plots
-    # plt.show()
-    # print("magnitude's shape:", np.shape(magnitude))
+        # show our plots
+        plt.show()
+        print("magnitude's shape:", np.shape(magnitude))
 
     # zero-out the center of the FFT shift (i.e., remove low frequencies),
     # apply the inverse shift such that the DC component once again becomes the top-left
@@ -165,68 +153,30 @@ def detect_blur_fft(image, size=60, thresh=10, vis=False):
     # then compute the mean of the magnitude values
     magnitude = 20 * np.log(np.abs(recon))
 
-    # Compare original with transformed image
-    # compute the magnitude spectrum of the transform
-    # display the original input image
-
     # Each pixel contains a magnitude value, lower it is the darker the image is.
     mean = np.mean(magnitude)
-    # for i in range(10):
-    #	 print("magnitude:", magnitude[i])
-
-    # To compare the original image vs inversed image
-    color = (0, 0, 255) if mean <= thresh else (0, 255, 0)
-    # (fig, ax) = plt.subplots(1, 2, )
-    text = "Blurry ({:.4f})" if mean <= thresh else "Not Blurry ({:.4f})"
-    text = text.format(mean)
-    cv2.putText(image, text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-    print("[INFO] {}".format(text))
-
-    # Display altered image
-    ax[1][0].imshow(abs(recon), cmap="gray")
-    ax[1][0].set_title("Reconstructed")
-    ax[1][0].set_xticks([])
-    ax[1][0].set_yticks([])
-    # display the inversed image after zero-out image
-    ax[1][2].imshow(magnitude, cmap="gray")
-    ax[1][2].set_title("Inversed image after zero-out center")
-    ax[1][2].set_xticks([])
-    ax[1][2].set_yticks([])
-    plt.show()
-
     print("Mean:", mean)
 
-    # Show reconstructed image
-    cv2.imshow("Output", abs(recon))
-    cv2.waitKey(0)
     # the image will be considered "blurry" if the mean value of the
     # magnitudes is less than the threshold value
-    return (mean, mean <= thresh)
+    return mean, mean <= thresh
 
 
 if __name__ == "__main__":
-    # python detect_blur_image.py -i "test images" -t 10 -v -1 -d 1
+    # python detect_blur_image.py -i "test images" -t 10 -v -1 -d -1 -s -1 -z 1
     # uncomment below if want to debug using pycharm in alp's laptop
     # sys.argv = ['detect_blur_image.py', '-i', "C:\\Users\\alpha\\PycharmProjects\\pythonProject3\\test images", '-t', '10', '-v', '-1', '-d', '1', '-s', '-1', 'z', '60']
-    # \\autumn leaf.jpeg
     args = ap.parse_args()
     args = main(args)
-    # load the input image from disk, resize it, and convert it to
-    # grayscale
-    # print("args is:", args)
 
     print(args['save'])
     if args["image"].lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
-        # print("inside if")
         image = cv2.imread(os.path.join(args["image"]))
         detect_single_image(image, args["save"])
     else:
-        # print("inside else")
         imagedir = args['image']
-        # print(imagedir)
         images = load_images_from_folder(args["image"])
         for image in images:
-            # print(os.path.join(imagedir, image))
             detect_single_image(os.path.join(imagedir, image), args["save"])
     cv2.destroyAllWindows()
 
