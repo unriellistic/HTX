@@ -63,10 +63,20 @@ import pandas as pd
 df = pd.read_excel(r'Path of Excel file\File name.xlsx', sheet_name='your Excel sheet name')
 counter = 0 # Assuming that files are already in order, else need to find name by name.
 
-for images in image_folder:
+for image in image_folder:
     # image just needs to be image name
-    if images.endswith(".png"):
-        slides.append([f"File: {filename[:-3]}", f"Remarks: {df['Remarks'].iloc[counter]}", images, 8])
+    eyefox = ""
+    top_view_present = False
+    if df['Top view'].iloc[counter] == 1:
+        eyefox = eyefox + "Top view "
+        top_view_present = True
+    if df['Side View'].iloc[counter] == 1:
+        if top_view_present:
+            eyefox = eyefox + ", Side view"
+        else:
+            eyefox = eyefox + "Side view"
+    if image.endswith(".png"):
+        slides.append([f"File: {filename[:-3]}\nEyefox detection:{eyefox}", f"Remarks: {df['Remarks'].iloc[counter]}", image, 8])
         counter += 1
 
 
