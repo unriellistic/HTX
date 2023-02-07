@@ -124,20 +124,9 @@ for detail in info_about_images:
         top_eyefox_image = EYEFOX_IMG_DIR + "\\" + detail[3]
         slides.append([f"File: {detail[3]}\nEyefox detection:{eyefox_detection}", f"Remarks: {detail[6]}", top_eyefox_image, 8])
 
-    if df['Side View'].iloc[counter] == 1:
-        if top_view_present:
-            eyefox_detection = eyefox_detection + ", Side view"
-        else:
-            eyefox_detection = eyefox_detection + "Side view"
-    if image.endswith(".png"):
-        slides.append([f"File: {filename[:-3]}\nEyefox detection:{eyefox_detection}", f"Remarks: {df['Remarks'].iloc[counter]}", image, 8])
-        counter += 1
 
+for each_slide in slides:
+    MySlide(each_slide)
 
-# for each_slide in slides:
-#     MySlide(each_slide)
-
-# prs.save("stack.pptx")
-# os.startfile("stack.pptx")
-
-# python_pptx-0.6.21.dist-info
+prs.save("test.pptx")
+os.startfile("stack.pptx")
