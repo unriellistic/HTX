@@ -3,14 +3,17 @@ The script automates the creation of multiple slides with a specific content:
 - One picture
 - Two subtexts (Filename, Remarks)
 """
+import collections 
+import collections.abc
 from pptx import Presentation
 import os
 
 prs = Presentation()
 
-for slide in prs.slide_layouts:
-    for shape in slide.placeholders:
-        print('%d %d %s' % (prs.slide_layouts.index(slide), shape.placeholder_format.idx, shape.name))
+# If want to see slide layout, uncomment below
+# for slide in prs.slide_layouts:
+#     for shape in slide.placeholders:
+#         print('%d %d %s' % (prs.slide_layouts.index(slide), shape.placeholder_format.idx, shape.name))
 class MySlide:
     def __init__(self, data):
         self.layout = prs.slide_layouts[data[3]]
@@ -58,32 +61,83 @@ class MySlide:
 
             # Or if we want to center it vertically:
             # self.img.top = self.img.top + int(self.img.height/2)
+           
 slides = []
 import pandas as pd
-df = pd.read_excel(r'Path of Excel file\File name.xlsx', sheet_name='your Excel sheet name')
-counter = 0 # Assuming that files are already in order, else need to find name by name.
+df = pd.read_excel(r"D:\\Eyefox Data\\CAG\\Staged Scene\\EYEFOX_STATS_16JAN.xls", sheet_name='Data for 160123')=
 
-for image in image_folder:
-    # image just needs to be image name
-    eyefox = ""
+print(df.columns.tolist())
+info_about_images = []
+
+for index, row in df.iterrows():
+    # Overall = Whether Eyefox got detect
+    # Filename = Top Filename (View 1)
+    # 'Unnamed: 15' = Side Filename (View 2)
+    # 'Unnamed: 16' = X-Ray Filename...""
+    if index == 0:
+        continue
+    else:
+        print(f"Current row: {str(index)}\n", row['Overall'], row['Top View (view 1)'], row['Side View (view 2)'], row['Filename'], row['Unnamed: 15'], row['Unnamed: 16'], row['Legend/Notes'])
+        info_about_images.append((row['Overall'], row['Top View (view 1)'], row['Side View (view 2)'], row['Filename'], row['Unnamed: 15'], row['Unnamed: 16'], row['Legend/Notes']))
+
+# From excel, extract filenames as tuple: EYEFOX_TOP_DETECTED?, EYEFOX_SIDE_DETECTED?, EYEFOX_TOP, EYEFOX_SIDE, XRAY
+# Iterate through each tuple, first 2 index take from EYEFOX folder, last index take from XRAY folder
+#   # Go through XRAY first
+#   Append XRAY_0_A into slide
+#   If tuple(0)==True:
+#       Append in EYEFOX images
+
+EYEFOX_IMG_DIR = "D:\\Eyefox Data\\CAG\\Staged Scene\\test"
+XRAY_IMG_DIR = "D:\\Eyefox Data\\CAG\\Staged Scene\\test TIF"
+
+for detail in info_about_images:
+    
+    # Detail is a tuple with information stored in this order:
+    # 0: Overall detection
+    # 1: Top view detection
+    # 2: Side view detection
+    # 3: Eyefox top filename
+    # 4: Eyefox side filename
+    # 5: XRAY filename
+    # 6: Legend/notes
+    eyefox_detection = ""
     top_view_present = False
-    if df['Top view'].iloc[counter] == 1:
-        eyefox = eyefox + "Top view "
-        top_view_present = True
+    
+    # Create first slide
+
+    # If overall detection is True
+    if detail[0] == 1:
+        eyefox_detection = eyefox_detection + "YES"
+    else:
+        eyefox_detection = "NO"
+    top_xray_image = XRAY_IMG_DIR + "\\" + detail[5] + "_0_B"
+    side_xray_image = XRAY_IMG_DIR + "\\" + detail[5] + "_0_A"
+    slides.append([f"File: {detail[5]}\nEyefox detection:{eyefox_detection}", f"Remarks: {detail[6]}", side_xray_image, 8])
+    slides.append([f"File: {detail[5]}\nEyefox detection:{eyefox_detection}", f"Remarks: {detail[6]}", top_xray_image, 8])
+
+    # If Side View detection is True
+    if detail[2] == 1:
+        side_eyefox_image = EYEFOX_IMG_DIR + "\\" + detail[4]
+        slides.append([f"File: {detail[4]}\nEyefox detection:{eyefox_detection}", f"Remarks: {detail[6]}", side_eyefox_image, 8])
+    # If Top View detection is True
+    if detail[1] == 1:
+        top_eyefox_image = EYEFOX_IMG_DIR + "\\" + detail[3]
+        slides.append([f"File: {detail[3]}\nEyefox detection:{eyefox_detection}", f"Remarks: {detail[6]}", top_eyefox_image, 8])
+
     if df['Side View'].iloc[counter] == 1:
         if top_view_present:
-            eyefox = eyefox + ", Side view"
+            eyefox_detection = eyefox_detection + ", Side view"
         else:
-            eyefox = eyefox + "Side view"
+            eyefox_detection = eyefox_detection + "Side view"
     if image.endswith(".png"):
-        slides.append([f"File: {filename[:-3]}\nEyefox detection:{eyefox}", f"Remarks: {df['Remarks'].iloc[counter]}", image, 8])
+        slides.append([f"File: {filename[:-3]}\nEyefox detection:{eyefox_detection}", f"Remarks: {df['Remarks'].iloc[counter]}", image, 8])
         counter += 1
 
 
-for each_slide in slides:
-    MySlide(each_slide)
+# for each_slide in slides:
+#     MySlide(each_slide)
 
-prs.save("stack.pptx")
-os.startfile("stack.pptx")
+# prs.save("stack.pptx")
+# os.startfile("stack.pptx")
 
 # python_pptx-0.6.21.dist-info
