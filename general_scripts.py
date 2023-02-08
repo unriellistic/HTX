@@ -43,3 +43,22 @@ def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=Fa
     print("df:", df)
     df.to_excel(f'{file_name}.xlsx', sheet_name=sheet_name, index=index)
     print(f"Excel file saved to {info}")
+
+"""
+Function that replaces file extension names
+"""
+
+def change_file_extension(filename, new_file_extension):
+
+    # Returns a list of "obj" element, which in our case, is the "."
+    def indexes(iterable, obj):
+        return (index for index, elem in enumerate(iterable) if elem == obj)
+    
+    # Get a list of "."
+    list_of_index_of_element = list(indexes(filename, "."))
+
+    # Find the last ".", minus 1 to get the index before the "."
+    filename = filename[0:list_of_index_of_element[-1]] + new_file_extension
+
+    return filename
+

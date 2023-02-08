@@ -113,9 +113,9 @@ def compare_fft_image(image, size=60):
 
 
 if __name__ == "__main__":
-    # python compare_FFT_images.py -i "test images" -z 1
+    # python compare_FFT_images.py -i "test images\\PA8506K Higer 49 seats-clean-1-1 Monochrome.tiff"" -z 1
     # uncomment below if want to debug using pycharm in alp's laptop
-    sys.argv = ['compare_FFT_images.py', '-i', "C:\\Users\\alpha\\PycharmProjects\\HTX_Test_Projects\\test images",
+    sys.argv = ['compare_FFT_images.py', '-i', "test images\\PA8506K Higer 49 seats-clean-1-1 Monochrome.tiff",
                 '-z', '1']
     # \\autumn leaf.jpeg
     args = ap.parse_args()
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     # grayscale
 
     if args["image"].lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
-        image = cv2.imread(os.path.join(args["image"]))
+        image = cv2.imread(os.path.join(args["image"]), cv2.IMREAD_GRAYSCALE)
         compare_fft_image(image, args["size"])
     else:
         imagedir = args['image']
