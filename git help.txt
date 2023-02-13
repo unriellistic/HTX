@@ -1,0 +1,7 @@
+~~To push to github~~
+git add .
+git commit -m 'i did something'
+
+~~To update from github~~
+git fetch (maybe not required)
+git pull
