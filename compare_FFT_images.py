@@ -47,8 +47,7 @@ def compare_fft_image(image, size=60, save=-1, image_name="nil", mask_method='ce
     # the top-left corner) to the center where it will be more
     # easy to analyze
     fft = np.fft.fft2(image)  # compute the FFT
-    fftShift = np.fft.fftshift(
-        fft)  # shift the zero frequency component (DC component) of the result to the center for easier analysis
+    fftShift = np.fft.fftshift(fft)  # shift the zero frequency component (DC component) of the result to the center for easier analysis
 
     # check to see if we are visualizing our output
 
@@ -69,65 +68,72 @@ def compare_fft_image(image, size=60, save=-1, image_name="nil", mask_method='ce
     magnitude_spectrum = magnitude
 
     # Done
-    def mask_center_radial(magnitude_spectrum, radius_size=1):
-        magnitude_spectrum[cY - radius_size:cY + radius_size, cX - radius_size:cX + radius_size] = 0
+    def mask_center_radial(magnitude_spectrum, fftShift_item, radius_size=1, weight=0):
+        magnitude_spectrum[cY - radius_size:cY + radius_size, cX - radius_size:cX + radius_size] = weight
         print("magnitude_spectrum:", magnitude_spectrum[cY - radius_size:cY + radius_size, cX - radius_size:cX + radius_size])
         # zero-out the center of the FFT shift (i.e., remove low frequencies),
         # apply the inverse shift such that the DC component once again becomes the top-left
         # and then apply the inverse FFT
-        fftShift[cY - radius_size:cY + radius_size, cX - radius_size:cX + radius_size] = 0
-        return magnitude_spectrum
+        fftShift_item[cY - radius_size:cY + radius_size, cX - radius_size:cX + radius_size] = weight
+        return magnitude_spectrum, fftShift_item
     
     # Done, mask a square shape in the center
-    def mask_center_square(magnitude_spectrum, square_size=1):
-        magnitude_spectrum[cY+square_size:cY-square_size, cX-square_size:cX+square_size] = 0
-        fftShift[cY+square_size:cY-square_size, cX-square_size:cX+square_size] = 0
-        return magnitude_spectrum
+    def mask_center_square(magnitude_spectrum, fftShift_item, square_size=1, weight=0):
+        magnitude_spectrum[cY+square_size:cY-square_size, cX-square_size:cX+square_size] = weight
+        fftShift_item[cY+square_size:cY-square_size, cX-square_size:cX+square_size] = weight
+        return magnitude_spectrum,  fftShift_item
     
-    def mask_corner_square(magnitude_spectrum, square_size=1):
-        magnitude_spectrum[cY - square_size:cY + square_size, cX - square_size:cX + square_size] = 0
-        fftShift[cY - square_size:cY + square_size, cX - square_size:cX + square_size] = 0
-        return magnitude_spectrum
+    def mask_corner_square(magnitude_spectrum, fftShift_item, square_size=1, weight=0):
+        magnitude_spectrum[cY - square_size:cY + square_size, cX - square_size:cX + square_size] = weight
+        fftShift_item[cY - square_size:cY + square_size, cX - square_size:cX + square_size] = weight
+        return magnitude_spectrum,  fftShift_item
     
     # Done, masking horizontal lines masks vertical lines
-    def mask_horizontal_line(magnitude_spectrum, rectangle_size=1):
+    def mask_horizontal_line(magnitude_spectrum, fftShift_item, rectangle_size=1, weight=0):
         
         # Mask all the way
-        magnitude_spectrum[cY-rectangle_size:cY+rectangle_size, 0:w] = 0
-        fftShift[cY-rectangle_size:cY+rectangle_size, 0:w] = 0
+        magnitude_spectrum[cY-rectangle_size:cY+rectangle_size, 0:w] = weight
+        fftShift_item[cY-rectangle_size:cY+rectangle_size, 0:w] = weight
 
         # Mask all the way, but avoid center
-        # magnitude_spectrum[cY-rectangle_size:cY+rectangle_size, 0:cX-5] = 0
-        # magnitude_spectrum[cY-rectangle_size:cY+rectangle_size, cX+5:w] = 0
-        # fftShift[cY-rectangle_size:cY+rectangle_size, 0:cX-5] = 0
-        # fftShift[cY-rectangle_size:cY+rectangle_size, cX+5:w] = 0
-        return magnitude_spectrum
+        # magnitude_spectrum[cY-rectangle_size:cY+rectangle_size, 0:cX-5] = weight
+        # magnitude_spectrum[cY-rectangle_size:cY+rectangle_size, cX+5:w] = weight
+        # fftShift[cY-rectangle_size:cY+rectangle_size, 0:cX-5] = weight
+        # fftShift[cY-rectangle_size:cY+rectangle_size, cX+5:w] = weight
+        return magnitude_spectrum,  fftShift_item
     
     # Done, masking vertical line masks horizontal lines
-    def mask_vertical_line(magnitude_spectrum, rectangle_size=1):
-        magnitude_spectrum[0:cY-5, cX-rectangle_size:cX+rectangle_size] = 0
-        magnitude_spectrum[cY+5:h, cX-rectangle_size:cX+rectangle_size] = 0
-        fftShift[0:cY-5, cX-rectangle_size:cX+rectangle_size] = 0
-        fftShift[cY+5:h:, cX-rectangle_size:cX+rectangle_size] = 0
-        return magnitude_spectrum
+    def mask_vertical_line(magnitude_spectrum, fftShift_item, rectangle_size=1, weight=0):
+        magnitude_spectrum[0:cY-5, cX-rectangle_size:cX+rectangle_size] = weight
+        magnitude_spectrum[cY+5:h, cX-rectangle_size:cX+rectangle_size] = weight
+        fftShift_item[0:cY-5, cX-rectangle_size:cX+rectangle_size] = weight
+        fftShift_item[cY+5:h:, cX-rectangle_size:cX+rectangle_size] = weight
+        return magnitude_spectrum, fftShift_item
     
-    # Select which option of masking
-    if mask_method == 'mask_center_radial':
-        magnitude_reduced = mask_center_radial(magnitude_spectrum, size)
-    elif mask_method == 'mask_center_square':
-        magnitude_reduced = mask_center_square(magnitude_spectrum, size)
-    elif mask_method == 'mask_corner_square':
-        magnitude_reduced = mask_corner_square(magnitude_spectrum, size)
-    elif mask_method == 'mask_horizontal_line':
-        magnitude_reduced = mask_horizontal_line(magnitude_spectrum, size)
-    elif mask_method == 'mask_vertical_line':
-        magnitude_reduced = mask_vertical_line(magnitude_spectrum, size)
+    # Select which option of masking, loop through different weights set
+    weight_list = [0, 125]
+    # Make 2 more copies for different weights
+    fftShift_half_weight = np.copy(fftShift)
+    fftShift_full_weight = np.copy(fftShift)
+    fftShift_list = [fftShift_half_weight, fftShift_full_weight]
+
+    for weight, fftShift_item in zip(weight_list, fftShift_list):
+        if mask_method == 'mask_center_radial':
+            magnitude_reduced, fftShift_item = mask_center_radial(magnitude_spectrum, size, weight=weight)
+        elif mask_method == 'mask_center_square':
+            magnitude_reduced, fftShift_item = mask_center_square(magnitude_spectrum, size, weight=weight)
+        elif mask_method == 'mask_corner_square':
+            magnitude_reduced, fftShift_item = mask_corner_square(magnitude_spectrum, size, weight=weight)
+        elif mask_method == 'mask_horizontal_line':
+            magnitude_reduced, fftShift_item = mask_horizontal_line(magnitude_spectrum, size, weight=weight)
+        elif mask_method == 'mask_vertical_line':
+            magnitude_reduced, fftShift_item = mask_vertical_line(magnitude_spectrum, size, weight=weight)
     
     
-    ax[1][1].imshow(magnitude_reduced, cmap="gray")
-    ax[1][1].set_title("Masked Magnitude Spectrum")
-    ax[1][1].set_xticks([])
-    ax[1][1].set_yticks([])
+    ax[0][2].imshow(magnitude_reduced, cmap="gray")
+    ax[0][2].set_title("Masked Magnitude Spectrum")
+    ax[0][2].set_xticks([])
+    ax[0][2].set_yticks([])
 
     fftShift = np.fft.ifftshift(fftShift)
     reconstructed_image = np.fft.ifft2(fftShift)
@@ -154,18 +160,14 @@ def compare_fft_image(image, size=60, save=-1, image_name="nil", mask_method='ce
 
     if save:
         print(f"Saving {image_name}...")
-        plt.savefig(f"D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\FFT Masking on Bus images\{mask_method}\{image_name}_{mask_method}_{size}.png", 
+        plt.savefig(f"D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\FFT Masking on Bus images\{mask_method}\{image_name}_{mask_method}_size={size}_weight={weight}.png",
                     bbox_inches="tight", 
                     dpi=1800)
-        print(f"Saved as {image_name}_{mask_method}_{size}.png")
+        print(f"Saved as {image_name}_{mask_method}_size={size}_weight={weight}.png")
     else:
         plt.show()
 
     print("mean:", mean)
-    
-    # Show recon image
-    # cv2.imshow("Output", abs(recon))
-    # cv2.waitKey(0)
     return
 
 
@@ -181,7 +183,8 @@ if __name__ == "__main__":
 
     if args["image"].lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
         print(f"Processing {args['image']}")
-        image = cv2.imread(args["image"], cv2.IMREAD_GRAYSCALE)
+        image = cv2.imread(args["image"], cv2.IMREAD_GRAYSCALE, cv2.IMREAD_ANYDEPTH)
+        _, image_name = os.path.split(image)
         compare_fft_image(image, args["size"], args["save"], image_name=gs.change_file_extension(image_name, ""), mask_method=args["mask_method"])
         
     else:
@@ -190,7 +193,7 @@ if __name__ == "__main__":
         for image_name in images:
             print(f"Processing {image_name}")
             # image = cv2.imread(os.path.join(imagedir, image_name), cv2.IMREAD_GRAYSCALE)
-            image = cv2.imread(os.path.join(imagedir, image_name))
+            image = cv2.imread(os.path.join(imagedir, image_name), cv2.IMREAD_GRAYSCALE, cv2.IMREAD_ANYDEPTH)
             print(image.shape)
             print(image[100,100])
             # compare_fft_image(image, args["size"], args["save"], image_name=gs.change_file_extension(image_name, ""), mask_method=args["mask_method"])
