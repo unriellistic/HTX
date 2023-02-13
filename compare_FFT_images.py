@@ -110,64 +110,65 @@ def compare_fft_image(image, size=60, save=-1, image_name="nil", mask_method='ce
         fftShift_item[cY+5:h:, cX-rectangle_size:cX+rectangle_size] = weight
         return magnitude_spectrum, fftShift_item
     
+    # Find the darkest and brightest pixel value.
+    (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(image)
+
     # Select which option of masking, loop through different weights set
-    weight_list = [0, 125]
-    # Make 2 more copies for different weights
-    fftShift_half_weight = np.copy(fftShift)
-    fftShift_full_weight = np.copy(fftShift)
-    fftShift_list = [fftShift_half_weight, fftShift_full_weight]
+    weight_list = [200]
+    print("weight_list:", weight_list)
 
-    for weight, fftShift_item in zip(weight_list, fftShift_list):
+    for weight in weight_list:
+        fftShift_item = np.copy(fftShift)
         if mask_method == 'mask_center_radial':
-            magnitude_reduced, fftShift_item = mask_center_radial(magnitude_spectrum, size, weight=weight)
+            magnitude_reduced, fftShift_item = mask_center_radial(magnitude_spectrum=magnitude_spectrum, fftShift_item=fftShift_item, radius_size=size, weight=weight)
         elif mask_method == 'mask_center_square':
-            magnitude_reduced, fftShift_item = mask_center_square(magnitude_spectrum, size, weight=weight)
+            magnitude_reduced, fftShift_item = mask_center_square(magnitude_spectrum=magnitude_spectrum, fftShift_item=fftShift_item, square_size=size, weight=weight)
         elif mask_method == 'mask_corner_square':
-            magnitude_reduced, fftShift_item = mask_corner_square(magnitude_spectrum, size, weight=weight)
+            magnitude_reduced, fftShift_item = mask_corner_square(magnitude_spectrum=magnitude_spectrum, fftShift_item=fftShift_item, square_size=size, weight=weight)
         elif mask_method == 'mask_horizontal_line':
-            magnitude_reduced, fftShift_item = mask_horizontal_line(magnitude_spectrum, size, weight=weight)
+            magnitude_reduced, fftShift_item = mask_horizontal_line(magnitude_spectrum=magnitude_spectrum, fftShift_item=fftShift_item, rectangle_size=size, weight=weight)
         elif mask_method == 'mask_vertical_line':
-            magnitude_reduced, fftShift_item = mask_vertical_line(magnitude_spectrum, size, weight=weight)
+            magnitude_reduced, fftShift_item = mask_vertical_line(magnitude_spectrum=magnitude_spectrum, fftShift_item=fftShift_item, rectangle_size=size, weight=weight)
     
     
-    ax[0][2].imshow(magnitude_reduced, cmap="gray")
-    ax[0][2].set_title("Masked Magnitude Spectrum")
-    ax[0][2].set_xticks([])
-    ax[0][2].set_yticks([])
+        ax[1][1].imshow(magnitude_reduced, cmap="gray")
+        ax[1][1].set_title("Masked Magnitude Spectrum")
+        ax[1][1].set_xticks([])
+        ax[1][1].set_yticks([])
 
-    fftShift = np.fft.ifftshift(fftShift)
-    reconstructed_image = np.fft.ifft2(fftShift)
+        fftShift_item = np.fft.ifftshift(fftShift_item)
+        reconstructed_image = np.fft.ifft2(fftShift_item)
 
-    # compute the magnitude spectrum of the reconstructed image,
-    # then compute the mean of the magnitude values
-    magnitude = 20 * np.log(np.abs(reconstructed_image))
+        # compute the magnitude spectrum of the reconstructed image,
+        # then compute the mean of the magnitude values
+        magnitude = 20 * np.log(np.abs(reconstructed_image))
 
-    # Compare original with transformed image
-    # compute the magnitude spectrum of the transform
-    # display the original input image
+        # Compare original with transformed image
+        # compute the magnitude spectrum of the transform
+        # display the original input image
 
-    # Each pixel contains a magnitude value, lower it is the darker the image is.
-    mean = np.mean(magnitude)
-    for i in range(10):
-        print("magnitude:", magnitude[i])
+        # Each pixel contains a magnitude value, lower it is the darker the image is.
+        mean = np.mean(magnitude)
+        for i in range(10):
+            print("magnitude:", magnitude[i])
 
-    # To compare the original image vs inversed image
-    # Display altered image
-    ax[1][0].imshow(abs(reconstructed_image), cmap="gray")
-    ax[1][0].set_title("Reconstructed image")
-    ax[1][0].set_xticks([])
-    ax[1][0].set_yticks([])
+        # To compare the original image vs inversed image
+        # Display altered image
+        ax[1][0].imshow(abs(reconstructed_image), cmap="gray")
+        ax[1][0].set_title(f"Recon image, weight={weight}")
+        ax[1][0].set_xticks([])
+        ax[1][0].set_yticks([])
 
-    if save:
-        print(f"Saving {image_name}...")
-        plt.savefig(f"D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\FFT Masking on Bus images\{mask_method}\{image_name}_{mask_method}_size={size}_weight={weight}.png",
-                    bbox_inches="tight", 
-                    dpi=1800)
-        print(f"Saved as {image_name}_{mask_method}_size={size}_weight={weight}.png")
-    else:
-        plt.show()
+        if save:
+            print(f"Saving {image_name}...")
+            plt.savefig(f"D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\FFT Masking on Bus images\{mask_method}\{image_name}_{mask_method}_size={size}_weight={weight}.png",
+                        bbox_inches="tight", 
+                        dpi=1800)
+            print(f"Saved as {image_name}_{mask_method}_size={size}_weight={weight}.png")
+        else:
+            plt.show()
 
-    print("mean:", mean)
+        print("mean:", mean)
     return
 
 
@@ -183,7 +184,7 @@ if __name__ == "__main__":
 
     if args["image"].lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
         print(f"Processing {args['image']}")
-        image = cv2.imread(args["image"], cv2.IMREAD_GRAYSCALE, cv2.IMREAD_ANYDEPTH)
+        image = cv2.imread(args["image"], cv2.IMREAD_ANYDEPTH)
         _, image_name = os.path.split(image)
         compare_fft_image(image, args["size"], args["save"], image_name=gs.change_file_extension(image_name, ""), mask_method=args["mask_method"])
         
@@ -193,8 +194,10 @@ if __name__ == "__main__":
         for image_name in images:
             print(f"Processing {image_name}")
             # image = cv2.imread(os.path.join(imagedir, image_name), cv2.IMREAD_GRAYSCALE)
-            image = cv2.imread(os.path.join(imagedir, image_name), cv2.IMREAD_GRAYSCALE, cv2.IMREAD_ANYDEPTH)
-            print(image.shape)
-            print(image[100,100])
-            # compare_fft_image(image, args["size"], args["save"], image_name=gs.change_file_extension(image_name, ""), mask_method=args["mask_method"])
+            image = cv2.imread(os.path.join(imagedir, image_name), cv2.IMREAD_ANYDEPTH) #cv2.IMREAD_GRAYSCALE,
+
+            # Debugging purposes
+            # print(image.shape)
+            # print(image[100])
+            compare_fft_image(image, args["size"], args["save"], image_name=gs.change_file_extension(image_name, ""), mask_method=args["mask_method"])
     cv2.destroyAllWindows()
