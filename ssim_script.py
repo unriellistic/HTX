@@ -66,5 +66,5 @@ def main():
   print("SSIM:", ssim_value)
 
 if __name__ == '__main__':
-    # /path/to/mse-ssim.py -o C:\Users\User1\BusXray\Compiling_All_subfolder_images\reference_clean_images\PA8506K Higer 49 seats -c /path/to/copy.ext
+    # python ssim_script.py --first "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\images_for_fft_testing\18-01-2022 10-37-26.tif" --second "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\images_for_fft_testing\18-01-2022 12-43-57 (1gun).tif"
 	main()
