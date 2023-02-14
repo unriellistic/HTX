@@ -1,6 +1,13 @@
 """
 This script is to compare the original image and the reconstructed image after applying FFT masking.
 It includes the plots for comparison.
+Parameters that can be tailored are:
+weight_list: Contains the "weight" of how dark you want to mask the magnitude and fft images. Darker -> More masking
+arguments:
+    image: path input, can be single image or a folder
+    size: how many pixels width you want to mask
+    save: whether do you want to save to the folder (this will save to a folder that must exist with it's relevant method name)
+    mask_method: how you want to mask the image
 """
 
 # https://pyimagesearch.com/2020/06/15/opencv-fast-fourier-transform-fft-for-blur-detection-in-images-and-video-streams/
@@ -110,11 +117,19 @@ def compare_fft_image(image, size=60, save=-1, image_name="nil", mask_method='ce
         fftShift_item[cY+5:h:, cX-rectangle_size:cX+rectangle_size] = weight
         return magnitude_spectrum, fftShift_item
     
+    def mask_custom_shape(magnitude_spectrum, fftShift_item, pixel_size=1, weight=0):
+        magnitude_spectrum[cY-pixel_size:cY+pixel_size, cX] = weight
+        magnitude_spectrum[cY, cX-pixel_size:cX+pixel_size] = weight
+        fftShift_item[cY-pixel_size:cY+pixel_size, cX] = weight
+        fftShift_item[cY, cX-pixel_size:cX+pixel_size] = weight
+        return magnitude_spectrum, fftShift_item
+    
     # Find the darkest and brightest pixel value.
     (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(image)
+    print(f"minVal: {minVal}, maxVal: {maxVal}, minLoc: {minLoc}, maxLoc: {maxLoc}")
 
     # Select which option of masking, loop through different weights set
-    weight_list = [200]
+    weight_list = [0, 200, 400]
     print("weight_list:", weight_list)
 
     for weight in weight_list:
@@ -129,6 +144,8 @@ def compare_fft_image(image, size=60, save=-1, image_name="nil", mask_method='ce
             magnitude_reduced, fftShift_item = mask_horizontal_line(magnitude_spectrum=magnitude_spectrum, fftShift_item=fftShift_item, rectangle_size=size, weight=weight)
         elif mask_method == 'mask_vertical_line':
             magnitude_reduced, fftShift_item = mask_vertical_line(magnitude_spectrum=magnitude_spectrum, fftShift_item=fftShift_item, rectangle_size=size, weight=weight)
+        elif mask_method == 'mask_custom_shape':
+            magnitude_reduced, fftShift_item = mask_custom_shape(magnitude_spectrum=magnitude_spectrum, fftShift_item=fftShift_item, pixel_size=size, weight=weight)
     
     
         ax[1][1].imshow(magnitude_reduced, cmap="gray")
@@ -173,7 +190,7 @@ def compare_fft_image(image, size=60, save=-1, image_name="nil", mask_method='ce
 
 
 if __name__ == "__main__":
-    # python compare_FFT_images.py --save 1 -i "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\images_for_fft_testing" -m mask_vertical_line --size 1
+    # python compare_FFT_images.py --save 1 -i "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\images_for_fft_testing\temp_image_low.tif" -m mask_vertical_line --size 1
     # uncomment below if want to debug using pycharm in alp's laptop
     # sys.argv = ['compare_FFT_images.py', '-s', '-1', '-i', "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\YOLO_removeThreat_images\PA8506K Higer 49 seats-Threat-1-final_color.jpg",
     #             '-z', '1']
@@ -182,10 +199,10 @@ if __name__ == "__main__":
     # load the input image from disk, resize it, and convert it to
     # grayscale
 
-    if args["image"].lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
+    if args["image"].lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')):
         print(f"Processing {args['image']}")
         image = cv2.imread(args["image"], cv2.IMREAD_ANYDEPTH)
-        _, image_name = os.path.split(image)
+        _, image_name = os.path.split(args['image'])
         compare_fft_image(image, args["size"], args["save"], image_name=gs.change_file_extension(image_name, ""), mask_method=args["mask_method"])
         
     else:
