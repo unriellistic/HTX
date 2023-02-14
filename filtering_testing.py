@@ -1,3 +1,7 @@
+"""
+A script used to do exploratory of the different filters when applied to images
+"""
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -63,6 +67,7 @@ def get_FTT_spectrum():
     plt.imshow( (20*np.log10( 0.1 + F2)).astype(int), cmap=plt.cm.gray)
     plt.show()
 
+# A checking function to see whether the data has how many dimensions and how many dimensions should it have
 def valid_imshow_data(data):
     data = np.asarray(data)
     if data.ndim == 2:
