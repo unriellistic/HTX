@@ -1,6 +1,8 @@
 ~~To push to github~~
 git add .
 git commit -m 'i did something'
+git commit <file1> <file2> ...
+git restore (to undo commit)
 git push
 
 ~~To update from github~~
