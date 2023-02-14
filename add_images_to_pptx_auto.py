@@ -8,17 +8,23 @@ import collections.abc
 from pptx import Presentation
 import os
 
-# Constants to change
+### ------------------------- Constants to change ----------------------------------
 # EYEFOX_IMG_DIR: folder which stores eyefox images
 # XRAY_IMG_DIR: folder which stores Xray images
+# EXCEL_FILE_DIR: path to the excel file that stores the info
+# EXCEL_FILE_SHEETNAME: name of excel sheet, default is "Sheet1"
 # PPTX_FILENAME = name of pptx file to save as
+
 EYEFOX_IMG_DIR = "D:\\Eyefox Data\\CAG\\Staged Scene\\16 - Cleaned Images Annotated"
 XRAY_IMG_DIR = "D:\\Eyefox Data\\CAG\\Staged Scene\\16 - Cleaned TIF X-Ray Images"
+EXCEL_FILE_DIR = "D:\\Eyefox Data\\CAG\\Staged Scene\\EYEFOX_STATS_16JAN.xls"
+EXCEL_FILE_SHEETNAME = "Data for 160123"
 PPTX_FILENAME = "test"
 
-prs = Presentation()
+### --------------------------------------------------------------------------------
 
-### Slide class
+### ------------------------ Slide class -----------------------------------------
+prs = Presentation()
 # If want to see slide layout, uncomment below
 # for slide in prs.slide_layouts:
 #     for shape in slide.placeholders:
@@ -71,10 +77,11 @@ class MySlide:
 
             # Or if we want to center it vertically:
             # self.img.top = self.img.top + int(self.img.height/2)
-           
-### Get information from excel
+### ---------------------------------------------------------------------------
+
+### --------------------- Get information from excel ------------------------
 import pandas as pd
-df = pd.read_excel(r"D:\\Eyefox Data\\CAG\\Staged Scene\\EYEFOX_STATS_16JAN.xls", sheet_name='Data for 160123')
+df = pd.read_excel(EXCEL_FILE_DIR, sheet_name=EXCEL_FILE_SHEETNAME)
 
 print("Excel columns:", df.columns.tolist())
 info_about_images = []
@@ -87,17 +94,17 @@ for index, row in df.iterrows():
     if index == 0:
         continue
     else:
-        # NOTE: If want to alter code for different excel, it's the 2 lines down code to edit the columns to take the information from.
+        # NOTE: If want to alter code for different excel, it's the code located 2 lines below this sentence to edit the columns to take the information from.
         # print(f"Current row: {str(index)}\n", row['Overall'], row['Top View (view 1)'], row['Side View (view 2)'], row['Filename'], row['Unnamed: 15'], row['Unnamed: 16'], row['Legend/Notes'])
-        info_about_images.append(((True if row['Overall'] == 1 else False), 
-                                 (True if row['Top View (view 1)']==1 else False), 
-                                 (True if row['Side View (view 2)']==1 else False), 
-                                 str(row['Filename']), 
-                                 str(row['Unnamed: 15']), 
-                                 str(row['Unnamed: 16']), 
+        info_about_images.append(((True if row['Overall'] == 1 else False), # input column header for overall detection
+                                 (True if row['Top View (view 1)']==1 else False), # input column header for top view detection
+                                 (True if row['Side View (view 2)']==1 else False), # input column header for side view detection
+                                 str(row['Filename']), # input eyefox top filename column header
+                                 str(row['Unnamed: 15']), # input eyefox side filename column header
+                                 str(row['Unnamed: 16']), # input xray filename column header
                                  str(row['Legend/Notes'])))
-
-### Clean information and put into pptx
+### --------------------------------------------------------------------
+### ------------ Clean information and put into pptx -------------------
 from general_scripts import change_file_extension
 log = []
 for set, detail in enumerate(info_about_images):
@@ -116,23 +123,20 @@ for set, detail in enumerate(info_about_images):
     ### Rename json files to image files
     
     # Check if filename was blank
-    if detail[4] == "nan":
-        continue
-    else:
+    if detail[4] != "nan":
         try:
             side_eyefox_image_filename = change_file_extension(detail[4], ".png")
         except:
             print(f"error in: {detail[4]}")
+            log.append(detail[4])
 
     # Check if filename was blank
-    if detail[3] == "nan":
-        continue
-    else:
+    if detail[3] != "nan":
         try:
             top_eyefox_image_filename = change_file_extension(detail[3], ".png")
         except:
              print(f"error in: {detail[3]}")
-    
+             log.append(detail[3])
 
     ## Create xray slides
 
@@ -161,8 +165,10 @@ for set, detail in enumerate(info_about_images):
         MySlide([f"File: {detail[5]}\nEyefox detection:{eyefox_detection}\nRemarks: {detail[6]}", "", side_xray_image, 8])
         MySlide([f"File: {detail[5]}\nEyefox detection:{eyefox_detection}\nRemarks: {detail[6]}", "", top_xray_image, 8])
     except:
-        print(f"Can't find: {detail[5]}")
-        log.append(detail[5])
+        print(f"Can't find: {side_xray_image}")
+        # This is to account for empty x-ray file name found. Likely due to 2 rows being merged because 1 image contains multiple threats.
+        # Continue so that skips everything else.
+        continue
 
     # If Side View detection is True
     if detail[2] == True:
