@@ -1,3 +1,7 @@
+"""
+A script that uses your camera which utilises FFT to identify whether it's blurry or not
+"""
+
 # import the necessary packages
 from imutils.video import VideoStream
 import argparse

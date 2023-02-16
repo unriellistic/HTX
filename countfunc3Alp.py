@@ -1,5 +1,5 @@
 """
-A script that returns the number of detections for each folder in the directory you specify.
+A script that returns the number of detections (the stats) for each folder in the directory you specify.
 For e.g. if folder json test files contains 3 other folders, LAG + Threat, LAG only, No LAG + No Threat, then it'll automatically run through all those folders
 
 Changes made:

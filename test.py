@@ -1,9 +1,3 @@
-def test(a):
-    if a == 3:
-        print("finish")
-        return
-    a += 1
-    print(a)
-    test(a)
-
-test(1)
+bus_model = "123456789101112131415161adsasdasdas718"
+sheet_name = (f'{bus_model}')[0:26]
+print(sheet_name)

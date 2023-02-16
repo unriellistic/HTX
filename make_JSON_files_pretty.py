@@ -1,3 +1,7 @@
+"""
+Change cwd variable to be the path to the file that contains the JSON files... and that's it. It'll overwrite the old JSON file and replace it in the same directory.
+"""
+
 import json
 import os
 cwd = os.chdir("C:\\Users\\alpha\\OneDrive\\Desktop\\Life\\NTU\\Internship\\HTX\\json test files\\LAG + Threat")
