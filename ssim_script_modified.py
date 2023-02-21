@@ -73,6 +73,7 @@ def compare_ssim_mse_value(image1, image2):
 
   if round(ratio_orig, 2) != round(ratio_comp, 2):
     print("\nImages not of the same dimension. Check input.")
+    gray1 = cv2.resize(gray1, dim)
     exit()
 
   # Resize first image if the second image is smaller
@@ -82,6 +83,8 @@ def compare_ssim_mse_value(image1, image2):
 
   elif ho < hc and wo < wc:
     print("\nCompressed image has a larger dimension than the original. Check input.")
+    dim = (wo, ho)
+    gray1 = cv2.resize(gray2, dim)
     exit()
 
   if round(ratio_orig, 2) == round(ratio_comp, 2):
@@ -93,7 +96,7 @@ def compare_ssim_mse_value(image1, image2):
 
 # Compares images in the directory specified and returns their SSIM, MSE values and saves it in an excel file in the same directory.
 def compare_clean_images_ssim_mse_value(): 
-
+  log = []
   # Timer
   start = time.time()
   # Get options
@@ -142,8 +145,13 @@ def compare_clean_images_ssim_mse_value():
         counter += 1
         bus_model_count += 1
         print(f"\nProcessing '{first_image[0]}' and '{second_image[0]}'...")
-        temp_ssim, temp_mse = compare_ssim_mse_value(first_image[0], second_image[0])
-        bus_model_info.append([bus_image_index_1, bus_image_index_2, temp_ssim, temp_mse])
+        try:
+          temp_ssim, temp_mse = compare_ssim_mse_value(first_image[0], second_image[0])
+          bus_model_info.append([bus_image_index_1, bus_image_index_2, temp_ssim, temp_mse])
+        except:
+          print(f"{bus_model} doesn't have a right dimension or some problem between it's clean and threat images")
+          log.append(bus_model)
+          continue
 
         # Update smallest_bus_model_index
         if smallest_bus_model_index > int(bus_image_index_2):
@@ -225,7 +233,6 @@ def compare_threat_images_with_clean_images():
   os.chdir(args.dir)
   bus_model_info = []
   for first_image_index, first_image in enumerate(clean_images):
-    
     # Keep track of how many images found for that specific bus model
     bus_model_count = 0
     # Keep track of smallest index for that specific bus model
@@ -250,8 +257,13 @@ def compare_threat_images_with_clean_images():
       if bus_model_1 == bus_model_2:
         bus_model_count += 1
         print(f"\nProcessing '{first_image}' and '{second_image}'...")
-        temp_ssim, temp_mse = compare_ssim_mse_value(first_image, f"{args.dir2}\{second_image}")
-        bus_model_info.append([bus_image_index_1, bus_image_index_2, temp_ssim, temp_mse])
+        try:
+          temp_ssim, temp_mse = compare_ssim_mse_value(first_image, f"{args.dir2}\{second_image}")
+          bus_model_info.append([bus_image_index_1, bus_image_index_2, temp_ssim, temp_mse])
+        except:
+          print(f"{bus_model} doesn't have a right dimension or some problem between it's clean and threat images")
+          log.append(bus_model)
+          continue
 
         # Update smallest_bus_model_index
         if smallest_bus_model_index > int(bus_image_index_2):
