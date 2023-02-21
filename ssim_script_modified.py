@@ -155,7 +155,7 @@ def compare_clean_images_ssim_mse_value():
 
     # Set flag as visited
     first_image[1] = True
-    print(f"Number of scans left: {number_of_images_left} out of {number_of_images_left-1}")
+    print(f"Number of scans left: {number_of_images_left-1} out of {len(images)}")
     number_of_images_left -= 1
     
     # If first_image index reaches NUM_OF_SCANS, it means it has finished going through all the various images. Update information into info dictionary, and wipe bus_model_info clean for the next model.
@@ -273,7 +273,7 @@ def compare_threat_images_with_clean_images():
       current = time.time()
       print(f"Total time taken thus far: {str(timedelta(seconds=(current-start)))}")
     
-    print(f"Number of scans left: {number_of_images_left} out of {number_of_images_left-1}")
+    print(f"Number of scans left: {number_of_images_left-1} out of {len(clean_images)}")
     number_of_images_left -= 1
     
     
