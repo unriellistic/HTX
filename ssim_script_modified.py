@@ -12,7 +12,7 @@ Note:
 - It'll skip pass DualEnergy.tiff files because my primary objective was to compare the MonoChrome.tiff files.
 - It'll be able to calculate number of images or threat images in their respective folders. However, the files need to be saved in this format <bus model>-<ANYTHING>-<index>
 Made on: 16/2/2023
-Last updated: 17/2/2023
+Last updated: 21/2/2023
 @Author: Alphaeus
 """
 
