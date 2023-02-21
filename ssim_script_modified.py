@@ -73,8 +73,9 @@ def compare_ssim_mse_value(image1, image2):
 
   if round(ratio_orig, 2) != round(ratio_comp, 2):
     print("\nImages not of the same dimension. Check input.")
+    dim = (wo, ho)
     gray1 = cv2.resize(gray1, dim)
-    exit()
+    # exit()
 
   # Resize first image if the second image is smaller
   elif ho > hc and wo > wc:
@@ -85,7 +86,7 @@ def compare_ssim_mse_value(image1, image2):
     print("\nCompressed image has a larger dimension than the original. Check input.")
     dim = (wo, ho)
     gray1 = cv2.resize(gray2, dim)
-    exit()
+    # exit()
 
   if round(ratio_orig, 2) == round(ratio_comp, 2):
     mse_value = mse(gray1, gray2)
@@ -149,8 +150,8 @@ def compare_clean_images_ssim_mse_value():
           temp_ssim, temp_mse = compare_ssim_mse_value(first_image[0], second_image[0])
           bus_model_info.append([bus_image_index_1, bus_image_index_2, temp_ssim, temp_mse])
         except:
-          print(f"{bus_model} doesn't have a right dimension or some problem between it's clean and threat images")
-          log.append(bus_model)
+          print(f"{bus_model_1} doesn't have a right dimension or some problem between it's clean and threat images")
+          log.append(bus_model_1)
           continue
 
         # Update smallest_bus_model_index
@@ -261,8 +262,8 @@ def compare_threat_images_with_clean_images():
           temp_ssim, temp_mse = compare_ssim_mse_value(first_image, f"{args.dir2}\{second_image}")
           bus_model_info.append([bus_image_index_1, bus_image_index_2, temp_ssim, temp_mse])
         except:
-          print(f"{bus_model} doesn't have a right dimension or some problem between it's clean and threat images")
-          log.append(bus_model)
+          print(f"{bus_model_1} doesn't have a right dimension or some problem between it's clean and threat images")
+          log.append(bus_model_1)
           continue
 
         # Update smallest_bus_model_index
