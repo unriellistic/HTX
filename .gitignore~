@@ -1,5 +1,0 @@
-# Ignore all the large weight saved files
-*.pt
-
-# Ignore test file
-test.py
