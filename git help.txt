@@ -4,6 +4,10 @@ git commit -m 'i did something'
 git commit <file1> <file2> ...
 git restore (to undo commit)
 git push
+---
+~To push large files to github~
+git lfs install
+git lfs track "<filename>", e.g. "*.pt"
 
 ~~To update from github~~
 git fetch (maybe not required)
