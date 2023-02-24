@@ -8,6 +8,9 @@ arguments:
     size: how many pixels width you want to mask
     save: whether do you want to save to the folder (this will save to a folder that must exist with it's relevant method name)
     mask_method: how you want to mask the image
+Made on: Roughly early Feb 2023
+Last updated: Roughly mid feb 2023
+@Author: Alphaeus
 """
 
 # https://pyimagesearch.com/2020/06/15/opencv-fast-fourier-transform-fft-for-blur-detection-in-images-and-video-streams/
