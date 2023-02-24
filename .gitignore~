@@ -1,0 +1,2 @@
+# Ignore all the large weight saved files
+*.pt

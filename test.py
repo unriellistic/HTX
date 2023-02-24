@@ -1,3 +1,6 @@
 import torch
-for i in range(torch.cuda.device_count()):
-   print(torch.cuda.get_device_properties(i).name)
+t = torch.empty(3, 4, 5)
+print("t.size():", t.size())
+print("t.size(dim=1):", t.size(dim=1))
+
+dict = {}

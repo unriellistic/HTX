@@ -12,7 +12,20 @@ from torchvision import datasets
 from torchvision import transforms as T
 from torch.optim.lr_scheduler import StepLR
 
+# Modified version
+import general_scripts as gs
+import torchvision.transforms as transforms
+from PIL import Image
+import os
+from torch.utils.data import random_split
+
 torch.cuda.is_available()
+
+def check_mem_alloc():
+    print("Checking mem usage...\n" + torch.cuda.memory_summary(device=None, abbreviated=False))
+
+# print("Emptying cache...")
+# torch.cuda.empty_cache()
 
 
 class SiameseNetwork(nn.Module):
@@ -79,21 +92,48 @@ class SiameseNetwork(nn.Module):
         
         return output
 
+def prepare_dataset(save=False):
+    os.chdir("D:\BusXray\Compiling_All_subfolder_images\Compiled_Clean_Images")
+    print("Current working directory: {0}".format(os.getcwd()))
+    temp_dataset = gs.load_images_from_folder("D:\BusXray\Compiling_All_subfolder_images\Compiled_Clean_Images")
+    temp_dataset = [ x for x in temp_dataset if "Monochrome" in x ]
+
+    # Define a transform to convert the image to tensor
+    transform = transforms.ToTensor()
+    compiled_tensorised_dict = {}
+
+    for index, first_image in enumerate(temp_dataset):
+        bus_model = ' '.join(first_image.split(" ")[0:-3])
+        image = Image.open(first_image)
+        tensor = transform(image)
+
+        # Instantialise new key if dictionary didn't have it previously.
+        if compiled_tensorised_dict.get(f"{bus_model}") == None:
+            print(f"New model, {bus_model} found, creating new list")
+            compiled_tensorised_dict[bus_model] = []
+
+        compiled_tensorised_dict[bus_model].append([index, tensor])
+    
+    if save:
+        torch.save(compiled_tensorised_dict, 'C:\\Users\\User1\\Desktop\\alp\\compiled_tensorised_dict.pt')
+    return compiled_tensorised_dict
+
+def transform_dataset_into_tensor_data(dataset):
+    tensor_list = []
+    for big_list in dataset.values():
+        for individual_list in big_list:
+            # individual_list[0] contains their index, individual_list[1] contains their respective tensor
+            tensor_list.append(individual_list[1])
+    
+    tensor = torch.stack(tensor_list)
+    return tensor
+
 class APP_MATCHER(Dataset):
-    def __init__(self, root, train, download=False):
+    def __init__(self, root, dataset):
         super(APP_MATCHER, self).__init__()
-
-        # get MNIST dataset
-        self.dataset = datasets.MNIST(root, train=train, download=download)
         
-        # as `self.dataset.data`'s shape is (Nx28x28), where N is the number of
-        # examples in MNIST dataset, a single example has the dimensions of
-        # (28x28) for (WxH), where W and H are the width and the height of the image. 
-        # However, every example should have (CxWxH) dimensions where C is the number 
-        # of channels to be passed to the network. As MNIST contains gray-scale images, 
-        # we add an additional dimension to corresponds to the number of channels.
-        self.data = self.dataset.data.unsqueeze(1).clone()
-
+        self.dataset = dataset
+        self.data = transform_dataset_into_tensor_data(self.dataset)
         self.group_examples()
 
     def group_examples(self):
@@ -105,17 +145,20 @@ class APP_MATCHER(Dataset):
             `grouped_examples`, every value will conform to all of the indices for the MNIST 
             dataset examples that correspond to that key.
         """
-
-        # get the targets from MNIST dataset
-        np_arr = np.array(self.dataset.targets.clone())
         
         # group examples based on class
         self.grouped_examples = {}
-        for i in range(0,10):
-            self.grouped_examples[i] = np.where((np_arr==i))[0]
+        
+        # This groups up the index of each tensor to it's respective groups according to the blog's format.
+        for key, value in self.dataset.items():
+            self.grouped_examples[key] = np.array([each_tensor[0] for each_tensor in value])
+        
+        # print("self.grouped_examples:", self.grouped_examples)
+        
+        
     
     def __len__(self):
-        return self.data.shape[0]
+        return len(self.grouped_examples)
     
     def __getitem__(self, index):
         """
@@ -131,15 +174,18 @@ class APP_MATCHER(Dataset):
             pick the second image from a different class than the first image.
         """
 
+        # Get all the respective bus models in a list
+        list_of_bus_model = list(self.dataset)
+
         # pick some random class for the first image
-        selected_class = random.randint(0, 9)
+        selected_class = random.randint(0, len(list_of_bus_model)-1)
 
         # pick a random index for the first image in the grouped indices based of the label
         # of the class
-        random_index_1 = random.randint(0, self.grouped_examples[selected_class].shape[0]-1)
+        random_index_1 = random.randint(0, len(self.grouped_examples[list_of_bus_model[selected_class]])-1)
         
         # pick the index to get the first image
-        index_1 = self.grouped_examples[selected_class][random_index_1]
+        index_1 = self.grouped_examples[list_of_bus_model[selected_class]][random_index_1]
 
         # get the first image
         image_1 = self.data[index_1].clone().float()
@@ -147,14 +193,14 @@ class APP_MATCHER(Dataset):
         # same class
         if index % 2 == 0:
             # pick a random index for the second image
-            random_index_2 = random.randint(0, self.grouped_examples[selected_class].shape[0]-1)
+            random_index_2 = random.randint(0, len(self.grouped_examples[list_of_bus_model[selected_class]])-1)
             
             # ensure that the index of the second image isn't the same as the first image
             while random_index_2 == random_index_1:
-                random_index_2 = random.randint(0, self.grouped_examples[selected_class].shape[0]-1)
+                random_index_2 = random.randint(0, len(self.grouped_examples[list_of_bus_model[selected_class]])-1)
             
             # pick the index to get the second image
-            index_2 = self.grouped_examples[selected_class][random_index_2]
+            index_2 = self.grouped_examples[list_of_bus_model[selected_class]][random_index_2]
 
             # get the second image
             image_2 = self.data[index_2].clone().float()
@@ -165,19 +211,19 @@ class APP_MATCHER(Dataset):
         # different class
         else:
             # pick a random class
-            other_selected_class = random.randint(0, 9)
+            other_selected_class = random.randint(0, len(list_of_bus_model)-1)
 
             # ensure that the class of the second image isn't the same as the first image
             while other_selected_class == selected_class:
-                other_selected_class = random.randint(0, 9)
+                other_selected_class = random.randint(0, len(list_of_bus_model)-1)
 
             
             # pick a random index for the second image in the grouped indices based of the label
             # of the class
-            random_index_2 = random.randint(0, self.grouped_examples[other_selected_class].shape[0]-1)
+            random_index_2 = random.randint(0, len(self.grouped_examples[list_of_bus_model[selected_class]])-1)
 
             # pick the index to get the second image
-            index_2 = self.grouped_examples[other_selected_class][random_index_2]
+            index_2 = self.grouped_examples[list_of_bus_model[selected_class]][random_index_2]
 
             # get the second image
             image_2 = self.data[index_2].clone().float()
@@ -186,6 +232,7 @@ class APP_MATCHER(Dataset):
             target = torch.tensor(0, dtype=torch.float)
 
         return image_1, image_2, target
+
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -198,6 +245,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         images_1, images_2, targets = images_1.to(device), images_2.to(device), targets.to(device)
         optimizer.zero_grad()
         outputs = model(images_1, images_2).squeeze()
+        targets = torch.squeeze(targets)
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
@@ -221,6 +269,7 @@ def test(model, device, test_loader):
         for (images_1, images_2, targets) in test_loader:
             images_1, images_2, targets = images_1.to(device), images_2.to(device), targets.to(device)
             outputs = model(images_1, images_2).squeeze()
+            targets = torch.squeeze(targets)
             test_loss += criterion(outputs, targets).sum().item()  # sum up batch loss
             pred = torch.where(outputs > 0.5, 1, 0)  # get the index of the max log-probability
             correct += pred.eq(targets.view_as(pred)).sum().item()
@@ -238,10 +287,10 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch Siamese network Example')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
-                        help='input batch size for testing (default: 1000)')
+    parser.add_argument('--batch-size', type=int, default=1, metavar='N',
+                        help='input batch size for training (default: 1)')
+    parser.add_argument('--test-batch-size', type=int, default=1, metavar='N',
+                        help='input batch size for testing (default: 1)')
     parser.add_argument('--epochs', type=int, default=14, metavar='N',
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
@@ -256,10 +305,12 @@ def main():
                         help='quickly check a single pass')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
+    parser.add_argument('--save-preprocessing', action='store_true', default=False,
+                        help='saves pre-processing of images data')
     args = parser.parse_args()
     
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -283,8 +334,28 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    train_dataset = APP_MATCHER('../data', train=True, download=True)
-    test_dataset = APP_MATCHER('../data', train=False)
+    # train_dataset = APP_MATCHER(prepare_dataset(save=True))
+    # test_dataset = APP_MATCHER(prepare_dataset())
+    preprocessed_data = torch.load('compiled_tensorised_dict.pt')
+    train_data = {}
+    test_data = {}
+    # Split dataset into 80/20 train/test
+    for bus_model, value in preprocessed_data.items():
+        temp_train_list = []
+        temp_test_list = []
+        for index, items in enumerate(value):
+            if index < len(value)*80/100-1:
+                temp_train_list.append(items)
+            else:
+                temp_test_list.append(items)
+        train_data[bus_model] = temp_train_list
+        test_data[bus_model] = temp_test_list
+
+    print("The length of train data is:",len(train_data))
+    print("The length of test data is:",len(test_data))
+    cwd = os.getcwd
+    train_dataset = APP_MATCHER(root=cwd, dataset=train_data)
+    test_dataset = APP_MATCHER(root=cwd, dataset=test_data)
     train_loader = torch.utils.data.DataLoader(train_dataset,**train_kwargs)
     test_loader = torch.utils.data.DataLoader(test_dataset, **test_kwargs)
 
@@ -293,6 +364,7 @@ def main():
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     for epoch in range(1, args.epochs + 1):
+        check_mem_alloc()
         train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
         scheduler.step()
@@ -302,6 +374,8 @@ def main():
 
 
 if __name__ == '__main__':
+    # Run this to prep the images to be stored in a dataset
+    # prepare_dataset(save=True)
     main()
 
 

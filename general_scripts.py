@@ -11,7 +11,7 @@ folder: A variable that contains the full path to the directory of interest
 file_type: A variable that specifies what file type to look for. Default = "all"
 """
 import os
-def load_images_from_folder(folder, file_type="all"):
+def load_images_from_folder(folder, filename_endswith="", file_type="all"):
     images = []
     list_of_image_file_format = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')
     for filename in os.listdir(folder):
