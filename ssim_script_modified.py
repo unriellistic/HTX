@@ -11,8 +11,10 @@ e.g. python ssim_script_modified.py --dir "D:\\BusXray\\Compiling_All_subfolder_
 Note: 
 - It'll skip pass DualEnergy.tiff files because my primary objective was to compare the MonoChrome.tiff files.
 - It'll be able to calculate number of images or threat images in their respective folders. However, the files need to be saved in this format <bus model>-<ANYTHING>-<index>
-Made on: 16/2/2023
-Last updated: 21/2/2023
+- Have to manually change the function call under the if "__name__ == main" for the different functions.
+- Have to manually specify the number of images under variable, 'NUM_OF_SCANS'
+Created at: 16/2/2023
+Last updated: 3/3/2023
 @Author: Alphaeus
 """
 
@@ -106,6 +108,9 @@ def compare_clean_images_ssim_mse_value():
   num_of_images_per_bus_model = {}
   # Import images and store as a list
   images = gs.load_images_from_folder(str(args.dir))
+  # Temp modification for images, to be removed
+  images = [i for i in images if 'histogramised' in i]
+
   images_with_visited_flag = [[i, False] for i in images]
   number_of_images_left = len(images)
   
@@ -208,9 +213,13 @@ def compare_clean_images_ssim_mse_value():
     df_mse = pd.DataFrame(final_mse_info, columns=[str(i+1) for i in range(NUM_OF_SCANS)])
 
     # Excel sheet can't have > 31 characters, shorten it
-    sheet_name = (f'{bus_model}')[0:26]
+    try:
+      sheet_name = (f'{bus_model}')[0:26]
+    except:
+      # Name not longer then 26 characters, leave it be
+      sheet_name = sheet_name
+
     df_ssim.to_excel(writer, sheet_name=f'{sheet_name}_SSIM', index=False)
-    sheet_name = (f'{bus_model}')[0:26]
     df_mse.to_excel(writer, sheet_name=f'{sheet_name}_MSE', index=False)
     current = time.time()
     print(f"Total time taken thus far: {str(timedelta(seconds=(current-start)))}")
@@ -392,9 +401,13 @@ def compare_threat_images_with_clean_images():
     df_mse = pd.DataFrame(final_mse_info, columns=joined_column_header)
 
     # Excel sheet can't have > 31 characters, shorten it
-    sheet_name = (f'{bus_model}')[0:26]
+    try:
+      sheet_name = (f'{bus_model}')[0:26]
+    except:
+      # Name not longer then 26 characters, leave it be
+      sheet_name = sheet_name
+      
     df_ssim.to_excel(writer, sheet_name=f'{sheet_name}_SSIM', index=False)
-    sheet_name = (f'{bus_model}')[0:26]
     df_mse.to_excel(writer, sheet_name=f'{sheet_name}_MSE', index=False)
     current = time.time()
     print(f"Total time taken thus far: {str(timedelta(seconds=(current-start)))}")
@@ -408,5 +421,5 @@ if __name__ == '__main__':
   # compare_clean_images_ssim_mse_value()
 
   # python ssim_script_modified.py --dir "D:\BusXray\Compiling_All_subfolder_images\test_compiled_clean_images" --mode 1 --dir2 "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\removeThreat_images"
-  # python ssim_script_modified.py --dir "D:\BusXray\Compiling_All_subfolder_images\test_compiled_clean_images" --mode 1 --dir2 "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\images_for_ssim_test"
+  # python ssim_script_modified.py --dir ""D:\BusXray\Compiling_All_subfolder_images\test_folder_for_clean_histogramised"" --mode 1 --dir2 "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\removeThreat_images"
   compare_threat_images_with_clean_images()
