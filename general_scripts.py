@@ -46,7 +46,12 @@ def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=Fa
     print(f"Excel file saved as {file_name}")
 
 """
-Function that replaces file extension names
+Function that replaces file extension names.
+
+filename: A variable that contains the name of the file including the extension
+    - e.g.: image_2023.png
+new_file_extension: the new string that you would like the file to end with instead
+    - e.g.: image_2023.png -> image_2023.tif
 """
 
 def change_file_extension(filename, new_file_extension):
@@ -58,7 +63,7 @@ def change_file_extension(filename, new_file_extension):
     # Get a list of "."
     list_of_index_of_element = list(indexes(filename, "."))
 
-    # Find the last ".", minus 1 to get the index before the "."
+    # Find the last ".", minus 1 to get the index before the ".", which is the filename without the extension
     filename = filename[0:list_of_index_of_element[-1]] + new_file_extension
 
     return filename
