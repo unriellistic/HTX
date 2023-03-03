@@ -108,6 +108,7 @@ def compare_clean_images_ssim_mse_value():
   num_of_images_per_bus_model = {}
   # Import images and store as a list
   images = gs.load_images_from_folder(str(args.dir))
+
   # Temp modification for images, to be removed
   images = [i for i in images if 'histogramised' in i]
 
@@ -238,6 +239,11 @@ def compare_threat_images_with_clean_images():
   # Import images and store as a list
   clean_images = gs.load_images_from_folder(str(args.dir))
   threat_images = gs.load_images_from_folder(str(args.dir2))
+  
+  # Temp modification for images, to be removed
+  clean_images = [i for i in clean_images if 'histogramised' in i]
+  threat_images = [i for i in threat_images if 'histogramised' in i]
+
   number_of_images_left = len(clean_images)
   
   os.chdir(args.dir)
@@ -421,5 +427,5 @@ if __name__ == '__main__':
   # compare_clean_images_ssim_mse_value()
 
   # python ssim_script_modified.py --dir "D:\BusXray\Compiling_All_subfolder_images\test_compiled_clean_images" --mode 1 --dir2 "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\removeThreat_images"
-  # python ssim_script_modified.py --dir ""D:\BusXray\Compiling_All_subfolder_images\test_folder_for_clean_histogramised"" --mode 1 --dir2 "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\removeThreat_images"
+  # python ssim_script_modified.py --dir ""D:\BusXray\Compiling_All_subfolder_images\test_folder_for_clean_histogramised"" --mode 1 --dir2 "D:\BusXray\Compiling_All_subfolder_images\test_folder_for_threat_histogramised"
   compare_threat_images_with_clean_images()

@@ -3,6 +3,7 @@ A script to perform histogram equaliser on images.
 CLEAN_IMR_DIR is the path to the folder that stores the clean images
 FOLDER_FOR_HISTOGRAMISED_IMG is the path to the folder that stores the histogramised image
 THREAT_IMG_DIR is the path to the folder that stores the threat image
+DIR_FOR_IMAGE_INPUT contains the either the path to the clean image folder, or can set to the path to the threat image folder
 """
 import cv2
 import matplotlib.pyplot as plt
@@ -11,8 +12,11 @@ import os, numpy as np
 
 # python ssim_script_modified.py --dir "D:\BusXray\Compiling_All_subfolder_images\test_compiled_clean_images" --dir2 "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\removeThreat_images"
 CLEAN_IMR_DIR = r"D:\BusXray\Compiling_All_subfolder_images\compiled_clean_images"
-FOLDER_FOR_HISTOGRAMISED_IMG = r"D:\BusXray\Compiling_All_subfolder_images\test_compiled_clean_images_storage"
+FOLDER_FOR_HISTOGRAMISED_IMG = r"D:\BusXray\Compiling_All_subfolder_images\test_folder_for_threat_histogramised"
 THREAT_IMG_DIR = r"D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\removeThreat_images"
+DIR_FOR_IMAGE_INPUT = THREAT_IMG_DIR
+BUS_MODEL = 'PC603E Volvo'
+TYPE_OF_SCAN = 'temp_image_low' # or 'Monochrome' for clean image
 
 def equalize_histogram_16bit(src_img):
     # Create a copy of the input image
@@ -45,13 +49,29 @@ def equalize_histogram_16bit(src_img):
 
     return dst_img
 
+import cv2
+import numpy as np
 
-list_of_clean_images = gs.load_images_from_folder(CLEAN_IMR_DIR)
-one_set_of_bus_model = [i for i in list_of_clean_images if 'PC603E Volvo' in i and 'Monochrome' in i]
+# def equalize_histogram_16bit_CLAHE(image):
+#     # Convert the input image to grayscale if it is not already in grayscale
+#     if len(image.shape) == 3 and image.shape[2] == 3:
+#         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+#     # Create a CLAHE object
+#     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+
+#     # Apply CLAHE to the input image
+#     equalized = clahe.apply(image)
+
+#     return equalized
+
+
+list_of_clean_images = gs.load_images_from_folder(DIR_FOR_IMAGE_INPUT)
+one_set_of_bus_model = [i for i in list_of_clean_images if BUS_MODEL in i and TYPE_OF_SCAN in i]
 print(one_set_of_bus_model)
 
 for image in one_set_of_bus_model:
-  img = cv2.imread(os.path.join(CLEAN_IMR_DIR, image), cv2.IMREAD_ANYDEPTH)
+  img = cv2.imread(os.path.join(DIR_FOR_IMAGE_INPUT, image), cv2.IMREAD_ANYDEPTH)
   # Find max intensity value of pixel in image
   biggest_pixel_value = np.amax(img)
 
