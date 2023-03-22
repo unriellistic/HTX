@@ -2,9 +2,17 @@
 The script automates the creation of multiple slides with a specific content:
 - One picture
 - Two subtexts (Filename, Remarks)
+
+Update the different directories.
+
+EYEFOX_IMG_DIR: Is the full absolute path to the images taken by the eyefox machine
+XRAY_IMG_DIR: Is the full absolute path to the images taken by the xray machine. (Tiff format ones)
+EXCEL_FILE_DIR = Is the full absolute path to the stats noted down on the different objects.
+    - See below for how to format the excel file, and alter the code itself to take in the correct column header information.
+EXCEL_FILE_SHEETNAME: Name of excel file sheetname that you take the stats from.
+PPTX_FILENAME: Name of pptx file that you want to save as.
 """
-import collections 
-import collections.abc
+
 from pptx import Presentation
 import os
 
@@ -183,6 +191,7 @@ for set, detail in enumerate(info_about_images):
     if detail[1] == True:
         top_eyefox_image = EYEFOX_IMG_DIR + "\\" + top_eyefox_image_filename
         try:
+            # Have to leave an empty '""' because the pptx class is formatted in such a way.
             MySlide([f"File: {top_eyefox_image_filename}\nEyefox detection:{eyefox_detection}\nRemarks: {detail[6]}", "", top_eyefox_image, 8])
         except:
             print(f"Can't find: {top_eyefox_image_filename}")

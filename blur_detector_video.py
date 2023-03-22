@@ -1,16 +1,16 @@
 """
-A script that uses your camera which utilises FFT to identify whether it's blurry or not
-"""
+A script that uses your camera's video stream, and utilises FFT to identify whether it's blurry or not.
+Link to the blog article that implemented this blur detection fft algorithm:
+https://pyimagesearch.com/2020/06/15/opencv-fast-fourier-transform-fft-for-blur-detection-in-images-and-video-streams/
 
+Type ctrl-c in terminal to stop the script.
+"""
 # import the necessary packages
 from imutils.video import VideoStream
 import argparse
 import imutils
 import time
 import cv2
-
-# https://pyimagesearch.com/2020/06/15/opencv-fast-fourier-transform-fft-for-blur-detection-in-images-and-video-streams/
-# import the necessary packages
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -21,7 +21,6 @@ import numpy as np
 # thresh: A value which the mean value of the magnitudes (more on that later) will be compared to for determining whether an image is considered blurry or not blurry
 # vis: A boolean indicating whether to visualize/plot the original input image and magnitude image using matplotlib
 """
-
 
 def detect_blur_fft(image, size=60, thresh=10, vis=False):
     # grab the dimensions of the image and use the dimensions to
@@ -37,7 +36,7 @@ def detect_blur_fft(image, size=60, thresh=10, vis=False):
     fftShift = np.fft.fftshift(
         fft)  # shift the zero frequency component (DC component) of the result to the center for easier analysis
 
-    # check to see if we are visualizing our output
+    # If visualization is enabled, plot the original image and its magnitude spectrum using matplotlib
     if vis:
         # compute the magnitude spectrum of the transform
         magnitude = 20 * np.log(np.abs(fftShift))
@@ -66,6 +65,7 @@ def detect_blur_fft(image, size=60, thresh=10, vis=False):
     # then compute the mean of the magnitude values
     magnitude = 20 * np.log(np.abs(recon))
     mean = np.mean(magnitude)
+
     # the image will be considered "blurry" if the mean value of the
     # magnitudes is less than the threshold value
     return mean, mean <= thresh
@@ -81,6 +81,7 @@ args = vars(ap.parse_args())
 print("[INFO] starting video stream...")
 vs = VideoStream(src=0).start()
 time.sleep(2.0)
+
 # loop over the frames from the video stream
 while True:
     # grab the frame from the threaded video stream and resize it

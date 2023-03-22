@@ -1,5 +1,8 @@
 """
-Change cwd variable to be the path to the file that contains the JSON files... and that's it. It'll overwrite the old JSON file and replace it in the same directory.
+The script overwrites current JSON file and makes it pretty.
+
+Change the cwd variable to be the path to the file that contains the JSON files. It'll overwrite the
+old JSON file and replace it in the same directory.
 """
 
 import json

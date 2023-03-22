@@ -1,7 +1,24 @@
 """
 A place to store common functions:
 - load_images_from_folder: Loading all images from a directory
+    - function: def load_images_from_folder(folder, file_type="all"):
+    - e.g. To load all image file type:
+        load_images_from_folder(<filepath_to_folder>, file_type="all")
+    - e.g. To load only png file type:
+        load_images_from_folder(<filepath_to_folder>, file_type=".png")
+
 - save_to_excel: saves information to an excel file in the current directory
+    - function: def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=False):
+    - The details can be found in the comments above the function below
+    - e.g. save_to_excel(info=[['01feb', true, xray_012345],['02feb',false, xray_12345],...,[...]],
+                        columns=[date, detected, filename],
+                        file_name='name_of_excel_file_you_want_to_save_as',
+                        sheet_name='name_of_excel_sheet_you_want_to_save_as',
+                        index=False)
+
+- change_file_extension: Finds the last '.' and changes the extension to whatever u input instead.
+    - function: change_file_extension(filename, new_file_extension):
+    - e.g. change_file_extension("xray_scan.tiff", ".jpg")
 """
 
 """
@@ -11,7 +28,7 @@ folder: A variable that contains the full path to the directory of interest
 file_type: A variable that specifies what file type to look for. Default = "all"
 """
 import os
-def load_images_from_folder(folder, filename_endswith="", file_type="all"):
+def load_images_from_folder(folder, file_type="all"):
     images = []
     list_of_image_file_format = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')
     for filename in os.listdir(folder):
@@ -28,7 +45,7 @@ def load_images_from_folder(folder, filename_endswith="", file_type="all"):
 Function saves the info into an excel.
 
 info: A variable that contains a list of a list of the data
-    - e.g.: info=[['01Feb', '14.5', 'True', 'Has 2 objects']
+    - e.g.: info=[['01Feb', '14.5', 'True', 'Has 2 objects'], [...] ... ]
 columns: A variable that contains a list of the column headers
     - e.g.: columns=['filename', 'detected_threshold', 'blurry', 'Remarks']
 file_name: A variable that specifies what filename to save as. Default is 'test'

@@ -1,3 +1,6 @@
+"""
+Trying to implement the Siamese Neural Network
+"""
 from __future__ import print_function
 import argparse, random, copy
 import numpy as np

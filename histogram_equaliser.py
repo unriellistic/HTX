@@ -1,16 +1,21 @@
 """
 A script to perform histogram equaliser on images.
-CLEAN_IMR_DIR is the path to the folder that stores the clean images
-FOLDER_FOR_HISTOGRAMISED_IMG is the path to the folder that stores the histogramised image
-THREAT_IMG_DIR is the path to the folder that stores the threat image
-DIR_FOR_IMAGE_INPUT contains the either the path to the clean image folder, or can set to the path to the threat image folder
+CLEAN_IMR_DIR: Is the path to the folder that stores the clean images
+FOLDER_FOR_HISTOGRAMISED_IMG: Is the path to the folder that stores the histogramised image
+THREAT_IMG_DIR: Is the path to the folder that stores the threat image
+DIR_FOR_IMAGE_INPUT: Contains either the path to the clean image folder, or can set to the path to the threat image folder
+
+Note: ChatGPT helped me to convert a C++ script someone wrote for converting 16-bit depth images, into python. Not sure if it works works, but the images seem to be transformed
+
+Command line to run:
+python ssim_script_modified.py
 """
 import cv2
 import matplotlib.pyplot as plt
 import general_scripts as gs
 import os, numpy as np
 
-# python ssim_script_modified.py --dir "D:\BusXray\Compiling_All_subfolder_images\test_compiled_clean_images" --dir2 "D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\removeThreat_images"
+# Constants to change depending on which folder you want to retrieve from and save to.
 CLEAN_IMR_DIR = r"D:\BusXray\Compiling_All_subfolder_images\compiled_clean_images"
 FOLDER_FOR_HISTOGRAMISED_IMG = r"D:\BusXray\Compiling_All_subfolder_images\test_folder_for_threat_histogramised"
 THREAT_IMG_DIR = r"D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat_Images\removeThreat_images"
@@ -65,11 +70,14 @@ import numpy as np
 
 #     return equalized
 
-
+# load images from folder and store in list_of_clean_images
 list_of_clean_images = gs.load_images_from_folder(DIR_FOR_IMAGE_INPUT)
+
+# Test on one set of bus model
 one_set_of_bus_model = [i for i in list_of_clean_images if BUS_MODEL in i and TYPE_OF_SCAN in i]
 print(one_set_of_bus_model)
 
+# Loop through that set and perform histogram equaliser
 for image in one_set_of_bus_model:
   img = cv2.imread(os.path.join(DIR_FOR_IMAGE_INPUT, image), cv2.IMREAD_ANYDEPTH)
   # Find max intensity value of pixel in image

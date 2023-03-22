@@ -1,3 +1,7 @@
+"""
+A simple exploration into understanding how grating works. For FFT.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 x = np.arange(-500, 501, 1)

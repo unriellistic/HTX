@@ -12,7 +12,9 @@ Note:
 - It'll skip pass DualEnergy.tiff files because my primary objective was to compare the MonoChrome.tiff files.
 - It'll be able to calculate number of images or threat images in their respective folders. However, the files need to be saved in this format <bus model>-<ANYTHING>-<index>
 - Have to manually change the function call under the if "__name__ == main" for the different functions.
-- Have to manually specify the number of images under variable, 'NUM_OF_SCANS'
+- Have to manually specify the number of images under constant variable, 'NUM_OF_SCANS'
+  - Couldn't make it dynamic because there was some logical limitation I couldn't figure out.
+
 Created at: 16/2/2023
 Last updated: 3/3/2023
 @Author: Alphaeus
