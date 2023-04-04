@@ -1,18 +1,23 @@
 """
-This script cleans up the black boxes and white boundary in the bus image.
-Variables to change:
-    -ROOT_DIR: Folder where images are stored
-    -TARGET_DIR: Folder to store the images
+This script does 2 functions:
+1. It cleans up the black boxes and white boundary in the bus image.
+2. It re-adjusts the pascal VOC annotation according to how much the image was cropped.
 
+Variables to change:
+    -ROOT_DIR: Folder where images and XML annotations are stored. They need to be the same name except for the extension. Script will crash if either one of the file is not present.
+    -TARGET_DIR: Folder to store the cropped images and adjusted XML files
 
 @created: 4/3/2023
+@author: Alp
 """
 
 import cv2
 import general_scripts as gs
+import os
+import pathlib
 
-ROOT_DIR = r"C:\alp\busxray_woodlands sample"
-TARGET_DIR = r"C:\alp\busxray_woodlands sample"
+ROOT_DIR = r"D:\leann\busxray_woodlands\annotations"
+TARGET_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted"
 IMAGE_DIR = r"../busxray_woodlands sample/PA8506K Higer 49 seats-clean-1-1 Monochrome.tiff"
 
 def find_black_to_white_transition(image_path):
@@ -31,6 +36,8 @@ def find_black_to_white_transition(image_path):
                 if gray_image[y, x] < 128 and gray_image[y, x + 1] >= 128:
                     # Found black-to-white transition
                     return x
+        # If no transition detected, don't crop anything
+        return 0
 
     def right_to_left():
         # Iterate over pixels starting from right side of the image and moving towards the left
@@ -41,14 +48,16 @@ def find_black_to_white_transition(image_path):
                 if gray_image[y, x] >= 128 and gray_image[y, x - 1] < 128:
                     # Found the y-coordinate in the center of the image's black-to-white transition
                     return x
+        # If no transition detected, don't crop anything
+        return gray_image.shape[1]
 
     def top_to_bot():
         # Iterate over pixels starting from top side of the image and moving towards the bottom
         # to find first black-to-white transition
-        most_top_y = 10000
+        most_top_y = image.shape[0]
         y_value_to_start_from = 0
         for x in range(x_start + buffer_space_from_left_black_box, x_end):
-            for y in range(y_value_to_start_from, gray_image.shape[0]):
+            for y in range(y_value_to_start_from, gray_image.shape[0]-1):
                 if gray_image[y, x] >= 128 and gray_image[y+1, x] < 128:
                     # Found black-to-white transition
                     # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
@@ -88,19 +97,78 @@ def find_black_to_white_transition(image_path):
                     break
         return most_bot_y
 
+    # Trim left black box
     x_start = left_to_right()
+    # Trim right white empty space
     x_end = right_to_left()
+    # Trim top white empty space
     y_start = top_to_bot()
+    # Trim bot white empty space
     y_end = bot_to_top()
 
     return x_start, x_end, y_start, y_end
 
-def resize_image(input_image_path, output_image_path):
+def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
+    import xml.etree.ElementTree as ET
+    """
+    Adjusts the coordinates in a Pascal VOC annotated XML file based on new coordinates provided and writes the modified XML
+    to a new file.
+
+    Args:
+    xml_file_path (str): The file path of the Pascal VOC annotated XML file.
+    new_coordinates (tuple): A tuple containing the new coordinates in the format (xmin, ymin, xmax, ymax).
+    output_dir_path (str): The file path where the modified XML should be written to.
+    
+    Returns:
+    None: The function writes the modified XML to the output file path.
+    """
+
+    # Parse the XML file and get the root element
+    tree = ET.parse(xml_file_path)
+    root = tree.getroot()
+
+    # Get the original image size and adjust it
+    size_elem = root.find('size')
+    # Calculate the new width and height
+    new_width = new_coordinates[1] - new_coordinates[0]
+    new_height = new_coordinates[3] - new_coordinates[2]
+    # Adjust the width and height of the image element
+    size_elem.find('width').text = str(new_width)
+    size_elem.find('height').text = str(new_height)
+
+    # Calculate the offset for the new coordinates
+    # new_coordinates[0] == x_start
+    # new_coordinates[1] == x_end
+    # new_coordinates[2] == y_start
+    # new_coordinates[3] == y_end
+    x_offset = new_coordinates[0]
+    y_offset = new_coordinates[2]
+
+    # Adjust the coordinates of each object in the XML file
+    for obj_elem in root.findall('object'):
+        bbox_elem = obj_elem.find('bndbox')
+
+        # Get the original coordinates of the bounding box
+        xmin = int(bbox_elem.find('xmin').text)
+        ymin = int(bbox_elem.find('ymin').text)
+        xmax = int(bbox_elem.find('xmax').text)
+        ymax = int(bbox_elem.find('ymax').text)
+
+        # Adjust the coordinates based on the new coordinates and offset values
+        bbox_elem.find('xmin').text = str(int(xmin - x_offset))
+        bbox_elem.find('ymin').text = str(int(ymin - y_offset))
+        bbox_elem.find('xmax').text = str(int(xmax - x_offset))
+        bbox_elem.find('ymax').text = str(int(ymax - y_offset))
+
+    # Write the modified XML to the output file path
+    tree.write(output_dir_path)
+
+def resize_image_and_xml_annotation(input_file_name, output_dir_path):
     # Read image from file
-    image = cv2.imread(input_image_path)
+    image = cv2.imread(input_file_name)
 
     # Find boundaries to crop
-    x_start, x_end, y_start, y_end = find_black_to_white_transition(input_image_path)
+    x_start, x_end, y_start, y_end = find_black_to_white_transition(input_file_name)
 
     # Calculate new dimensions
     new_height = y_end
@@ -113,7 +181,19 @@ def resize_image(input_image_path, output_image_path):
     resized_image = cv2.resize(cropped_image, (new_width, new_height))
 
     # Write resized image to file
-    cv2.imwrite(output_image_path, resized_image)
+    image_file_path = os.path.join(output_dir_path, f"adjusted_{input_file_name}")
+    cv2.imwrite(image_file_path, resized_image)
+
+    # Get head and filename, because annotated XML file has same name as image
+    _, filename = gs.path_leaf(input_file_name)
+    # Change file extension to XML.
+    xml_file_name = gs.change_file_extension(filename, "xml")
+    # Save XML file path
+    xml_file_path = os.path.join(output_dir_path, f"adjusted_{xml_file_name}")
+    # Run XML adjustment function
+    adjust_xml_annotation(xml_file_path=xml_file_name, 
+                          new_coordinates=(x_start, x_end, y_start, y_end), 
+                          output_dir_path=xml_file_path)
 
     return resized_image
 
@@ -143,19 +223,14 @@ def open_image(image_path):
     plt.show()
 
 if __name__ == '__main__':
-    import os
-    import pathlib
-
     # Load images from folder
     cwd = os.chdir(ROOT_DIR)
     images = gs.load_images_from_folder(cwd)
     for index, image in enumerate(images):
         # function to return the file extension
         file_extension = pathlib.Path(image).suffix
-        # Get new path for image
-        new_image_location_and_name = os.path.join(TARGET_DIR, f"{index}{file_extension}")
-        # Resizing function and save it there
-        resize_image(image, new_image_location_and_name)
+        # Resize + adjust XML function and save it there
+        resize_image_and_xml_annotation(image, TARGET_DIR)
 
     # To open an image to check
     # open_image('../busxray_woodlands sample/test.jpg')
