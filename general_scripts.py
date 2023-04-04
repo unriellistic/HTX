@@ -55,8 +55,8 @@ sheet_name: A variable that specifies what sheetname to save as. Default is shee
 index: A variable that specifies whether you want to index or not. Default is False
     - e.g.: 'stats_01FEB'
 """
-import pandas as pd
 def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=False):
+    import pandas as pd
     df = pd.DataFrame(info, columns=columns)
     print("df:", df)
     df.to_excel(f'{file_name}.xlsx', sheet_name=sheet_name, index=index)
@@ -68,7 +68,7 @@ Function that replaces file extension names.
 filename: A variable that contains the name of the file including the extension
     - e.g.: image_2023.png
 new_file_extension: the new string that you would like the file to end with instead
-    - e.g.: image_2023.png -> image_2023.tif
+    - e.g.: tif (image_2023.png -> image_2023.tif)
 """
 
 def change_file_extension(filename, new_file_extension):
@@ -81,7 +81,7 @@ def change_file_extension(filename, new_file_extension):
     list_of_index_of_element = list(indexes(filename, "."))
 
     # Find the last ".", minus 1 to get the index before the ".", which is the filename without the extension
-    filename = filename[0:list_of_index_of_element[-1]] + new_file_extension
+    filename = filename[0:list_of_index_of_element[-1]] + "." + new_file_extension
 
     return filename
 

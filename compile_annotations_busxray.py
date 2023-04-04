@@ -7,8 +7,8 @@ import os
 import shutil
 
 # Constants to change for differing paths
-ROOT_DIR = r"D:\leann\busxray_woodlands\exp"
-ANNOTATION_DIR = r"D:\leann\busxray_woodlands\annotations"
+ROOT_DIR = r"E:\leann\busxray_woodlands\exp"
+ANNOTATION_DIR = r"E:\leann\busxray_woodlands\annotations"
 
 def listdirs(ROOT_DIR):
     for root, dirs, _ in os.walk(ROOT_DIR):

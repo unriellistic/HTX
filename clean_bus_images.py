@@ -9,10 +9,10 @@ Variables to change:
 """
 
 import cv2
-import numpy as np
+import general_scripts as gs
 
 ROOT_DIR = r"C:\alp\busxray_woodlands sample"
-TARGET_DIR = r""
+TARGET_DIR = r"C:\alp\busxray_woodlands sample"
 IMAGE_DIR = r"../busxray_woodlands sample/PA8506K Higer 49 seats-clean-1-1 Monochrome.tiff"
 
 def find_black_to_white_transition(image_path):
@@ -56,7 +56,11 @@ def find_black_to_white_transition(image_path):
                     # top part of the image
                     if most_top_y > y:
                         most_top_y = y
-                        y_value_to_start_from = most_top_y - 30
+                        # Check if this will lead to out-of-bound index error
+                        if most_top_y - 30 < 0:
+                            y_value_to_start_from = 0
+                        else:
+                            y_value_to_start_from = most_top_y - 30
                     # Found the transition, stop finding for this x-value
                     break
         return most_top_y
@@ -75,7 +79,11 @@ def find_black_to_white_transition(image_path):
                     # top part of the image
                     if most_bot_y < y:
                         most_bot_y = y
-                        y_value_to_start_from = most_bot_y + 30
+                        # Check if this will lead to out-of-bound index error
+                        if most_bot_y + 30 > gray_image.shape[0] - 1:
+                            y_value_to_start_from = gray_image.shape[0] - 1
+                        else:
+                            y_value_to_start_from = most_bot_y + 30
                     # Found the transition, stop finding for this x-value
                     break
         return most_bot_y
@@ -112,7 +120,6 @@ def resize_image(input_image_path, output_image_path):
 # To find out roughly what's the pixel intensity and at which X,Y coordinates.
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-
 def open_image(image_path):
     # Load image from file
     image = mpimg.imread(image_path)
@@ -135,8 +142,21 @@ def open_image(image_path):
     # Show Matplotlib window
     plt.show()
 
-resize_image(IMAGE_DIR, '../busxray_woodlands sample/test.jpg')
+if __name__ == '__main__':
+    import os
+    import pathlib
 
-# To open an image to check
-# open_image('../busxray_woodlands sample/test.jpg')
-open_image('../busxray_woodlands sample/PA8506K Higer 49 seats-clean-1-1 DualEnergy.jpg')
+    # Load images from folder
+    cwd = os.chdir(ROOT_DIR)
+    images = gs.load_images_from_folder(cwd)
+    for index, image in enumerate(images):
+        # function to return the file extension
+        file_extension = pathlib.Path(image).suffix
+        # Get new path for image
+        new_image_location_and_name = os.path.join(TARGET_DIR, f"{index}{file_extension}")
+        # Resizing function and save it there
+        resize_image(image, new_image_location_and_name)
+
+    # To open an image to check
+    # open_image('../busxray_woodlands sample/test.jpg')
+    # open_image('../busxray_woodlands sample/PA8506K Higer 49 seats-clean-1-1 DualEnergy.jpg')
