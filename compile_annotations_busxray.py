@@ -1,5 +1,5 @@
 """
-This scripts goes through each folder in the "exp" folder and compiles the files with "annotated" (both .xml and .jpg) and copies 
+This scripts goes through each folder in the "exp" folder and looks for the files with "annotated" (both .xml and .jpg) and copies 
 them into a folder called "annotated", and relabels them according to their annotations.
 """
 
@@ -7,8 +7,8 @@ import os
 import shutil
 
 # Constants to change for differing paths
-ROOT_DIR = r"E:\leann\busxray_woodlands\exp"
-ANNOTATION_DIR = r"E:\leann\busxray_woodlands\annotations"
+ROOT_DIR = r"D:\leann\busxray_woodlands\exp"
+ANNOTATION_DIR = r"D:\leann\busxray_woodlands\annotations"
 
 def listdirs(ROOT_DIR):
     for root, dirs, _ in os.walk(ROOT_DIR):
@@ -20,7 +20,7 @@ def listdirs(ROOT_DIR):
             for file in os.listdir(os.path.join(root, subdir)):
         
                 # Check if it's the annotation file
-                if "annotated.xml" in file:
+                if "annotated" in file:
                     _, file_type = os.path.splitext(file)
                     old_name = os.path.join(os.path.abspath(root), os.path.join(subdir, file))
                     new_name = os.path.join(ANNOTATION_DIR, f"{subdir}_annotated{file_type}")
