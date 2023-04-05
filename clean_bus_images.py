@@ -154,6 +154,7 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
         xmax = int(bbox_elem.find('xmax').text)
         ymax = int(bbox_elem.find('ymax').text)
 
+        # Something wrong with this part, the readjusted values are off.
         # Adjust the coordinates based on the new coordinates and offset values
         bbox_elem.find('xmin').text = str(int(xmin - x_offset))
         bbox_elem.find('ymin').text = str(int(ymin - y_offset))
@@ -224,14 +225,14 @@ def open_image(image_path):
 
 if __name__ == '__main__':
     # Load images from folder
-    cwd = os.chdir(ROOT_DIR)
-    images = gs.load_images_from_folder(cwd)
-    for index, image in enumerate(images):
-        # function to return the file extension
-        file_extension = pathlib.Path(image).suffix
-        # Resize + adjust XML function and save it there
-        resize_image_and_xml_annotation(image, TARGET_DIR)
+    # cwd = os.chdir(ROOT_DIR)
+    # images = gs.load_images_from_folder(cwd)
+    # for index, image in enumerate(images):
+    #     # function to return the file extension
+    #     file_extension = pathlib.Path(image).suffix
+    #     # Resize + adjust XML function and save it there
+    #     resize_image_and_xml_annotation(image, TARGET_DIR)
 
     # To open an image to check
     # open_image('../busxray_woodlands sample/test.jpg')
-    # open_image('../busxray_woodlands sample/PA8506K Higer 49 seats-clean-1-1 DualEnergy.jpg')
+    open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_355_annotated.jpg")
