@@ -100,44 +100,70 @@ def adjust_annotations_for_segment(segment_path, annotation_path):
     numbers = re.findall(r'\d+', filename)
     xmin_segment = int(numbers[0])
     ymin_segment = int(numbers[1])
-    xmax_segment = xmin + segment_width
-    ymax_segment = ymin + segment_height
+    xmax_segment = xmin_segment + segment_width
+    ymax_segment = ymin_segment + segment_height
+    segment_x_coordinates = range(xmin_segment, xmax_segment, 1)
+    segment_y_coordinates = range(ymin_segment, ymax_segment, 1)
 
+    def create_new_object_annotation(xmin, ymin, xmax, ymax):
+        # Create a new object annotation with the adjusted bounding box coordinates
+        segmented_obj = ET.SubElement(segmented_annotation, 'object')
+        ET.SubElement(segmented_obj, 'name').text = obj.find('name').text
+        ET.SubElement(segmented_obj, 'pose').text = obj.find('pose').text
+        ET.SubElement(segmented_obj, 'truncated').text = obj.find('truncated').text
+        ET.SubElement(segmented_obj, 'difficult').text = obj.find('difficult').text
+        segmented_bbox = ET.SubElement(segmented_obj, 'bndbox')
+        ET.SubElement(segmented_bbox, 'xmin').text = str(xmin)
+        ET.SubElement(segmented_bbox, 'ymin').text = str(ymin)
+        ET.SubElement(segmented_bbox, 'xmax').text = str(xmax)
+        ET.SubElement(segmented_bbox, 'ymax').text = str(ymax)
+
+    def range_overlap(range1, range2):
+        """Whether range1 and range2 overlap."""
+        x1, x2 = range1.start, range1.stop
+        y1, y2 = range2.start, range2.stop
+        return x1 <= y2 and y1 <= x2
+    
     # Loop over the object annotations in the original annotation file
     for obj in root.findall('object'):
         # Get the bounding box coordinates for the current object
         bbox = obj.find('bndbox')
-        xmin = int(bbox.find('xmin').text)
-        ymin = int(bbox.find('ymin').text)
-        xmax = int(bbox.find('xmax').text)
-        ymax = int(bbox.find('ymax').text)
+        xmin_original = int(bbox.find('xmin').text)
+        ymin_original = int(bbox.find('ymin').text)
+        xmax_original = int(bbox.find('xmax').text)
+        ymax_original = int(bbox.find('ymax').text)
+        original_x_coordinates = range(xmin_original, xmax_original, 1)
+        original_y_coordinates = range(ymin_original, ymax_original, 1)
 
-        # Check if the bounding box is within the bounds of the current segment
-        if xmin_segment <= xmin <= xmax_segment and ymin_segment <= ymin <= ymax_segment:
+        # Check whether any point of the annotation is in the current segment
+        if range_overlap(original_x_coordinates, segment_x_coordinates) and range_overlap(original_y_coordinates, segment_y_coordinates):
+
             # Adjust the bounding box coordinates to be relative to the top left corner of the segment
-            xmin = max(0, xmin - int(os.path.splitext(filename)[0].split("_")[-2]) * 640)
-            ymin = max(0, ymin - int(os.path.splitext(filename)[0].split("_")[-1]) * 640)
-            xmax = min(segment_width, xmax - int(os.path.splitext(filename)[0].split("_")[-2]) * 640)
-            ymax = min(segment_height, ymax - int(os.path.splitext(filename)[0].split("_")[-1]) * 640)
+            xmin_adjusted = max(0, xmin_original - xmin_segment)
+            ymin_adjusted = max(0, ymin_original - ymin_segment)
 
-            # Create a new object annotation with the adjusted bounding box coordinates
-            segmented_obj = ET.SubElement(segmented_annotation, 'object')
-            ET.SubElement(segmented_obj, 'name').text = obj.find('name').text
-            ET.SubElement(segmented_obj, 'pose').text = obj.find('pose').text
-            ET.SubElement(segmented_obj, 'truncated').text = obj.find('truncated').text
-            ET.SubElement(segmented_obj, 'difficult').text = obj.find('difficult').text
-            segmented_bbox = ET.SubElement(segmented_obj, 'bndbox')
-            ET.SubElement(segmented_bbox, 'xmin').text = str(xmin)
-            ET.SubElement(segmented_bbox, 'ymin').text = str(ymin)
-            ET.SubElement(segmented_bbox, 'xmax').text = str(xmax)
-            ET.SubElement(segmented_bbox, 'ymax').text = str(ymax)
+            # If bounding box exists past segment xmax, label it at the segment's boundary
+            if xmax_original > xmax_segment:
+                xmax_adjusted = segment_width
+            # Else re-adjust xmax by subtracting the location of the segment's x-min coordinate
+            else:
+                xmax_adjusted = xmax_original - xmin_segment
+            
+            # If bounding box exists past segment ymax, label it at the segment's boundary
+            if ymax_original > ymax_segment:
+                ymax_adjusted = segment_width
+            # Else re-adjust xmax by subtracting the location of the segment's x-min coordinate
+            else:
+                ymax_adjusted = ymax_original - ymin_segment
+            
+            create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)    
 
     # Save the segmented annotation to an XML file
     # segmented_tree = ET.ElementTree(segmented_annotation)
     # segmented_tree.write(output_annotation_path)
 
     # Create an XML string with pretty formatting
-    xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='')
+    xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='    ')
 
     # Write the XML string to a file
     with open(output_annotation_path, 'w') as f:

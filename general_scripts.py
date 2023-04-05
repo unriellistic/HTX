@@ -91,7 +91,8 @@ def path_leaf(path):
     """
     Function that returns the path that leads to the filename, and the filename itself.
     path: A variable that contains a path of the file
-        - e.g.: c:\\user\\alp
+        - e.g.: c:\\user\\alp.txt
+        - head: c:\\user ; tail: alp.txt
     """
     head, tail = ntpath.split(path)
     return head, (tail or ntpath.basename(head))
