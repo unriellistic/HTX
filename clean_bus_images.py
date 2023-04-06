@@ -25,38 +25,42 @@ def find_black_to_white_transition(image_path):
     image = cv2.imread(image_path)
     # Convert to grayscale
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    buffer_space_from_left_black_box = 10 # For top_to_bot and bot_to_top
+    # Constants
+    BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 10 # For top_to_bot and bot_to_top
+    BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE = 30
+
+    # Functions to find optimal xy co-ordinates to crop
 
     def left_to_right():
         # Iterate over pixels starting from left side of the image and moving towards the right
         # to find first black-to-white transition
         # Start at half of height to avoid white background (0-60) + light specks at 60~200
         most_left_x = image.shape[1]
-        x_value_to_start_from = int(image.shape[0]/2)
-        for y in range(int(image.shape[0]/2), gray_image.shape[0]):
+        x_value_to_start_from = 0
+        # Start from bottom part of image, then iterate to the middle
+        for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
             for x in range(x_value_to_start_from, gray_image.shape[1] - 1):
                 if gray_image[y, x] < 128 and gray_image[y, x + 1] >= 128:
                     # Found black-to-white transition
                     # Check if most_left_x has a x-value smaller than current x, if smaller it means it's positioned more left in the image.
                     # And since we don't want to cut off any image, we find the x that has the smallest value, which indicates that it's at the
                     # leftest-most part of the image
-                    if most_left_x < x:
+                    if most_left_x > x:
                         most_left_x = x
                         # Check if this will lead to out-of-bound index error
-                        if most_left_x - 30 < 0:
+                        if most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE < 0:
                             x_value_to_start_from = 0
                         else:
-                            x_value_to_start_from = most_left_x - 30
+                            x_value_to_start_from = most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
                     # Found the transition, stop finding for this y-value
                     break
-        # If no transition detected, don't crop anything
         return most_left_x
 
     def right_to_left():
         # Iterate over pixels starting from right side of the image and moving towards the left
         # to find first black-to-white transition
         # Start at half of height of image because that's the fattest part of the bus
-        for y in range(int(image.shape[0]/2), gray_image.shape[0]):
+        for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
             for x in range(gray_image.shape[1]-1, 0, -1):
                 if gray_image[y, x] >= 128 and gray_image[y, x - 1] < 128:
                     # Found the y-coordinate in the center of the image's black-to-white transition
@@ -69,7 +73,7 @@ def find_black_to_white_transition(image_path):
         # to find first black-to-white transition
         most_top_y = image.shape[0]
         y_value_to_start_from = 0
-        for x in range(x_start + buffer_space_from_left_black_box, x_end):
+        for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
             for y in range(y_value_to_start_from, gray_image.shape[0]-1):
                 if gray_image[y, x] >= 128 and gray_image[y+1, x] < 128:
                     # Found black-to-white transition
@@ -79,10 +83,10 @@ def find_black_to_white_transition(image_path):
                     if most_top_y > y:
                         most_top_y = y
                         # Check if this will lead to out-of-bound index error
-                        if most_top_y - 30 < 0:
+                        if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE < 0:
                             y_value_to_start_from = 0
                         else:
-                            y_value_to_start_from = most_top_y - 30
+                            y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
                     # Found the transition, stop finding for this x-value
                     break
         return most_top_y
@@ -92,7 +96,7 @@ def find_black_to_white_transition(image_path):
         # to find first black-to-white transition
         most_bot_y = 0
         y_value_to_start_from = gray_image.shape[0] - 1
-        for x in range(x_start + buffer_space_from_left_black_box, x_end):
+        for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
             for y in range(y_value_to_start_from, 0, -1):
                 if gray_image[y, x] >= 128 and gray_image[y-1, x] < 128:
                     # Found black-to-white transition
@@ -102,10 +106,10 @@ def find_black_to_white_transition(image_path):
                     if most_bot_y < y:
                         most_bot_y = y
                         # Check if this will lead to out-of-bound index error
-                        if most_bot_y + 30 > gray_image.shape[0] - 1:
+                        if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE > gray_image.shape[0] - 1:
                             y_value_to_start_from = gray_image.shape[0] - 1
                         else:
-                            y_value_to_start_from = most_bot_y + 30
+                            y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
                     # Found the transition, stop finding for this x-value
                     break
         return most_bot_y
@@ -167,7 +171,7 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
         xmax = int(bbox_elem.find('xmax').text)
         ymax = int(bbox_elem.find('ymax').text)
 
-        # Something wrong with this part, the readjusted values are off.
+        # Something wrong with this part, the readjusted values are off. Update, no it's not wrong. It's correct.
         # Adjust the coordinates based on the new coordinates and offset values
         bbox_elem.find('xmin').text = str(int(xmin - x_offset))
         bbox_elem.find('ymin').text = str(int(ymin - y_offset))
@@ -185,8 +189,8 @@ def resize_image_and_xml_annotation(input_file_name, output_dir_path):
     x_start, x_end, y_start, y_end = find_black_to_white_transition(input_file_name)
 
     # Calculate new dimensions
-    new_height = y_end
-    new_width = x_end
+    new_height = y_end - y_start
+    new_width = x_end - x_start
 
     # Crop the image from the left-hand side
     cropped_image = image[y_start:y_end, x_start:x_end, ]
@@ -201,7 +205,7 @@ def resize_image_and_xml_annotation(input_file_name, output_dir_path):
     # Get head and filename, because annotated XML file has same name as image
     _, filename = gs.path_leaf(input_file_name)
     # Change file extension to XML.
-    xml_file_name = gs.change_file_extension(filename, "xml")
+    xml_file_name = gs.change_file_extension(filename, ".xml")
     # Save XML file path
     xml_file_path = os.path.join(output_dir_path, f"adjusted_{xml_file_name}")
     # Run XML adjustment function
@@ -247,5 +251,5 @@ if __name__ == '__main__':
     #     resize_image_and_xml_annotation(image, TARGET_DIR)
 
     # To open an image to check
-    # open_image('../busxray_woodlands sample/test.jpg')
-    open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_355_annotated.jpg")
+    # open_image(r"D:\leann\busxray_woodlands\annotations\1610_annotated.jpg")
+    open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")

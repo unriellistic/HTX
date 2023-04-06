@@ -59,7 +59,7 @@ def segment_image(image_path, segment_size=640, overlap_percent=0.5):
                 x_start = width - segment_size
 
             segment = img[y_start:y_end, x_start:x_end]
-            segment_path = output_dir + '\segment_{}_{}.png'.format(x_start, y_start)
+            segment_path = output_dir + '\segment_{}_{}.png'.format(y_start, x_start)
             cv2.imwrite(segment_path, segment)
 
 
@@ -98,8 +98,8 @@ def adjust_annotations_for_segment(segment_path, annotation_path):
     ET.SubElement(size, 'depth').text = str(segment_depth)
 
     numbers = re.findall(r'\d+', filename)
-    xmin_segment = int(numbers[0])
-    ymin_segment = int(numbers[1])
+    xmin_segment = int(numbers[1])
+    ymin_segment = int(numbers[0])
     xmax_segment = xmin_segment + segment_width
     ymax_segment = ymin_segment + segment_height
     segment_x_coordinates = range(xmin_segment, xmax_segment, 1)
@@ -181,8 +181,8 @@ if __name__ == "__main__":
     #                 overlap_percent=OVERLAP_PERCENT)
 
     # Segment up the annotation
-    SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_355_annotated_segmented"
-    ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_355_annotated.xml"
+    SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
+    ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
     os.chdir(SEGMENT_DIR)
     segment_list = gs.load_images_from_folder(SEGMENT_DIR)
     for image in segment_list:
