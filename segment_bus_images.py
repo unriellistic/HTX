@@ -1,3 +1,21 @@
+"""
+This script provides two functions to segment an image into multiple smaller parts and adjust the annotation file 
+accordingly for each segment.
+
+The first function segment_image segments an input image into smaller parts of 640 by 640 pixels with a 
+specified overlap percentage between adjacent segments. 
+The function takes the path of the image to be segmented, overlap percentage, and segment size as input arguments. 
+The function reads the input image using OpenCV, calculates the number of rows and columns required to segment the 
+image based on its size and overlap percentage, creates an output directory to store the segmented images, 
+segments the image into multiple parts using nested loops, and saves each segment as a PNG image file in the output directory.
+
+The second function adjust_annotations_for_segment adjusts the annotation file for a segmented image. 
+The function takes the paths of the segmented image and its original annotation file as input arguments. 
+The function first loads the segmented image to get its dimensions and then parses the original 
+annotation XML file using the ElementTree module. Next, the function creates a new XML file for the segmented image 
+and adjusts the bounding box coordinates of each object annotation to match the coordinates of the corresponding object 
+in the segmented image. Finally, the function saves the adjusted annotation to a new XML file for the segmented image.
+"""
 import cv2
 import os
 import general_scripts as gs
@@ -63,7 +81,7 @@ def segment_image(image_path, segment_size=640, overlap_percent=0.5):
             cv2.imwrite(segment_path, segment)
 
 
-def adjust_annotations_for_segment(segment_path, annotation_path):
+def adjust_annotations_for_segment(segment_path, original_annotation_path, output_annotation_path):
     """
     Adjusts the Pascal VOC annotation standard for an image segment.
 
@@ -80,12 +98,12 @@ def adjust_annotations_for_segment(segment_path, annotation_path):
     segment_height, segment_width, segment_depth = segment_img.shape
 
     # Parse the original annotation XML file
-    tree = ET.parse(annotation_path)
+    tree = ET.parse(original_annotation_path)
     root = tree.getroot()
 
     # Create a new XML file for the segmented image
     _, filename = os.path.split(segment_path)
-    output_annotation_path = os.path.join(os.path.abspath(os.getcwd()), gs.change_file_extension(filename, "") + '.xml')
+    output_annotation_path = os.path.join(output_annotation_path, gs.change_file_extension(filename, "") + '.xml')
     segmented_annotation = ET.Element('annotation')
     ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
     ET.SubElement(segmented_annotation, 'filename').text = filename
@@ -158,10 +176,6 @@ def adjust_annotations_for_segment(segment_path, annotation_path):
             
             create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)    
 
-    # Save the segmented annotation to an XML file
-    # segmented_tree = ET.ElementTree(segmented_annotation)
-    # segmented_tree.write(output_annotation_path)
-
     # Create an XML string with pretty formatting
     xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='    ')
 
@@ -183,7 +197,24 @@ if __name__ == "__main__":
     # Segment up the annotation
     SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
     ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
-    os.chdir(SEGMENT_DIR)
-    segment_list = gs.load_images_from_folder(SEGMENT_DIR)
-    for image in segment_list:
-        adjust_annotations_for_segment(image, ANNOTATION_PATH)
+    ROOT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted"
+
+    for root, dirs, _ in os.walk(ROOT_DIR):
+
+        # Go through the list of subdirectories
+        for subdir in dirs:
+         
+            # Go through each file in the list
+            for file in os.listdir(os.path.join(root, subdir)):
+                
+                # Matches with the file name
+                name_of_original_xml_file = subdir[0:-10]+".xml"
+                # Only PNGs should be here
+                adjust_annotations_for_segment(segment_path=os.path.join(root, subdir, file), 
+                                               original_annotation_path=os.path.join(root, name_of_original_xml_file),
+                                               output_annotation_path=os.path.join(root, subdir))
+
+    # os.chdir(SEGMENT_DIR)
+    # segment_list = gs.load_images_from_folder(SEGMENT_DIR)
+    # for image in segment_list:
+    #     adjust_annotations_for_segment(image, ANNOTATION_PATH)
