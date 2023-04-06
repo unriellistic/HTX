@@ -30,14 +30,27 @@ def find_black_to_white_transition(image_path):
     def left_to_right():
         # Iterate over pixels starting from left side of the image and moving towards the right
         # to find first black-to-white transition
-        # Start at 200 to avoid white background + light specks at 60~200
-        for y in range(200, gray_image.shape[0]):
-            for x in range(gray_image.shape[1] - 1):
+        # Start at half of height to avoid white background (0-60) + light specks at 60~200
+        most_left_x = image.shape[1]
+        x_value_to_start_from = int(image.shape[0]/2)
+        for y in range(int(image.shape[0]/2), gray_image.shape[0]):
+            for x in range(x_value_to_start_from, gray_image.shape[1] - 1):
                 if gray_image[y, x] < 128 and gray_image[y, x + 1] >= 128:
                     # Found black-to-white transition
-                    return x
+                    # Check if most_left_x has a x-value smaller than current x, if smaller it means it's positioned more left in the image.
+                    # And since we don't want to cut off any image, we find the x that has the smallest value, which indicates that it's at the
+                    # leftest-most part of the image
+                    if most_left_x < x:
+                        most_left_x = x
+                        # Check if this will lead to out-of-bound index error
+                        if most_left_x - 30 < 0:
+                            x_value_to_start_from = 0
+                        else:
+                            x_value_to_start_from = most_left_x - 30
+                    # Found the transition, stop finding for this y-value
+                    break
         # If no transition detected, don't crop anything
-        return 0
+        return most_left_x
 
     def right_to_left():
         # Iterate over pixels starting from right side of the image and moving towards the left
@@ -62,7 +75,7 @@ def find_black_to_white_transition(image_path):
                     # Found black-to-white transition
                     # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
                     # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
-                    # top part of the image
+                    # top-most part of the image
                     if most_top_y > y:
                         most_top_y = y
                         # Check if this will lead to out-of-bound index error
