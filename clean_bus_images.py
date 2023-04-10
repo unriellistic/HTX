@@ -37,7 +37,7 @@ def find_black_to_white_transition(image_path):
         # Start at half of height to avoid white background (0-60) + light specks at 60~200
         most_left_x = image.shape[1]
         x_value_to_start_from = 0
-        # Start from bottom part of image, then iterate to the middle
+        # Start from middle part of image, then iterate to the bottom
         for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
             for x in range(x_value_to_start_from, gray_image.shape[1] - 1):
                 if gray_image[y, x] < 128 and gray_image[y, x + 1] >= 128:
