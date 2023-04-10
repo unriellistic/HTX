@@ -212,7 +212,7 @@ if __name__ == "__main__":
             # Go through each file in the list
             for file in os.listdir(os.path.join(root, subdir)):
                 
-                # Matches with the file name
+                # Matches with the file name. ALERT HARD CODED NAME HERE!!!
                 name_of_original_xml_file = subdir[0:-10]+".xml"
                 # Only PNGs should be here
                 adjust_annotations_for_segment(segment_path=os.path.join(root, subdir, file), 
