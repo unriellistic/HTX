@@ -13,12 +13,13 @@ Variables to change:
 
 import cv2
 import general_scripts as gs
-import os
-import pathlib
+import os, pathlib, argparse
 
-ROOT_DIR = r"D:\leann\busxray_woodlands\annotations"
-TARGET_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted"
-IMAGE_DIR = r"../busxray_woodlands sample/PA8506K Higer 49 seats-clean-1-1 Monochrome.tiff"
+from tqdm import tqdm
+
+#ROOT_DIR = r"D:\leann\busxray_woodlands\annotations"
+#TARGET_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted"
+#IMAGE_DIR = r"../busxray_woodlands sample/PA8506K Higer 49 seats-clean-1-1 Monochrome.tiff"
 
 def find_black_to_white_transition(image_path):
     # Read image from file
@@ -171,7 +172,6 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
         xmax = int(bbox_elem.find('xmax').text)
         ymax = int(bbox_elem.find('ymax').text)
 
-        # Something wrong with this part, the readjusted values are off. Update, no it's not wrong. It's correct.
         # Adjust the coordinates based on the new coordinates and offset values
         bbox_elem.find('xmin').text = str(int(xmin - x_offset))
         bbox_elem.find('ymin').text = str(int(ymin - y_offset))
@@ -241,15 +241,33 @@ def open_image(image_path):
     plt.show()
 
 if __name__ == '__main__':
-    # Load images from folder
-    # cwd = os.chdir(ROOT_DIR)
-    # images = gs.load_images_from_folder(cwd)
-    # for index, image in enumerate(images):
-    #     # function to return the file extension
-    #     file_extension = pathlib.Path(image).suffix
-    #     # Resize + adjust XML function and save it there
-    #     resize_image_and_xml_annotation(image, TARGET_DIR)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"D:\leann\busxray_woodlands\annotations")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\leann\busxray_woodlands\annotations_adjusted")
+    parser.add_argument("--display-only", help="don't crop images, just display an annotated image", action="store_true")
+    parser.add_argument("--display-path", help="image file to display after adjustments", required=False)
+
+    args = parser.parse_args()
+
+    if not args.display_only:
+        # Load images from folder
+        cwd = os.chdir(args.root_dir)
+        images = gs.load_images_from_folder(cwd)
+        for image in tqdm(images):
+            # function to return the file extension
+            file_extension = pathlib.Path(image).suffix
+            # Resize + adjust XML function and save it there
+            resize_image_and_xml_annotation(image, args.target_dir)
+
+    if args.display_path:
+        display_path = args.display_path
+    else:
+        for file in os.listdir(args.target_dir):
+            if os.path.splitext(file)[1] == ".jpg":
+                display_path = os.path.join(args.target_dir, file)
+                break
 
     # To open an image to check
-    # open_image(r"D:\leann\busxray_woodlands\annotations\1610_annotated.jpg")
-    open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
+    #open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
+    print("Displaying image", display_path)
+    open_image(display_path)

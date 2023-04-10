@@ -23,12 +23,9 @@ import numpy as np
 # For adjusting XML segmentation
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom # For pretty formatting
-import cv2
 import re # Find the dimension of the segmented image to find where the annotated boxes are
-
-IMAGE_DIR_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted"
-OVERLAP_PERCENT = 0.5 # Specify float number
-SEGMENT_SIZE = 640
+import argparse
+from tqdm import tqdm
 
 def segment_image(image_path, segment_size=640, overlap_percent=0.5):
     """
@@ -185,21 +182,29 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"D:\leann\busxray_woodlands\annotations_adjusted")
+    parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
+    parser.add_argument("--segment-size", help="size of each segment", default=640)
+
+    args = parser.parse_args()
 
     # Segment up the images
-    # os.chdir(IMAGE_DIR_PATH)
-    # list_of_images = gs.load_images_from_folder(IMAGE_DIR_PATH)
-    # for image in list_of_images:
-    #     segment_image(image_path=image,
-    #                 segment_size=SEGMENT_SIZE, 
-    #                 overlap_percent=OVERLAP_PERCENT)
+    os.chdir(args.root_dir)
+    list_of_images = gs.load_images_from_folder(args.root_dir)
+    
+    print("Processing images.")
+    for image in tqdm(list_of_images):
+        segment_image(image_path=image,
+                    segment_size=args.segment_size, 
+                    overlap_percent=args.overlap_portion)
 
     # Segment up the annotation
-    SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
-    ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
-    ROOT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted"
+    # SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
+    # ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
 
-    for root, dirs, _ in os.walk(ROOT_DIR):
+    print("Processing XML files.")
+    for root, dirs, _ in os.walk(args.root_dir):
 
         # Go through the list of subdirectories
         for subdir in dirs:
