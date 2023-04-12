@@ -29,7 +29,7 @@ python crop_bus_images.py --display --display-path "D:\leann\busxray_woodlands\a
 
 This will cause the function to look at root directory at <annotations> and saves the file at <annotations_adjusted>.
 
-@author: Alp
+@current_author: Alp
 @last modified: 12/4/2023 2:48pm
 """
 

@@ -22,16 +22,16 @@ Input arguments:
     e.g. adjusted_355_annotated.jpg and adjusted_355_annotated.xml
 --overlap-portion: Float value, indicates fraction of each segment that should overlap adjacent segments. from 0 to 1. default=0.5 (50%)
 --segment-size: Integer value, indicate size of each segment. default=640 (each image will be 640x640)
-
+--cutoff-threshold: Float value, indicates threshold by which to not label an annotation that has been segmented
 Full example:
 To run the segmenting function:
-python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_adjusted" --overlap-portion 640 --overlap-portion 0.5
+python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_adjusted" --overlap-portion 640 --overlap-portion 0.5 --cutoff-threshold 0.3
 -> This will cause the function to look at root directory at <annotations_adjusted>, splits the segment in 640x640 pieces. 
 -> The overlap will be half of the image size, in this case half of 640 is 320. So the next segment after the first x_start = 0, x_end = 640, will be x_start = 320, x_end = 920.
 -> Meaning the sliding window will be in increments of 320 pixels, in both width and height.
 
-@current_author: Alp
-@last modified: 12/4/2023 3:34pm
+@author: Alp
+@last modified: 12/4/2023 2:20pm (working on cutoff threshold)
 
 Things to work on:
 Develop a function that determines which annotation box is < certain threshold, note down how many images have such annotation, can save into
@@ -47,6 +47,7 @@ import xml.dom.minidom as minidom # For pretty formatting
 import re # Find the dimension of the segmented image to find where the annotated boxes are
 import argparse
 from tqdm import tqdm
+import json # For tracking of stats
 
 def segment_image(image_path, segment_size=640, overlap_percent=0.5):
     """
@@ -99,7 +100,7 @@ def segment_image(image_path, segment_size=640, overlap_percent=0.5):
             cv2.imwrite(segment_path, segment)
 
 
-def adjust_annotations_for_segment(segment_path, original_annotation_path, output_annotation_path):
+def adjust_annotations_for_segment(segment_path, original_annotation_path, output_annotation_path, cutoff_threshold):
     """
     Adjusts the Pascal VOC annotation standard for an image segment.
 
@@ -108,7 +109,7 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
     annotation_path (str): The file path of the XML annotation file for the original image.
 
     Returns:
-    None: The function saves the adjusted annotation to a new XML file for the segmented image.
+    log_dict: The function saves the adjusted annotation to a new XML file for the segmented image and outputs a log file to track statistics.
     """
 
     # Load the segment image to get its dimensions
@@ -160,6 +161,11 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
         y1, y2 = range2.start, range2.stop
         return x1 <= y2 and y1 <= x2
     
+    # Log file
+    log_dict = {'num_of_reject': 0,
+                'num_of_total': 0,}
+
+
     # Loop over the object annotations in the original annotation file
     for obj in root.findall('object'):
         # Get the bounding box coordinates for the current object
@@ -192,7 +198,16 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
             else:
                 ymax_adjusted = ymax_original - ymin_segment
             
-            create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)    
+            # Update object count
+            log_dict['num_of_total'] += 1
+
+            # Check if percentage overlap is greater than threshold. It finds the original area divided by adjusted area and checks if it's more than cutoff_threshold.
+            if ((xmax_adjusted - xmin_adjusted)*(ymax_adjusted - ymin_adjusted))/((xmax_original - xmin_original)*(ymax_original - ymin_original)) > float(cutoff_threshold):
+                create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)
+            else:
+                log_dict['num_of_reject'] += 1
+                
+
 
     # Create an XML string with pretty formatting
     xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='    ')
@@ -200,6 +215,8 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
     # Write the XML string to a file
     with open(output_annotation_path, 'w') as f:
         f.write(xml_string)
+    
+    return log_dict
 
 
 if __name__ == "__main__":
@@ -207,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"annotations_adjusted")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
+    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
 
     args = parser.parse_args()
     # uncomment below if want to debug in IDE
@@ -225,15 +243,23 @@ if __name__ == "__main__":
     list_of_images = gs.load_images_from_folder(path_to_dir)
     
     # Segment up the images
-    print("Processing images...")
-    os.chdir(path_to_dir)
-    for image in tqdm(list_of_images):
-        segment_image(image_path=image,
-                    segment_size=int(args.segment_size), 
-                    overlap_percent=float(args.overlap_portion))
+    # print("Processing images...")
+    # os.chdir(path_to_dir)
+    # for image in tqdm(list_of_images):
+    #     segment_image(image_path=image,
+    #                 segment_size=int(args.segment_size), 
+    #                 overlap_percent=float(args.overlap_portion))
 
     # Segment up the annotation
     print("Processing XML files...")
+
+    # Log file in the form of:
+    # {
+    #   ["Overall total num of annotation"] = total_annotation_for_all_image
+    #   ["Overall total num of reject"] = total_rejects_for_all_image
+    #   ["image info"] = image_stats_dict
+    # }
+    log_dict = {}
     for root, dirs, _ in os.walk(path_to_dir):
         
         # If dirs is empty, means no subdir found. This step is mainly for tqdm to work, because if don't check for empty dirs, after it successfully iterates
@@ -241,9 +267,24 @@ if __name__ == "__main__":
         if not dirs:
             continue
         else:
+            
+            # image log file in the form of:
+            # {
+            #   "image's total annotation": total_annotation_for_one_image,
+            #   "image's total reject": total_annotation_for_one_image,
+            #   "image's segment info": segment_stats_dict,
+            # }
+            image_stats_dict = {}
             # Go through the list of subdirectories
             for subdir in tqdm(dirs, position=0, leave=True):
-            
+                
+                # segment log file in the form of:
+                # {
+                # 'num_of_reject': 0,
+                # 'num_of_total': 0
+                # }
+                segment_stats_dict = {}
+
                 # Go through each file in the list
                 for file in os.listdir(os.path.join(root, subdir)):
                     
@@ -252,10 +293,50 @@ if __name__ == "__main__":
                     if file.endswith(".png"):
                         # Matches with the file name. ALERT HARD CODED NAME HERE!!!
                         name_of_original_xml_file = subdir[0:-10]+".xml"
+
+                        # XML file created within function. Return function returns statistics. New key generated for each segment, values will be the stats for each segment.
                         # Only PNGs should be here
-                        adjust_annotations_for_segment(segment_path=os.path.join(root, subdir, file), 
+                        segment_stats_dict[f"{file}"] = adjust_annotations_for_segment(segment_path=os.path.join(root, subdir, file), 
                                                     original_annotation_path=os.path.join(root, name_of_original_xml_file),
-                                                    output_annotation_path=os.path.join(root, subdir))
+                                                    output_annotation_path=os.path.join(root, subdir),
+                                                    cutoff_threshold=args.cutoff_threshold)
+                        
+                # Tabulate total statistics for single image
+                total_rejects_for_one_image = 0
+                total_annotation_for_one_image = 0
+                # Go through each segment and sum up the stats
+                for stats in segment_stats_dict.values():
+                    total_rejects_for_one_image += stats["num_of_reject"]
+                    total_annotation_for_one_image += stats['num_of_total']
+
+                # Tabulate total stats for one image in a subdir
+                image_stats_dict[f"{subdir}"] = {
+                                                "image's total annotation": total_annotation_for_one_image,
+                                                "image's total reject": total_annotation_for_one_image,
+                                                "image's segment info": segment_stats_dict,
+                                                }
+            
+            # Tabulate total statistics across all images
+            total_rejects_for_all_image = 0
+            total_annotation_for_all_image = 0
+            # Go through each segment and sum up the stats
+            for stats in image_stats_dict.values():
+                total_rejects_for_all_image += stats["image's total reject"]
+                total_annotation_for_all_image += stats["image's total annotation"]
+            # Tabulate total stats for one image in a subdir
+            log_dict["Percentage threshold value set"] = args.cutoff_threshold
+            log_dict["Overall total num of annotation"] = total_annotation_for_all_image
+            log_dict["Overall total num of reject"] = total_rejects_for_all_image
+            log_dict[r"Overall % of reject"] = round(total_rejects_for_all_image/total_annotation_for_all_image * 100, 2)
+            log_dict["Overall total num of passed"] = total_annotation_for_all_image - total_rejects_for_all_image
+            log_dict[r"Overall % of passed"] = round((total_annotation_for_all_image - total_rejects_for_all_image)/total_annotation_for_all_image * 100, 2)
+            log_dict["image info"] = image_stats_dict
+
+            head, _ = gs.path_leaf(args.root_dir)
+            with open(os.path.join(head, "busxray_stats.json"), 'w') as outfile:
+                json.dump(log_dict, outfile, indent=4)
+
+
 
     # For individual folder testing, uncomment if applicable.
     # SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"

@@ -19,7 +19,7 @@ Full example:
 python compile_annotations_busxray.py --root-dir "D:\leann\busxray_woodlands\exp" --target-dir "D:\leann\busxray_woodlands\annotations"
 
 This will cause the function to look at root directory at <exp> and saves the file at <annotations>.
-@current_version_author: alp
+@current_author: alp
 @last modified: 12/4/2023 2:29pm
 """
 
