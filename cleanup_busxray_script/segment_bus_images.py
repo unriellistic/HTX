@@ -25,13 +25,13 @@ Input arguments:
 
 Full example:
 To run the segmenting function:
-python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\adjusted_annotations" --overlap-portion 640 --overlap-portion 0.5
+python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_adjusted" --overlap-portion 640 --overlap-portion 0.5
 -> This will cause the function to look at root directory at <annotations_adjusted>, splits the segment in 640x640 pieces. 
 -> The overlap will be half of the image size, in this case half of 640 is 320. So the next segment after the first x_start = 0, x_end = 640, will be x_start = 320, x_end = 920.
 -> Meaning the sliding window will be in increments of 320 pixels, in both width and height.
 
 @author: Alp
-@last modified: 11/4/2023 5:20pm
+@last modified: 12/4/2023 2:20pm
 
 Things to work on:
 Develop a function that determines which annotation box is < certain threshold, note down how many images have such annotation, can save into
@@ -99,7 +99,7 @@ def segment_image(image_path, segment_size=640, overlap_percent=0.5):
             cv2.imwrite(segment_path, segment)
 
 
-def adjust_annotations_for_segment(segment_path, original_annotation_path, output_annotation_path):
+def adjust_annotations_for_segment(segment_path, original_annotation_path, output_annotation_path, cutoff_value):
     """
     Adjusts the Pascal VOC annotation standard for an image segment.
 
@@ -207,6 +207,7 @@ if __name__ == "__main__":
     parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"annotations_adjusted")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
+    parser.add_argument("--cutoff-size", help="upperbound cutoff percentage of each annotation", default=0.3)
 
     args = parser.parse_args()
     # uncomment below if want to debug in IDE
@@ -255,7 +256,8 @@ if __name__ == "__main__":
                         # Only PNGs should be here
                         adjust_annotations_for_segment(segment_path=os.path.join(root, subdir, file), 
                                                     original_annotation_path=os.path.join(root, name_of_original_xml_file),
-                                                    output_annotation_path=os.path.join(root, subdir))
+                                                    output_annotation_path=os.path.join(root, subdir),
+                                                    cutoff_value=args.cutoff_size)
 
     # For individual folder testing, uncomment if applicable.
     # SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
