@@ -1,0 +1,4 @@
+-Develop a function that determines which annotation box is < certain threshold, note down how many images have such annotation, can save into
+txt file. 30, 40, 50. How many segment we'll need to discard.
+-word doc for hscode
+-pptx for example of the guns and knives - 858 (things that can see and cannot see, how to judge)

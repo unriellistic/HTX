@@ -1,9 +1,10 @@
 """
 This script provides two functions to segment an image into multiple smaller parts and adjust the annotation file 
-accordingly for each segment.
+accordingly for each segment. The output is saved in the same folder as specified in the --root-dir.
 
-The first function segment_image segments an input image into smaller parts of 640 by 640 pixels with a 
-specified overlap percentage between adjacent segments. 
+Explanation:
+
+The first function segment_image segments an input image into smaller parts of 640 by 640 pixels with a specified overlap percentage between adjacent segments. 
 The function takes the path of the image to be segmented, overlap percentage, and segment size as input arguments. 
 The function reads the input image using OpenCV, calculates the number of rows and columns required to segment the 
 image based on its size and overlap percentage, creates an output directory to store the segmented images, 
@@ -15,6 +16,26 @@ The function first loads the segmented image to get its dimensions and then pars
 annotation XML file using the ElementTree module. Next, the function creates a new XML file for the segmented image 
 and adjusts the bounding box coordinates of each object annotation to match the coordinates of the corresponding object 
 in the segmented image. Finally, the function saves the adjusted annotation to a new XML file for the segmented image.
+
+Input arguments:
+--root-dir: specifies the folder containing the adjusted image and annotation files. The path specified must contain a folder of both the XML and image file with the same name, only difference being the .jpg or .xml.
+    e.g. adjusted_355_annotated.jpg and adjusted_355_annotated.xml
+--overlap-portion: Float value, indicates fraction of each segment that should overlap adjacent segments. from 0 to 1. default=0.5 (50%)
+--segment-size: Integer value, indicate size of each segment. default=640 (each image will be 640x640)
+
+Full example:
+To run the segmenting function:
+python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\adjusted_annotations" --overlap-portion 640 --overlap-portion 0.5
+-> This will cause the function to look at root directory at <annotations_adjusted>, splits the segment in 640x640 pieces. 
+-> The overlap will be half of the image size, in this case half of 640 is 320. So the next segment after the first x_start = 0, x_end = 640, will be x_start = 320, x_end = 920.
+-> Meaning the sliding window will be in increments of 320 pixels, in both width and height.
+
+@author: Alp
+@last modified: 11/4/2023 5:20pm
+
+Things to work on:
+Develop a function that determines which annotation box is < certain threshold, note down how many images have such annotation, can save into
+txt file. 30, 40, 50. How many segment we'll need to discard.
 """
 import cv2
 import os
@@ -183,42 +204,62 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"D:\leann\busxray_woodlands\annotations_adjusted")
+    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"annotations_adjusted")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
 
     args = parser.parse_args()
+    # uncomment below if want to debug in IDE
+    # import sys
+    # sys.argv = ['segment_bus_images.py', '--root-dir', r"D:\leann\busxray_woodlands\annotations_adjusted"] # got some problem with int literals
 
-    # Segment up the images
-    os.chdir(args.root_dir)
-    list_of_images = gs.load_images_from_folder(args.root_dir)
+    # Get path to directory
+    # Check if default parameter is applied, if so get full path.
+    if args.root_dir == "annotations_adjusted":
+        path_to_dir = os.path.join(os.getcwd(), args.root_dir)
+    # Else, use path specified by user
+    else:
+        path_to_dir = args.root_dir
+
+    # Load the images
+    list_of_images = gs.load_images_from_folder(path_to_dir)
     
-    print("Processing images.")
+    # Segment up the images
+    print("Processing images...")
+    os.chdir(path_to_dir)
     for image in tqdm(list_of_images):
         segment_image(image_path=image,
-                    segment_size=args.segment_size, 
-                    overlap_percent=args.overlap_portion)
+                    segment_size=int(args.segment_size), 
+                    overlap_percent=float(args.overlap_portion))
 
     # Segment up the annotation
+    print("Processing XML files...")
+    for root, dirs, _ in os.walk(path_to_dir):
+        
+        # If dirs is empty, means no subdir found. This step is mainly for tqdm to work, because if don't check for empty dirs, after it successfully iterates
+        # through the subdirectories, i think it somehow checks it again, but it knows that it has already parsed it, which results in tqdm printing additional lines
+        if not dirs:
+            continue
+        else:
+            # Go through the list of subdirectories
+            for subdir in tqdm(dirs, position=0, leave=True):
+            
+                # Go through each file in the list
+                for file in os.listdir(os.path.join(root, subdir)):
+                    
+                    # In case the script is re-run after it had ran before, check that we only call the
+                    # adjust_annotations_for_segment function on png images.
+                    if file.endswith(".png"):
+                        # Matches with the file name. ALERT HARD CODED NAME HERE!!!
+                        name_of_original_xml_file = subdir[0:-10]+".xml"
+                        # Only PNGs should be here
+                        adjust_annotations_for_segment(segment_path=os.path.join(root, subdir, file), 
+                                                    original_annotation_path=os.path.join(root, name_of_original_xml_file),
+                                                    output_annotation_path=os.path.join(root, subdir))
+
+    # For individual folder testing, uncomment if applicable.
     # SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
     # ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
-
-    print("Processing XML files.")
-    for root, dirs, _ in os.walk(args.root_dir):
-
-        # Go through the list of subdirectories
-        for subdir in dirs:
-         
-            # Go through each file in the list
-            for file in os.listdir(os.path.join(root, subdir)):
-                
-                # Matches with the file name. ALERT HARD CODED NAME HERE!!!
-                name_of_original_xml_file = subdir[0:-10]+".xml"
-                # Only PNGs should be here
-                adjust_annotations_for_segment(segment_path=os.path.join(root, subdir, file), 
-                                               original_annotation_path=os.path.join(root, name_of_original_xml_file),
-                                               output_annotation_path=os.path.join(root, subdir))
-
     # os.chdir(SEGMENT_DIR)
     # segment_list = gs.load_images_from_folder(SEGMENT_DIR)
     # for image in segment_list:

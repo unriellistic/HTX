@@ -1,34 +1,50 @@
 """
 This script does 2 functions:
-1. It cleans up the black boxes and white boundary in the bus image.
-2. It re-adjusts the pascal VOC annotation according to how much the image was cropped.
+1. It cleans up the black boxes and white boundary in the bus image and relabels the file with adjusted_<filename>.jpg
+    e.g. 355_annotated.jpg -> adjusted_355_annotated.jpg
+2. It re-adjusts the pascal VOC annotation according to how much the image was cropped and relabels the file with adjusted_<filename>.xml
+    e.g. 355_annotated.xml -> adjusted_355_annotated.xml
 
 Variables to change:
     -ROOT_DIR: Folder where images and XML annotations are stored. They need to be the same name except for the extension. Script will crash if either one of the file is not present.
     -TARGET_DIR: Folder to store the cropped images and adjusted XML files
 
-@created: 4/3/2023
+Input arguments:
+--root-dir: specifies the folder containing the image and annotation files. The path specified must contain a folder of both the XML and image file with the same name, only difference being the .jpg or .xml.
+    e.g. 355_annotated.jpg and 355_annotated.xml
+--target-dir: specifies the folder to place the cropped bus images.
+--display: an optional argument that can be specified to just display the annotated image without running the cropping function.
+--display-path: specifies the path to a singular image file to display.
+
+Full example:
+To run the cropping function:
+python crop_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations" --target-dir "D:\leann\busxray_woodlands\annotations_adjusted"
+
+To display the all cropped images:
+python crop_bus_images.py --target-dir "D:\leann\busxray_woodlands\annotations_adjusted" --display-only
+
+To display one image:
+python crop_bus_images.py --display --display-path "D:\leann\busxray_woodlands\annotations_adjusted\adjusted_355_annotated.jpg"
+
+
+This will cause the function to look at root directory at <annotations> and saves the file at <annotations_adjusted>.
+
 @author: Alp
+@last modified: 11/4/2023 4:48pm
 """
 
 import cv2
 import general_scripts as gs
 import os, pathlib, argparse
-
 from tqdm import tqdm
 
-#ROOT_DIR = r"D:\leann\busxray_woodlands\annotations"
-#TARGET_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted"
-#IMAGE_DIR = r"../busxray_woodlands sample/PA8506K Higer 49 seats-clean-1-1 Monochrome.tiff"
+def find_black_to_white_transition(image):
 
-def find_black_to_white_transition(image_path):
-    # Read image from file
-    image = cv2.imread(image_path)
     # Convert to grayscale
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Constants
-    BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 10 # For top_to_bot and bot_to_top
-    BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE = 30
+    BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 100 # For top_to_bot and bot_to_top. Ensures that residual black lines don't affect top and bot crop.
+    BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE = 100
 
     # Functions to find optimal xy co-ordinates to crop
 
@@ -115,6 +131,7 @@ def find_black_to_white_transition(image_path):
                     break
         return most_bot_y
 
+    # Needs to run in this order as top_to_bot() utilises the x_start and x_end value.
     # Trim left black box
     x_start = left_to_right()
     # Trim right white empty space
@@ -155,10 +172,6 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
     size_elem.find('height').text = str(new_height)
 
     # Calculate the offset for the new coordinates
-    # new_coordinates[0] == x_start
-    # new_coordinates[1] == x_end
-    # new_coordinates[2] == y_start
-    # new_coordinates[3] == y_end
     x_offset = new_coordinates[0]
     y_offset = new_coordinates[2]
 
@@ -182,11 +195,31 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
     tree.write(output_dir_path)
 
 def resize_image_and_xml_annotation(input_file_name, output_dir_path):
+    """
+    The resize_image_and_xml_annotation function takes an input image file path and an output directory path as input parameters. 
+    The function first reads the image from the input file path using the OpenCV library's cv2.imread() function. 
+    It then uses another function called find_black_to_white_transition() to identify the boundaries of the image that need to be cropped to remove any black borders or edges.
+
+    After finding the boundaries, the function crops the image from the left-hand side and resizes it to a new height and width using the cv2.resize() function. 
+    It then writes the resized image to a new file path in the output directory with the prefix "adjusted_" using the cv2.imwrite() function.
+
+    The function then extracts the filename from the input file path and replaces the file extension with ".xml" to get the corresponding annotation file name. 
+    It saves the new XML file path with the same "adjusted_" prefix as the image file. It then calls another function called adjust_xml_annotation() 
+    which adjusts the coordinates of the annotations in the XML file to match the resized image's dimensions and new crop boundaries.
+
+    Finally, the function returns the resized image.
+
+    Args:
+    input_file_name (str): The file path of the image file.
+    output_dir_path (str): The file path where the modified XML should be written to.
+    
+    Returns:
+    None: function writes the modified XML and resized image to the output file path.
+    """
     # Read image from file
     image = cv2.imread(input_file_name)
-
     # Find boundaries to crop
-    x_start, x_end, y_start, y_end = find_black_to_white_transition(input_file_name)
+    x_start, x_end, y_start, y_end = find_black_to_white_transition(image)
 
     # Calculate new dimensions
     new_height = y_end - y_start
@@ -198,27 +231,41 @@ def resize_image_and_xml_annotation(input_file_name, output_dir_path):
     # Resize image
     resized_image = cv2.resize(cropped_image, (new_width, new_height))
 
-    # Write resized image to file
-    image_file_path = os.path.join(output_dir_path, f"adjusted_{input_file_name}")
-    cv2.imwrite(image_file_path, resized_image)
-
     # Get head and filename, because annotated XML file has same name as image
-    _, filename = gs.path_leaf(input_file_name)
+    head, filename = gs.path_leaf(input_file_name)
+
+    # Write resized image to file
+    image_file_path = os.path.join(output_dir_path, f"adjusted_{filename}")
+    cv2.imwrite(image_file_path, resized_image)
+    
     # Change file extension to XML.
     xml_file_name = gs.change_file_extension(filename, ".xml")
+    # Get XML file path
+    xml_file_path = os.path.join(head, xml_file_name)
     # Save XML file path
-    xml_file_path = os.path.join(output_dir_path, f"adjusted_{xml_file_name}")
+    adjusted_xml_file_path = os.path.join(output_dir_path, f"adjusted_{xml_file_name}")
     # Run XML adjustment function
-    adjust_xml_annotation(xml_file_path=xml_file_name, 
+    adjust_xml_annotation(xml_file_path=xml_file_path, 
                           new_coordinates=(x_start, x_end, y_start, y_end), 
-                          output_dir_path=xml_file_path)
+                          output_dir_path=adjusted_xml_file_path)
 
-    return resized_image
+    return None
 
 # To find out roughly what's the pixel intensity and at which X,Y coordinates.
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 def open_image(image_path):
+    """
+    The open_image function takes:
+    1) an image file path as input and loads the image using the Matplotlib library's mpimg.imread() function. 
+    2) It then creates a new Matplotlib figure and axes, and displays the image using the ax.imshow() function with a gray color map.
+    3a) The function also defines a new function called on_mouse_move() which handles mouse motion events on the image. 
+    3b) The function determines the intensity of the pixel under the mouse cursor by rounding the x and y coordinates of the event and indexing into the image array. 
+    3c) It then updates the title of the image axes with the current intensity value.
+    3d) The open_image function connects the on_mouse_move() function to the mouse motion event using the fig.canvas.mpl_connect() method. 
+    4) Finally, it displays the Matplotlib window with the image using the plt.show() function.
+    3 doesn't really work I think, but doesn't matter.
+"""
     # Load image from file
     image = mpimg.imread(image_path)
 
@@ -242,32 +289,64 @@ def open_image(image_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"D:\leann\busxray_woodlands\annotations")
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\leann\busxray_woodlands\annotations_adjusted")
-    parser.add_argument("--display-only", help="don't crop images, just display an annotated image", action="store_true")
-    parser.add_argument("--display-path", help="image file to display after adjustments", required=False)
+    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"annotations")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
+    parser.add_argument("--display", help="display the annotated images", action="store_true")
+    parser.add_argument("--display-path", help="path to display a single image file", required=False)
 
     args = parser.parse_args()
 
-    if not args.display_only:
+    # uncomment below if want to debug in IDE
+    # import sys
+    # sys.argv = ['crop_bus_images.py', '--root-dir', r"C:\Users\User1\Desktop\alp\for soo kng\annotations"]
+
+    # Get path to root directory
+    # Check if default parameter is applied, if so get full path.
+    if args.root_dir == "annotations":
+        path_to_root_dir = os.path.join(os.getcwd(), args.root_dir)
+    # Else, use path specified by user
+    else:
+        path_to_root_dir = args.root_dir
+
+    # Get path to target directory
+    # Check if default parameter is applied, if so get full path.
+    if args.target_dir == "annotations_adjusted":
+        path_to_target_dir = os.path.join(os.getcwd(), args.target_dir)
+    # Else, use path specified by user
+    else:
+        path_to_target_dir = args.target_dir
+
+    # If user didn't specify display, just perform cropping without displaying
+    if not args.display_path or not args.display:
         # Load images from folder
-        cwd = os.chdir(args.root_dir)
-        images = gs.load_images_from_folder(cwd)
+        images = gs.load_images_from_folder(path_to_root_dir)
+
+        # Create the output directory if it does not exist
+        if not os.path.exists(path_to_target_dir):
+            os.makedirs(path_to_target_dir)
+
         for image in tqdm(images):
             # function to return the file extension
             file_extension = pathlib.Path(image).suffix
             # Resize + adjust XML function and save it there
-            resize_image_and_xml_annotation(image, args.target_dir)
-
-    if args.display_path:
-        display_path = args.display_path
-    else:
-        for file in os.listdir(args.target_dir):
-            if os.path.splitext(file)[1] == ".jpg":
-                display_path = os.path.join(args.target_dir, file)
-                break
+            input_file_name = os.path.join(path_to_root_dir, image)
+            resize_image_and_xml_annotation(input_file_name=input_file_name,
+                                            output_dir_path=path_to_target_dir)
+    
+    # If display option selected, then display the whole list in the --target-dir, or if a --display-path is specified, display just a singular image
+    if args.display or args.display_path:
+        if args.display_path:
+            display_path = args.display_path
+            print("Displaying image", display_path)
+            open_image(display_path)
+        else:
+            for file in os.listdir(args.target_dir):
+                if os.path.splitext(file)[1] == ".jpg":
+                    display_path = os.path.join(args.target_dir, file)
+                    print("Displaying image", display_path)
+                    open_image(display_path)
 
     # To open an image to check
-    #open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
-    print("Displaying image", display_path)
-    open_image(display_path)
+    # open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
+    # open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented\segment_156_397.png")
+    
