@@ -2,6 +2,10 @@
 This script provides two functions to segment an image into multiple smaller parts and adjust the annotation file 
 accordingly for each segment. The output is saved in the same folder as specified in the --root-dir.
 
+Update notes for V2: 
+- is a build up on v1 with cutoff-threshold setting with tracking of statistics.
+- updates individual segmented image to include their threshold value
+
 Explanation:
 
 The first function segment_image segments an input image into smaller parts of 640 by 640 pixels with a specified overlap percentage between adjacent segments. 
@@ -34,8 +38,11 @@ python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_
 @last modified: 12/4/2023 2:20pm (working on cutoff threshold)
 
 Things to work on:
-Develop a function that determines which annotation box is < certain threshold, note down how many images have such annotation, can save into
+- DONE: Develop a function that determines which annotation box is < certain threshold, note down how many images have such annotation, can save into
 txt file. 30, 40, 50. How many segment we'll need to discard.
+- Think of how to "mask" the < 30% threshold portion of the annotation. 
+    Possible routes are using gaussian blur (might introduce artefacts which causes model degradation),
+    or simply snip away those parts of the image (have to run some sampling to see how much this method cuts away other portions of the image.)
 """
 import cv2
 import os
@@ -49,7 +56,7 @@ import argparse
 from tqdm import tqdm
 import json # For tracking of stats
 
-def segment_image(image_path, segment_size=640, overlap_percent=0.5):
+def segment_image(image_path, segment_size, overlap_percent):
     """
     Segments an image of any dimension into pieces of 640 by 640 with a specified overlap percentage.
 
@@ -122,7 +129,7 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
 
     # Create a new XML file for the segmented image
     _, filename = os.path.split(segment_path)
-    output_annotation_path = os.path.join(output_annotation_path, gs.change_file_extension(filename, "") + '.xml')
+    output_annotation_path = os.path.join(output_annotation_path, gs.change_file_extension(filename, "") + f'_{int(float(cutoff_threshold)*100)}percent.xml')
     segmented_annotation = ET.Element('annotation')
     ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
     ET.SubElement(segmented_annotation, 'filename').text = filename
@@ -202,7 +209,7 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
             log_dict['num_of_total'] += 1
 
             # Check if percentage overlap is greater than threshold. It finds the original area divided by adjusted area and checks if it's more than cutoff_threshold.
-            if ((xmax_adjusted - xmin_adjusted)*(ymax_adjusted - ymin_adjusted))/((xmax_original - xmin_original)*(ymax_original - ymin_original)) > float(cutoff_threshold):
+            if (((xmax_adjusted - xmin_adjusted)*(ymax_adjusted - ymin_adjusted))/((xmax_original - xmin_original)*(ymax_original - ymin_original))) >= float(cutoff_threshold):
                 create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)
             else:
                 log_dict['num_of_reject'] += 1
@@ -226,10 +233,12 @@ if __name__ == "__main__":
     parser.add_argument("--segment-size", help="size of each segment", default=640)
     parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
 
-    args = parser.parse_args()
     # uncomment below if want to debug in IDE
-    # import sys
-    # sys.argv = ['segment_bus_images.py', '--root-dir', r"D:\leann\busxray_woodlands\annotations_adjusted"] # got some problem with int literals
+    import sys
+    # Manually set the command-line arguments for debugging
+    # sys.argv = ['segment_bus_images_v2.py', '--root-dir', r"D:\leann\busxray_woodlands\annotations_adjusted", '--overlap-portion', "0.5", '--cutoff-threshold', "0.3"]
+    
+    args = parser.parse_args()
 
     # Get path to directory
     # Check if default parameter is applied, if so get full path.
@@ -312,7 +321,7 @@ if __name__ == "__main__":
                 # Tabulate total stats for one image in a subdir
                 image_stats_dict[f"{subdir}"] = {
                                                 "image's total annotation": total_annotation_for_one_image,
-                                                "image's total reject": total_annotation_for_one_image,
+                                                "image's total reject": total_rejects_for_one_image,
                                                 "image's segment info": segment_stats_dict,
                                                 }
             
@@ -333,7 +342,7 @@ if __name__ == "__main__":
             log_dict["image info"] = image_stats_dict
 
             head, _ = gs.path_leaf(args.root_dir)
-            with open(os.path.join(head, "busxray_stats.json"), 'w') as outfile:
+            with open(os.path.join(head, f"busxray_stats_with_{args.cutoff_threshold}.json"), 'w') as outfile:
                 json.dump(log_dict, outfile, indent=4)
 
 
