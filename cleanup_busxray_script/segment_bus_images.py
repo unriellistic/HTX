@@ -222,7 +222,7 @@ if __name__ == "__main__":
         path_to_dir = args.root_dir
 
     # Load the images
-    list_of_images = gs.load_images_from_folder(path_to_dir)
+    list_of_images = gs.load_images(path_to_dir)
     
     # Segment up the images
     print("Processing images...")
@@ -261,6 +261,6 @@ if __name__ == "__main__":
     # SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
     # ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
     # os.chdir(SEGMENT_DIR)
-    # segment_list = gs.load_images_from_folder(SEGMENT_DIR)
+    # segment_list = gs.load_images(SEGMENT_DIR)
     # for image in segment_list:
     #     adjust_annotations_for_segment(image, ANNOTATION_PATH)

@@ -2,9 +2,8 @@
 This script provides two functions to segment an image into multiple smaller parts and adjust the annotation file 
 accordingly for each segment. The output is saved in the same folder as specified in the --root-dir.
 
-Update notes for V2: 
-- is a build up on v1 with cutoff-threshold setting with tracking of statistics.
-- updates individual segmented image to include their threshold value
+Update notes for V3: 
+- 
 
 Explanation:
 
@@ -35,7 +34,7 @@ python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_
 -> Meaning the sliding window will be in increments of 320 pixels, in both width and height.
 
 @author: Alp
-@last modified: 12/4/2023 2:20pm
+@last modified: 13/4/2023 2:20pm
 
 Things to work on:
 - Think of how to "mask" the < 30% threshold portion of the annotation. 
@@ -56,10 +55,12 @@ import json # For tracking of stats
 
 def segment_image(image_path, segment_size, overlap_percent):
     """
-    Segments an image of any dimension into pieces of 640 by 640 with a specified overlap percentage.
+    Segments an image of any dimension into pieces of specified by <segment_size>,
+    with a specified overlap percentage specified by <overlap_percent>.
 
     Args:
     image_path (str): The file path of the image to be segmented.
+    segment_size (int): Integer number for segment size.
     overlap_percent (float): The percentage of overlap between adjacent segments (0 to 1).
 
     Returns:
@@ -260,12 +261,14 @@ if __name__ == "__main__":
     # Segment up the annotation
     print("Processing XML files...")
 
-    # Log file in the form of:
-    # {
-    #   ["Overall total num of annotation"] = total_annotation_for_all_image
-    #   ["Overall total num of reject"] = total_rejects_for_all_image
-    #   ["image info"] = image_stats_dict
-    # }
+    """
+    Log file in the form of:
+    {
+      ["Overall total num of annotation"] = total_annotation_for_all_image
+      ["Overall total num of reject"] = total_rejects_for_all_image
+      ["image info"] = image_stats_dict
+    }
+    """
     log_dict = {}
     for root, dirs, _ in os.walk(path_to_dir):
         
@@ -275,21 +278,25 @@ if __name__ == "__main__":
             continue
         else:
             
-            # image log file in the form of:
-            # {
-            #   "image's total annotation": total_annotation_for_one_image,
-            #   "image's total reject": total_annotation_for_one_image,
-            #   "image's segment info": segment_stats_dict,
-            # }
+            """
+            image log file in the form of:
+            {
+              "image's total annotation": total_annotation_for_one_image,
+              "image's total reject": total_annotation_for_one_image,
+              "image's segment info": segment_stats_dict,
+            }
+            """
             image_stats_dict = {}
             # Go through the list of subdirectories
             for subdir in tqdm(dirs, position=0, leave=True):
                 
-                # segment log file in the form of:
-                # {
-                # 'num_of_reject': 0,
-                # 'num_of_total': 0
-                # }
+                """
+                segment log file in the form of:
+                {
+                'num_of_reject': 0,
+                'num_of_total': 0
+                }
+                """
                 segment_stats_dict = {}
 
                 # Go through each file in the list
@@ -346,9 +353,11 @@ if __name__ == "__main__":
 
 
     # For individual folder testing, uncomment if applicable.
-    # SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
-    # ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
-    # os.chdir(SEGMENT_DIR)
-    # segment_list = gs.load_images(SEGMENT_DIR)
-    # for image in segment_list:
-    #     adjust_annotations_for_segment(image, ANNOTATION_PATH)
+    """
+    SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
+    ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
+    os.chdir(SEGMENT_DIR)
+    segment_list = gs.load_images(SEGMENT_DIR)
+    for image in segment_list:
+        adjust_annotations_for_segment(image, ANNOTATION_PATH)
+    """
