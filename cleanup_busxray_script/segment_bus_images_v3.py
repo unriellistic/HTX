@@ -170,10 +170,14 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
     # Log file
     log_dict = {'num_of_reject': 0,
                 'num_of_total': 0,}
-
+    
+    # Dictionary of values that we want to mask. Stores a list of x and y values that we will be cutting off
+    mask_dict = {"x_plane_coordinate_to_mask": [],
+                 "y_plane_coordinate_to_mask": [],
+                 "object_coordinates": {}}
 
     # Loop over the object annotations in the original annotation file
-    for obj in root.findall('object'):
+    for index, obj in enumerate(root.findall('object')):
         # Get the bounding box coordinates for the current object
         bbox = obj.find('bndbox')
         xmin_original = int(bbox.find('xmin').text)
@@ -208,10 +212,62 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
             log_dict['num_of_total'] += 1
 
             # Check if percentage overlap is greater than threshold. It finds the original area divided by adjusted area and checks if it's more than cutoff_threshold.
-            if (((xmax_adjusted - xmin_adjusted)*(ymax_adjusted - ymin_adjusted))/((xmax_original - xmin_original)*(ymax_original - ymin_original))) >= float(cutoff_threshold):
+            x_width_adjusted = xmax_adjusted - xmin_adjusted
+            y_height_adjusted = ymax_adjusted - ymin_adjusted
+            x_width_original = xmax_original - xmin_original
+            y_height_original = ymax_original - ymin_original
+            if (((x_width_adjusted)*(y_height_adjusted))/((x_width_original)*(y_height_original))) >= float(cutoff_threshold):
+                # Store annotation in XML file
                 create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)
+
+                # Store object's coordinate for statistic tracking
+                mask_dict["object_coordinates"][f"obj_index_{index}"] = {
+                                                                            "xmin": xmin_adjusted,
+                                                                            "ymin": ymin_adjusted,
+                                                                            "xmax": xmax_adjusted,
+                                                                            "ymax": ymax_adjusted
+                                                                         }
             else:
+                # Increment rejected box
                 log_dict['num_of_reject'] += 1
+                
+                """
+                Find out percentage of image it'll cut off if not included.
+
+                Find which border direction to cut off from, from left, right, top, bot. 
+                Afterwards, find the plane to cut off from
+                """
+                x_value_to_mask = 0
+                y_value_to_mask = 0
+                # Checks distance from top of segment to object vs bot of segment to object
+                if 0 + xmax_adjusted < segment_width - xmin_adjusted:
+                    # means object is nearer to the left side of image
+                    x_value_to_mask = xmax_adjusted
+                else:
+                    # means object is nearer to the right side of image
+                    x_value_to_mask = xmin_adjusted
+
+                # Checks distance from left of segment to object vs right of segment to object
+                if 0 + ymax_adjusted < segment_width - ymin_adjusted:
+                    # means object is nearer to the top side of image
+                    y_value_to_mask = ymax_adjusted
+                else:
+                    # means object is nearer to the bot side of image
+                    y_value_to_mask = ymin_adjusted
+                
+                """
+                Check which plane cut is minimised
+                at this point, we calculate distance from border, and use min as a logic to compare either left or right 'x' with either top or bot 'y'.
+                afterwards, save the initial 'x' or 'y' mask value.
+                """
+                if min(segment_width - x_value_to_mask, 0 + x_value_to_mask) < min(segment_height - y_value_to_mask, 0 + y_value_to_mask):
+                    mask_dict['x_plane_coordinate_to_mask'].append(x_value_to_mask)
+                else:
+                    mask_dict['y_plane_coordinate_to_mask'].append(y_value_to_mask)
+                
+    # Tabulate statistics
+    def search_cutoff_percentage():
+        mask_dict
                 
 
 
@@ -224,6 +280,9 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
     
     return log_dict
 
+def mask_out_object_features_below_threshold(image_path):
+
+    return
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
