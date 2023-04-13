@@ -1,0 +1,6 @@
+large_files/*
+detectron*
+__pycache__
+cleanup_busxray_script/annotations
+cleanup_busxray_script/annotations_adjusted
+cleanup_busxray_script/exp
