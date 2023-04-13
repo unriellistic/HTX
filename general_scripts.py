@@ -1,11 +1,11 @@
 """
 A place to store common functions:
-- load_images_from_folder: Loading all images from a directory
-    - function: def load_images_from_folder(folder, file_type="all"):
+- load_images: Loading all images from a directory
+    - function: def load_images(folder, file_type="all"):
     - e.g. To load all image file type:
-        load_images_from_folder(<filepath_to_folder>, file_type="all")
+        load_images(<filepath_to_folder>, file_type="all")
     - e.g. To load only png file type:
-        load_images_from_folder(<filepath_to_folder>, file_type=".png")
+        load_images(<filepath_to_folder>, file_type=".png")
 
 - save_to_excel: saves information to an excel file in the current directory
     - function: def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=False):
@@ -25,37 +25,45 @@ A place to store common functions:
 """
 
 import os
-def load_images_from_folder(folder, file_type="all"):
+from pathlib import Path
+from tqdm import tqdm
+
+def load_images(path_to_images, file_type="all"):
     """
-    Function checks if path specified is a file and an image, if it is, returns the image.
-    Else, it checks if path returns a list of images found in the directory
+    Function returns a list of full paths to images found in the path_to_image user specify.
 
     Args:
-        folder: A variable that contains the full path to the directory of interest, which contains images
+        path_to_images: A variable that contains the full path to the directory of interest, which contains images. 
         file_type: A variable that specifies what file type to look for. Default = "all"
 
     Returns:
-        images: A list containing the name of the images.
+        images: A list containing the full paths to the images.
     """
-    images = []
+    p = str(Path(path_to_images).absolute())  # os-agnostic absolute path
+
+    images_path = []
     list_of_image_file_format = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')
 
-    def check_if_file_is_an_image(filename):
+    def check_if_file_is_an_image(path_to_images):
         if file_type == "all":
-            if filename.lower().endswith(list_of_image_file_format) and filename is not None:
-                images.append(filename)
+            if path_to_images.lower().endswith(list_of_image_file_format) and path_to_images is not None:
+                images_path.append(path_to_images)
         else:
-            if filename.lower().endswith(file_type) and filename is not None:
-                images.append(filename)
+            if path_to_images.lower().endswith(file_type) and path_to_images is not None:
+                images_path.append(path_to_images)
                 
-    # Checks if path specified is a file   
-    if os.path.isfile(folder):
-        check_if_file_is_an_image(folder)
+    # Checks if path specified is a file, folder, or a directory of subdirectories
+    if os.path.isfile(p):
+        check_if_file_is_an_image(p)
+    elif os.path.isdir(p):
+        print("Collecting a list of images from", p)
+        for root, _, files in os.walk(p):
+            for file in files:
+                check_if_file_is_an_image(os.path.join(root, file))
     else:
-        for filename in os.listdir(folder):
-            check_if_file_is_an_image(filename)
+        raise Exception(f'ERROR: {p} does not exist')
 
-    return images
+    return images_path
 
 def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=False):
     """
