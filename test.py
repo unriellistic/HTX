@@ -1,11 +1,6 @@
 """
 Just a mini testing file for me to try out python logic for debugging.
 """
-import os
-from pathlib import Path
-import glob
-
-path = r"test images"
-import general_scripts as gs
-
-images = gs.load_images(path)
+total_area_of_annotation_cut = 0.01
+total_object_annotation_area = 500
+print(0.0 if total_area_of_annotation_cut == 0.0 else total_area_of_annotation_cut/total_object_annotation_area)

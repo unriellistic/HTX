@@ -27,6 +27,7 @@ A place to store common functions:
 import os
 from pathlib import Path
 from tqdm import tqdm
+import natsort
 
 def load_images(path_to_images, file_type="all"):
     """
@@ -62,6 +63,9 @@ def load_images(path_to_images, file_type="all"):
                 check_if_file_is_an_image(os.path.join(root, file))
     else:
         raise Exception(f'ERROR: {p} does not exist')
+
+    # returns images in a natural sorted order
+    images_path = natsort.natsorted(images_path,reverse=False)
 
     return images_path
 

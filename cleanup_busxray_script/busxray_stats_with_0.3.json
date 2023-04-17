@@ -5,7 +5,7 @@
     "Overall % of reject": 10.55,
     "Overall total num of passed": 1136,
     "Overall % of passed": 89.45,
-    "Overall % of info loss": 1.0,
+    "Overall % of info loss": 0.0,
     "image info": {
         "adjusted_1832_annotated_segmented": {
             "image's total annotation": 42,
@@ -217,7 +217,7 @@
         "adjusted_1833_annotated_segmented": {
             "image's total annotation": 82,
             "image's total reject": 17,
-            "image's total info loss": 0.3405,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -332,7 +332,7 @@
                 "segment_320_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
-                    "info_loss": 3.55
+                    "info_loss": 0.0
                 },
                 "segment_320_960.png": {
                     "num_of_reject": 4,
@@ -372,12 +372,12 @@
                 "segment_640_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 8,
-                    "info_loss": 1.85
+                    "info_loss": 0.0
                 },
                 "segment_640_960.png": {
                     "num_of_reject": 3,
                     "num_of_total": 8,
-                    "info_loss": 2.47
+                    "info_loss": 0.0
                 },
                 "segment_960_0.png": {
                     "num_of_reject": 0,
@@ -412,12 +412,12 @@
                 "segment_960_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 6,
-                    "info_loss": 5.2
+                    "info_loss": 0.0
                 },
                 "segment_960_960.png": {
                     "num_of_reject": 1,
                     "num_of_total": 6,
-                    "info_loss": 0.55
+                    "info_loss": 0.0
                 }
             }
         },
@@ -631,7 +631,7 @@
         "adjusted_1835_annotated_segmented": {
             "image's total annotation": 83,
             "image's total reject": 8,
-            "image's total info loss": 2.6392499999999997,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -706,7 +706,7 @@
                 "segment_1058_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
-                    "info_loss": 35.19
+                    "info_loss": 0.0
                 },
                 "segment_1058_960.png": {
                     "num_of_reject": 1,
@@ -786,7 +786,7 @@
                 "segment_640_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
-                    "info_loss": 35.19
+                    "info_loss": 0.0
                 },
                 "segment_640_960.png": {
                     "num_of_reject": 1,
@@ -826,7 +826,7 @@
                 "segment_960_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
-                    "info_loss": 35.19
+                    "info_loss": 0.0
                 },
                 "segment_960_960.png": {
                     "num_of_reject": 1,
@@ -1045,7 +1045,7 @@
         "adjusted_1837_annotated_segmented": {
             "image's total annotation": 83,
             "image's total reject": 13,
-            "image's total info loss": 0.13375,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -1175,7 +1175,7 @@
                 "segment_640_1280.png": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
-                    "info_loss": 4.4
+                    "info_loss": 0.0
                 },
                 "segment_640_1600.png": {
                     "num_of_reject": 0,
@@ -1195,7 +1195,7 @@
                 "segment_640_320.png": {
                     "num_of_reject": 2,
                     "num_of_total": 4,
-                    "info_loss": 0.95
+                    "info_loss": 0.0
                 },
                 "segment_640_640.png": {
                     "num_of_reject": 0,
@@ -1252,7 +1252,7 @@
         "adjusted_1838_annotated_segmented": {
             "image's total annotation": 89,
             "image's total reject": 2,
-            "image's total info loss": 0.9722500000000001,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -1347,7 +1347,7 @@
                 "segment_320_1600.png": {
                     "num_of_reject": 1,
                     "num_of_total": 2,
-                    "info_loss": 38.89
+                    "info_loss": 0.0
                 },
                 "segment_320_1920.png": {
                     "num_of_reject": 0,
@@ -1459,7 +1459,7 @@
         "adjusted_1839_annotated_segmented": {
             "image's total annotation": 83,
             "image's total reject": 2,
-            "image's total info loss": 0.26925,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -1634,7 +1634,7 @@
                 "segment_960_1600.png": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
-                    "info_loss": 10.77
+                    "info_loss": 0.0
                 },
                 "segment_960_1920.png": {
                     "num_of_reject": 0,
@@ -1873,7 +1873,7 @@
         "adjusted_1842_annotated_segmented": {
             "image's total annotation": 53,
             "image's total reject": 9,
-            "image's total info loss": 1.3184999999999998,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 1,
@@ -1958,7 +1958,7 @@
                 "segment_320_0.png": {
                     "num_of_reject": 1,
                     "num_of_total": 2,
-                    "info_loss": 17.45
+                    "info_loss": 0.0
                 },
                 "segment_320_1280.png": {
                     "num_of_reject": 0,
@@ -2068,7 +2068,7 @@
                 "segment_960_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 2,
-                    "info_loss": 35.29
+                    "info_loss": 0.0
                 },
                 "segment_960_960.png": {
                     "num_of_reject": 1,
@@ -2701,7 +2701,7 @@
         "adjusted_357_annotated_segmented": {
             "image's total annotation": 105,
             "image's total reject": 9,
-            "image's total info loss": 6.598000000000001,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -2841,12 +2841,12 @@
                 "segment_640_1920.png": {
                     "num_of_reject": 1,
                     "num_of_total": 6,
-                    "info_loss": 5.23
+                    "info_loss": 0.0
                 },
                 "segment_640_1965.png": {
                     "num_of_reject": 1,
                     "num_of_total": 6,
-                    "info_loss": 5.23
+                    "info_loss": 0.0
                 },
                 "segment_640_320.png": {
                     "num_of_reject": 0,
@@ -2856,7 +2856,7 @@
                 "segment_640_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
-                    "info_loss": 10.1
+                    "info_loss": 0.0
                 },
                 "segment_640_960.png": {
                     "num_of_reject": 0,
@@ -2871,7 +2871,7 @@
                 "segment_960_1280.png": {
                     "num_of_reject": 1,
                     "num_of_total": 2,
-                    "info_loss": 53.62
+                    "info_loss": 0.0
                 },
                 "segment_960_1600.png": {
                     "num_of_reject": 0,
@@ -2896,19 +2896,19 @@
                 "segment_960_640.png": {
                     "num_of_reject": 2,
                     "num_of_total": 4,
-                    "info_loss": 118.88
+                    "info_loss": 0.0
                 },
                 "segment_960_960.png": {
                     "num_of_reject": 1,
                     "num_of_total": 3,
-                    "info_loss": 70.86
+                    "info_loss": 0.0
                 }
             }
         },
         "adjusted_358_annotated_segmented": {
             "image's total annotation": 102,
             "image's total reject": 14,
-            "image's total info loss": 1.8977499999999998,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -2988,7 +2988,7 @@
                 "segment_1147_960.png": {
                     "num_of_reject": 2,
                     "num_of_total": 4,
-                    "info_loss": 22.95
+                    "info_loss": 0.0
                 },
                 "segment_320_0.png": {
                     "num_of_reject": 0,
@@ -3023,7 +3023,7 @@
                 "segment_320_640.png": {
                     "num_of_reject": 2,
                     "num_of_total": 4,
-                    "info_loss": 18.66
+                    "info_loss": 0.0
                 },
                 "segment_320_960.png": {
                     "num_of_reject": 0,
@@ -3068,7 +3068,7 @@
                 "segment_640_960.png": {
                     "num_of_reject": 2,
                     "num_of_total": 6,
-                    "info_loss": 28.3
+                    "info_loss": 0.0
                 },
                 "segment_960_0.png": {
                     "num_of_reject": 0,
@@ -3103,7 +3103,7 @@
                 "segment_960_640.png": {
                     "num_of_reject": 2,
                     "num_of_total": 6,
-                    "info_loss": 6.0
+                    "info_loss": 0.0
                 },
                 "segment_960_960.png": {
                     "num_of_reject": 2,
@@ -3115,7 +3115,7 @@
         "adjusted_359_annotated_segmented": {
             "image's total annotation": 94,
             "image's total reject": 18,
-            "image's total info loss": 2.0817500000000004,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -3230,7 +3230,7 @@
                 "segment_320_640.png": {
                     "num_of_reject": 2,
                     "num_of_total": 7,
-                    "info_loss": 37.28
+                    "info_loss": 0.0
                 },
                 "segment_320_960.png": {
                     "num_of_reject": 2,
@@ -3270,7 +3270,7 @@
                 "segment_640_640.png": {
                     "num_of_reject": 2,
                     "num_of_total": 6,
-                    "info_loss": 45.99
+                    "info_loss": 0.0
                 },
                 "segment_640_960.png": {
                     "num_of_reject": 3,
@@ -3322,7 +3322,7 @@
         "adjusted_360_annotated_segmented": {
             "image's total annotation": 73,
             "image's total reject": 11,
-            "image's total info loss": 0.7967500000000001,
+            "image's total info loss": 0.0,
             "image's segment info": {
                 "segment_0_0.png": {
                     "num_of_reject": 0,
@@ -3397,7 +3397,7 @@
                 "segment_1145_640.png": {
                     "num_of_reject": 1,
                     "num_of_total": 2,
-                    "info_loss": 0.48
+                    "info_loss": 0.0
                 },
                 "segment_1145_960.png": {
                     "num_of_reject": 1,
@@ -3517,7 +3517,7 @@
                 "segment_960_640.png": {
                     "num_of_reject": 2,
                     "num_of_total": 4,
-                    "info_loss": 31.39
+                    "info_loss": 0.0
                 },
                 "segment_960_960.png": {
                     "num_of_reject": 1,
