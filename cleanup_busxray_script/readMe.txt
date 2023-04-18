@@ -104,6 +104,26 @@ Should have 51 items in a fodler called "annotations_adjusted", consist of 34 fi
 	segment_960_0.png, segment_960_320.png, segment_960_640.png, ..., segment_960_1999.png,
 	segment_1150_0.png, segment_1150_320.png, segment_1150_640.png, ..., segment_1150_1999.png,
 
+Correct results:
+for 1832:
+adjusted_1832_annotated_segmented": {
+            "image's total annotation": 42,
+            "image's total reject": 6,
+            "image's total info loss": 0.0,
+            "image's segment info": {
+
+for 1833:
+adjusted_1833_annotated_segmented": {
+            "image's total annotation": 82,
+            "image's total reject": 17,
+            "image's total info loss": 1.6285,
+            "image's segment info": {
+			"segment_320_640.png": {
+                    "num_of_reject": 1,
+                    "num_of_total": 4,
+                    "info_loss": 56.99
+			}
+
 Additional information on the try-it-out example file IDs:
 
 ID	time		content													detected							actual_results		remarks
