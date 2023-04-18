@@ -37,6 +37,7 @@ import cv2
 import general_scripts as gs
 import os, pathlib, argparse
 from tqdm import tqdm
+import xml.dom.minidom as minidom # For pretty formatting
 
 def find_black_to_white_transition(image):
 
@@ -168,31 +169,61 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
     new_width = new_coordinates[1] - new_coordinates[0]
     new_height = new_coordinates[3] - new_coordinates[2]
     # Adjust the width and height of the image element
-    size_elem.find('width').text = str(new_width)
-    size_elem.find('height').text = str(new_height)
+    # size_elem.find('width').text = str(new_width)
+    # size_elem.find('height').text = str(new_height)
+    # size_elem.find('depth').text = size_elem.find('depth')
 
     # Calculate the offset for the new coordinates
     x_offset = new_coordinates[0]
     y_offset = new_coordinates[2]
 
+    # Create a new XML file for the segmented image
+    adjusted_annotation = ET.Element('annotation')
+    _, filename = os.path.split(xml_file_path)
+    ET.SubElement(adjusted_annotation, 'folder').text = os.path.dirname(xml_file_path)
+    ET.SubElement(adjusted_annotation, 'filename').text = filename
+    ET.SubElement(adjusted_annotation, 'path').text = output_dir_path
+    source = ET.SubElement(adjusted_annotation, 'source')
+    ET.SubElement(source, 'database').text = 'Unknown'
+    size = ET.SubElement(adjusted_annotation, 'size')
+    ET.SubElement(size, 'width').text = str(new_width)
+    ET.SubElement(size, 'height').text = str(new_height)
+    ET.SubElement(size, 'depth').text = size_elem.find('depth')
+    # Write the x and y offset into JSON file for future inference usage
+    offset = ET.SubElement(adjusted_annotation, 'original_image_offset')
+    ET.SubElement(offset, 'x_offset').text = str(x_offset)
+    ET.SubElement(offset, 'y_offset').text = str(y_offset)
+
+    def create_new_object_annotation(obj_elem, xmin, ymin, xmax, ymax):
+        # Create a new object annotation with the adjusted bounding box coordinates
+        segmented_obj = ET.SubElement(adjusted_annotation, 'object')
+        ET.SubElement(segmented_obj, 'name').text = obj_elem.find('name').text
+        ET.SubElement(segmented_obj, 'pose').text = obj_elem.find('pose').text
+        ET.SubElement(segmented_obj, 'truncated').text = obj_elem.find('truncated').text
+        ET.SubElement(segmented_obj, 'difficult').text = obj_elem.find('difficult').text
+        segmented_bbox = ET.SubElement(segmented_obj, 'bndbox')
+        ET.SubElement(segmented_bbox, 'xmin').text = xmin
+        ET.SubElement(segmented_bbox, 'ymin').text = ymin
+        ET.SubElement(segmented_bbox, 'xmax').text = xmax
+        ET.SubElement(segmented_bbox, 'ymax').text = ymax
+
     # Adjust the coordinates of each object in the XML file
     for obj_elem in root.findall('object'):
         bbox_elem = obj_elem.find('bndbox')
+        create_new_object_annotation(obj_elem,
+                                     xmin=str(int(bbox_elem.find('xmin').text) - x_offset),
+                                     xmax=str(int(bbox_elem.find('xmax').text) - x_offset),
+                                     ymin=str(int(bbox_elem.find('ymin').text) - y_offset),
+                                     ymax=str(int(bbox_elem.find('ymax').text) - y_offset))
 
-        # Get the original coordinates of the bounding box
-        xmin = int(bbox_elem.find('xmin').text)
-        ymin = int(bbox_elem.find('ymin').text)
-        xmax = int(bbox_elem.find('xmax').text)
-        ymax = int(bbox_elem.find('ymax').text)
+    # Create an XML string with pretty formatting
+    xml_string = minidom.parseString(ET.tostring(adjusted_annotation)).toprettyxml(indent='     ')
 
-        # Adjust the coordinates based on the new coordinates and offset values
-        bbox_elem.find('xmin').text = str(int(xmin - x_offset))
-        bbox_elem.find('ymin').text = str(int(ymin - y_offset))
-        bbox_elem.find('xmax').text = str(int(xmax - x_offset))
-        bbox_elem.find('ymax').text = str(int(ymax - y_offset))
-
-    # Write the modified XML to the output file path
-    tree.write(output_dir_path)
+    # Write the XML string to a file
+    with open(output_dir_path, 'w') as f:
+        f.write(xml_string)
+    
+    return
 
 def resize_image_and_xml_annotation(input_file_name, output_dir_path):
     """
@@ -270,27 +301,16 @@ def open_image(image_path):
     image = mpimg.imread(image_path)
 
     # Create Matplotlib figure and axes
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     ax.imshow(image, cmap='gray')
-
-    # Define function to handle mouse motion
-    def on_mouse_move(event):
-        if event.xdata is not None and event.ydata is not None:
-            x = int(round(event.xdata))
-            y = int(round(event.ydata))
-            intensity = image[y, x]
-            ax.set_title(f"Intensity: {intensity}")
-
-    # Connect mouse motion event to handler function
-    fig.canvas.mpl_connect('motion_notify_event', on_mouse_move)
 
     # Show Matplotlib window
     plt.show()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"annotations")
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
+    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"C:\alp\HTX\cleanup_busxray_script\annotations")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"C:\alp\HTX\cleanup_busxray_script\annotations_adjusted")
     parser.add_argument("--display", help="display the annotated images", action="store_true")
     parser.add_argument("--display-path", help="path to display a single image file", required=False)
 

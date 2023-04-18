@@ -4,7 +4,7 @@ accordingly for each segment. The output is saved in the same folder as specifie
 
 Update notes for V3: 
 - Updated segmented files to include cutoff threshold and information loss
-- 
+- Fixed all the bug, works as planned
 
 Explanation:
 
@@ -35,7 +35,7 @@ python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_
 -> Meaning the sliding window will be in increments of 320 pixels, in both width and height.
 
 @author: Alp
-@last modified: 18/4/2023 2:20pm
+@last modified: 18/4/2023 3:49pm
 
 Things to work on:
 - Think of how to "mask" the < 30% threshold portion of the annotation. 
@@ -134,7 +134,7 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
 
     # Create a new XML file for the segmented image
     _, filename = os.path.split(segment_path)
-    output_annotation_path = os.path.join(output_annotation_path, gs.change_file_extension(filename, "") + f'_{int(float(cutoff_threshold)*100)}percent.xml')
+    output_annotation_path = os.path.join(output_annotation_path, gs.change_file_extension(filename, "") + f'_{int(float(cutoff_threshold)*100)}_percent.xml')
     segmented_annotation = ET.Element('annotation')
     ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
     ET.SubElement(segmented_annotation, 'filename').text = filename
@@ -196,6 +196,8 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
         """
         if info_loss == 0.0:
             return False
+        else:
+            return True
 
 
 
@@ -316,7 +318,7 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
             y_value_to_mask = 0
 
             # Calculate distance from border, from left-border to object vs right-border to object
-            if left < -(right - segment_width):
+            if left < segment_width - right:
                 # means object is closer to the left border
                 x_value_to_mask = left
                 x_plane_to_cut = "left"
@@ -326,7 +328,7 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
                 x_plane_to_cut = "right"
 
             # Calculate distance from border, from top-border to object vs bot-border to object
-            if top < -(bot - segment_height):
+            if top < segment_height - bot:
                 # means object is closer to the top border
                 y_value_to_mask = top
                 y_plane_to_cut = "top"
@@ -382,13 +384,14 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
                                                     "ymax": segment_height},
                                             }
             # To keep track of which plane has the lowest info loss, and it's direction
-            total_area_of_annotation_cut = 10000000000.0 # a large value so that it optimises towards lesser area cut
+            # total_area_of_annotation_cut will have the value of 
+            total_area_of_annotation_cut = 1000000000.0 # just an arbitary large value for algo to converge downwards
             total_object_annotation_area = 0.0
             plane_direction = "left"
             value_to_mask = 0
             # Boolean variables to see which plane has info loss, and compare those planes without info loss to find the plane to cut that results in
             # the least amount of image loss. Default is True (which means there is info loss)
-            plane_has_info_loss_questionmark = {"plane 1": True, "plane 2": True, "plane 3": True, "plane 4": True}
+            plane_has_info_loss_questionmark = {"plane 1": [True, 0], "plane 2": [True, 0], "plane 3": [True, 0], "plane 4": [True, 0]}
 
             # Check for 4 planes, which results in the least loss of info
             for plane, coordinates in dict_of_planes_coordinates.items():
@@ -464,17 +467,20 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
                 """
                 At this point, we have summed up the total info loss for one plane by iterating through every object. 
                 """
-                # Check if total info loss for this plane is less than previous plane. Have to put LTOE sign so that if multiple planes have 0.0, it's able to continue checking for the next condition.
-                if temp_area_of_annotation_cut <= total_area_of_annotation_cut:
+                # Check if total info loss for this plane is less than previous plane. Have to put LTOE sign so that if multiple planes have 0.0, 
+                # it's able to continue checking for the next condition.
+                # Additionally, check if temp area cut must be less than total object area, if not less, means it cut away everything, and if so, don't include.
+                if (temp_area_of_annotation_cut <= total_area_of_annotation_cut) and (temp_area_of_annotation_cut < total_object_annotation_area):
 
                     # Check if current value_to_mask is                    
                     total_area_of_annotation_cut = temp_area_of_annotation_cut
                     
                     # Find out which plane and update the direction and value
+                    # The check_if_info_loss() function will return False if info_loss == 0.0,
+                    # which means this plane doesn't have info loss and can be considered for choosing which plane to cut from
                     if plane == "plane 1":
                         plane_direction = "left"
                         value_to_mask = coordinates["xmax"]
-                        # Function will return False if info_loss == 0.0. Which means this plane doesn't have info loss and can be considered for choosing which plane to cut from
                         plane_has_info_loss_questionmark["plane 1"] = [check_if_info_loss(temp_area_of_annotation_cut), value_to_mask]
 
                     elif plane == "plane 2":
@@ -505,72 +511,15 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
             # If there are at least 2 planes that don't have info loss, we find which plane has the smallest distance cut
             if len(list_of_planes_for_consideration) > 1:
                 
-                # Returns the plane with the
-                plane_direction, value_to_mask = find_smallest_distance_to_border(left=(plane_has_info_loss_questionmark["plane 1"][1] if plane_has_info_loss_questionmark["plane 1"][0]==False else 1000000),
-                                                                                  right=(plane_has_info_loss_questionmark["plane 2"][1] if plane_has_info_loss_questionmark["plane 2"][0]==False else 1000000),
-                                                                                  top=(plane_has_info_loss_questionmark["plane 3"][1] if plane_has_info_loss_questionmark["plane 3"][0]==False else 1000000),
-                                                                                  bot=(plane_has_info_loss_questionmark["plane 4"][1] if plane_has_info_loss_questionmark["plane 4"][0]==False else 1000000)
+                # Returns the plane with the smallest distance cut and the value to cut
+                plane_direction, value_to_mask = find_smallest_distance_to_border(left=(plane_has_info_loss_questionmark["plane 1"][1] if plane_has_info_loss_questionmark["plane 1"][0]==False else segment_width),
+                                                                                  right=(plane_has_info_loss_questionmark["plane 2"][1] if plane_has_info_loss_questionmark["plane 2"][0]==False else 0),
+                                                                                  top=(plane_has_info_loss_questionmark["plane 3"][1] if plane_has_info_loss_questionmark["plane 3"][0]==False else segment_height),
+                                                                                  bot=(plane_has_info_loss_questionmark["plane 4"][1] if plane_has_info_loss_questionmark["plane 4"][0]==False else 0)
                                                                                   )
             
             # Save plane and value to cut. Save info loss as a percentage by dividing total area of annotation that's cut against total object area
-            mask_dict['plane_coordinate_to_mask'].append((plane_direction, value_to_mask, 0.0 if total_area_of_annotation_cut == 0.0 else total_area_of_annotation_cut/total_object_annotation_area))
-
-
-
-            # """
-            # At this point, total_percentage_of_usable_annotation_cut_for_(x and y)_plane contains all the percentage cut 
-            # from all the object's annotation for a single masked object
-            # Now we want to check through the 4 scenarios stated above.
-            # """
-           
-            # # Scenario 4: If both plane don't have information loss, we cut the one with the lesser value
-            # if total_percentage_of_annotation_cut_for_x_plane == 0.0 and total_percentage_of_annotation_cut_for_y_plane == 0.0:
-            
-            #     # Find the direction that has the least amount of image cropped and updates mask_dict["plane_coordinate_to_mask"]
-            #     update_smaller_plane_to_cut(xmax=mask_object_coordinates["xmax"], xmin=mask_object_coordinates["xmin"], 
-            #                                 ymin=mask_object_coordinates["ymin"], ymax=mask_object_coordinates["ymax"])
-                
-            # # Scenario 1,2,3: If both x and y plane has info loss, OR only 1 of them has, we cut the one with the lesser info loss.
-            # else:
-
-            #     # If info loss for x is lesser than y,
-            #     if total_percentage_of_annotation_cut_for_x_plane < total_percentage_of_annotation_cut_for_y_plane:
-            #         """
-            #         A simplistic way to check which direction the coordinates are nearer to, left, right, top, or bot.
-            #         """
-            #         # If xmax is before half of the image's width, it's at the left side
-            #         if mask_object_coordinates["xmax"] < segment_width/2:
-            #             x_value_to_mask = mask_object_coordinates["xmax"]
-            #             x_plane_to_cut = "left"
-            #         else:
-            #             # means object is nearer to the right side of image
-            #             x_value_to_mask = mask_object_coordinates["xmin"]
-            #             x_plane_to_cut = "right"
-                    
-            #         # Save plane and value to cut
-            #         mask_dict['plane_coordinate_to_mask'].append((x_plane_to_cut, x_value_to_mask))
-
-            #         # Update info loss for segment
-            #         total_percentage_of_annotation_cut_for_segment += total_percentage_of_annotation_cut_for_x_plane
-                    
-            #     # If y-plane has lesser info loss
-            #     else:
-                    
-            #         # If ymax is before half of the image's height, it's at the top side.
-            #         if mask_object_coordinates["ymax"] < segment_height/2:
-            #             # means object is nearer to the top side of image
-            #             y_value_to_mask = mask_object_coordinates["ymax"]
-            #             y_plane_to_cut = "top"
-            #         else:
-            #             # means object is nearer to the bot side of image
-            #             y_value_to_mask = mask_object_coordinates["ymin"]
-            #             y_plane_to_cut = "bot"
-                    
-            #         # Save plane and value to cut
-            #         mask_dict['plane_coordinate_to_mask'].append((y_plane_to_cut, y_value_to_mask))
-                    
-            #         # Update info loss for segment 
-            #         total_percentage_of_annotation_cut_for_segment += total_percentage_of_annotation_cut_for_y_plane
+            mask_dict['plane_coordinate_to_mask'].append((plane_direction, value_to_mask, 0.0 if total_object_annotation_area == 0.0 else total_area_of_annotation_cut/total_object_annotation_area))
 
         """
         At this point, we've finished calculating the best planes for each mask object. We now proceed to sum up the total area cut
@@ -592,130 +541,14 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
         return total_percentage_of_annotation_cut_for_segment
        
 
-    # Call function, updates mask_dict["plane_coordinate_to_mask"]
-    segment_info_loss = find_best_plane_to_crop()
-
-    # def search_info_loss():
-    #     """
-    #     A function that calculates how much usable annotations will be cut off if we trim the photo based off the info in mask_dict.
-
-    #     mask_dict is a dictionary in this format:
-    #     {
-    #         "plane_coordinate_to_mask": [(x_left_or_right, x_value_to_mask), ..., (x_left_or_right, x_value_to_mask)],
-    #         "object_coordinates": {
-    #                                 "obj_index_1": {
-    #                                     "object_name": object_name,
-    #                                     "xmin": xmin_adjusted,
-    #                                     "ymin": ymin_adjusted,
-    #                                     "xmax": xmax_adjusted,
-    #                                     "ymax": ymax_adjusted
-    #                                 }, 
-    #                                 ...,
-    #                                 "obj_index_6": {
-    #                                     "object_name": object_name,
-    #                                     "xmin": xmin_adjusted,
-    #                                     "ymin": ymin_adjusted,
-    #                                     "xmax": xmax_adjusted,
-    #                                     "ymax": ymax_adjusted
-    #                                 },
-    #                             }
-    #         "mask_object_coordinates": {
-    #                                 "mask_obj_index_1": {
-    #                                     "object_name": object_name,
-    #                                     "xmin": xmin_adjusted,
-    #                                     "ymin": ymin_adjusted,
-    #                                     "xmax": xmax_adjusted,
-    #                                     "ymax": ymax_adjusted
-    #                                 }, 
-    #                                 ...,
-    #                                 "mask_obj_index_6": {
-    #                                     "object_name": object_name,
-    #                                     "xmin": xmin_adjusted,
-    #                                     "ymin": ymin_adjusted,
-    #                                     "xmax": xmax_adjusted,
-    #                                     "ymax": ymax_adjusted
-    #                                 }
-    #     }
-    #     """
-        
-    #     # Find how much percentage is masked off
-    #     total_percentage_of_usable_annotation_cut = 0.0
-
-    #     # Find percentage of annotation lost if plane gets masked off
-    #     # masking_coordinates is a tuple with items, (x_left_or_right, x_value_to_mask) or (y_top_or_bot, y_value_to_mask).
-    #     for masking_coordinates in mask_dict["plane_coordinate_to_mask"]:
-            
-    #         """
-    #         Save coordinate in this format to run the range_overlap function
-    #         """
-    #         if masking_coordinates[0] == "left":
-    #             # coordinate to mask is from left to x-coordinate
-    #             masking_x_coordinates, masking_y_coordinates = convert_coordinates_to_range(xmin=0, xmax=masking_coordinates[1], ymin=0, ymax=segment_height)
-    #         elif masking_coordinates[0] == "right":
-    #             # coordinate to mask is from right to x-coordinate
-    #             masking_x_coordinates, masking_y_coordinates = convert_coordinates_to_range(xmin=masking_coordinates[1], xmax=segment_width, ymin=0, ymax=segment_height)
-    #         elif masking_coordinates[0] == "top":
-    #             # coordinate to mask is from top to y-coordinate
-    #             masking_x_coordinates, masking_y_coordinates = convert_coordinates_to_range(xmin=0, xmax=segment_width, ymin=0, ymax=masking_coordinates[1])
-    #         # else statement basically means this: elif masking_coordinates[0] == "bot":
-    #         else:
-    #             # coordinate to mask is from bot to y-coordinate
-    #             masking_x_coordinates, masking_y_coordinates = convert_coordinates_to_range(xmin=0, xmax=segment_width, ymin=masking_coordinates[1], ymax=segment_height)
-
-    #         # Get each object coordinates
-    #         # object_coordinates is a dictionary with "obj_index_1", ..., "obj_index_6" items
-    #         for object_coordinates in mask_dict["object_coordinates"].values():
-    #             object_x_coordinates, object_y_coordinates = convert_coordinates_to_range(xmin=object_coordinates["xmin"], 
-    #                                                                                      xmax=object_coordinates["xmax"],
-    #                                                                                      ymin=object_coordinates["ymin"],
-    #                                                                                      ymax=object_coordinates["ymax"])
-
-    #             # Check if annotations are intersecting with masking coordinates
-    #             if range_overlap(masking_x_coordinates, object_x_coordinates) and range_overlap(masking_y_coordinates, object_y_coordinates):
-
-    #                 # Calculate object's area of annotation
-    #                 object_area_of_annotation = calculate_size_of_area(xmin=object_coordinates["xmin"], xmax=object_coordinates["xmax"], ymin=object_coordinates["ymin"], ymax=object_coordinates["ymax"])
-                    
-    #                 # Check which direction to cut from
-    #                 if masking_coordinates[0] == "left":
-    #                     # xmax will be the masking_coordinate since if we start cutting from the left, the plane at which we cut will be xmax
-    #                     cutoff_area_of_annotation = calculate_size_of_area(xmax=masking_coordinates[1],
-    #                                                                        xmin=object_coordinates["xmin"], ymin=object_coordinates["ymin"], ymax=object_coordinates["ymax"])
-    #                 elif masking_coordinates[0] == "right":
-    #                     # xmin will be the masking_coordinate since if we start cutting from the right, the plane at which we cut will be xmin
-    #                     cutoff_area_of_annotation = calculate_size_of_area(xmin=masking_coordinates[1],
-    #                                                                        xmax=object_coordinates["xmax"], ymin=object_coordinates["ymin"], ymax=object_coordinates["ymax"])
-    #                 elif masking_coordinates[0] == "top":
-    #                     # ymax will be the masking_coordinate since if we start cutting from the top, the plane at which we cut will be ymax
-    #                     cutoff_area_of_annotation = calculate_size_of_area(ymax=masking_coordinates[1],
-    #                                                                        xmax=object_coordinates["xmax"], ymin=object_coordinates["ymin"], xmin=object_coordinates["xmin"])
-
-    #                 # else statement basically means this: elif masking_coordinates[0] == "bot":
-    #                 else:
-    #                     # ymin will be the masking_coordinate since if we start cutting from the bot, the plane at which we cut will be ymin
-    #                     cutoff_area_of_annotation = calculate_size_of_area(ymin=masking_coordinates[1],
-    #                                                                        xmax=object_coordinates["xmax"], ymax=object_coordinates["ymax"], xmin=object_coordinates["xmin"])
-                    
-    #                 # Update total percentage cut off relative to annotation's area size. So if 1/2 of a annotation is cut off, it'll be + 0.5.
-    #                 total_percentage_of_usable_annotation_cut += (cutoff_area_of_annotation/object_area_of_annotation)
-
-    #     # Divide total percentage gathered with number of annotations in image
-    #     # A pre-emptive check incase somehow object_coordinates doesn't have any values. 
-    #     # Note: mask_dict["object_coordinates"] contains a dictionary of annotated objects in the segment image.
-    #     if len(mask_dict["object_coordinates"].values()):
-    #         total_percentage_of_usable_annotation_cut = total_percentage_of_usable_annotation_cut/len(mask_dict["object_coordinates"].values())
-    #     # End of function
-    #     return total_percentage_of_usable_annotation_cut
-                    
-    # Tabulate statistics
-    # search_info_loss() returns "total_percentage_of_usable_annotation_cut"
-    info_loss = round(100 * segment_info_loss, 2)
+    # Tabulate info loss via find_best_place_to_crop() and multiply it by 100 to transform 0.2 -> 20%
+    segment_info_loss = round(100 * find_best_plane_to_crop(), 2)
     
     # Update XML file
     annotation_info_loss = cutoff_thres_info.find('annotation_info_loss')
-    annotation_info_loss.text = str(info_loss)
+    annotation_info_loss.text = str(segment_info_loss)
     # Update log_dict
-    log_dict["info_loss"] = info_loss
+    log_dict["segment_info_loss"] = segment_info_loss
 
     # Create an XML string with pretty formatting
     xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='    ')
@@ -732,7 +565,7 @@ def mask_out_object_features_below_threshold(image_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"annotations_adjusted")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"C:\alp\HTX\cleanup_busxray_script\annotations_adjusted")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
     parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
@@ -836,7 +669,7 @@ if __name__ == "__main__":
                 for stats in segment_stats_dict.values():
                     total_rejects_for_one_image += stats["num_of_reject"]
                     total_annotation_for_one_image += stats['num_of_total']
-                    total_info_loss_for_one_image += stats['info_loss']
+                    total_info_loss_for_one_image += stats['segment_info_loss']
 
                 # Re-adjusts info loss based on the number of segments (this part may need re-adjusting)
                 total_info_loss_for_one_image = total_info_loss_for_one_image/len(segment_stats_dict.keys())
@@ -859,16 +692,16 @@ if __name__ == "__main__":
                 total_annotation_for_all_images += stats["image's total annotation"]
                 total_info_loss_for_all_images += stats["image's total info loss"]
             # Re-adjusts info loss based on the number of images
-            total_info_loss_for_all_images = total_info_loss_for_all_images/len(image_stats_dict.keys())
+            total_info_loss_for_all_images = total_info_loss_for_all_images/(len(image_stats_dict.keys()) if len(image_stats_dict.keys())!=0 else 1)
 
             # Tabulate total stats for one image in a subdir
             log_dict["Percentage threshold value set"] = args.cutoff_threshold
             log_dict["Overall total num of annotation"] = total_annotation_for_all_images
             log_dict["Overall total num of reject"] = total_rejects_for_all_images
-            log_dict[r"Overall % of reject"] = round(total_rejects_for_all_images/total_annotation_for_all_images * 100, 2)
+            log_dict[r"Overall % of reject"] = str(round((total_rejects_for_all_images/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1)) * 100, 2)) + r"%"
             log_dict["Overall total num of passed"] = total_annotation_for_all_images - total_rejects_for_all_images
-            log_dict[r"Overall % of passed"] = round((total_annotation_for_all_images - total_rejects_for_all_images)/total_annotation_for_all_images * 100, 2)
-            log_dict[r"Overall % of info loss"] = round(total_info_loss_for_all_images, 2)
+            log_dict[r"Overall % of passed"] = str(round((total_annotation_for_all_images - total_rejects_for_all_images)/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1) * 100, 2)) + r"%"
+            log_dict[r"Overall % of info loss"] = str(round(total_info_loss_for_all_images, 2)) + r"%"
             log_dict["image info"] = image_stats_dict
 
             head, _ = gs.path_leaf(args.root_dir)
