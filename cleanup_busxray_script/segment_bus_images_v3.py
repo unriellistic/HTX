@@ -40,9 +40,9 @@ python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_
 Things to work on:
 - Think of how to "mask" the < 30% threshold portion of the annotation. 
     - Possible routes are using gaussian blur (might introduce artefacts which causes model degradation),
-    - or simply snip away those parts of the image (have to run some sampling to see how much this method cuts away other portions of the image.)
+    - (implemented) or simply snip away those parts of the image (have to run some sampling to see how much this method cuts away other portions of the image.)
         - function implemented, can consider decoupling it for user to turn on or off.
-        - stopped at trying to figure out how to not double count for 2 masked object cancelling the same object area
+- Add in tracker for risky images
 """
 import cv2
 import os
@@ -701,11 +701,16 @@ if __name__ == "__main__":
             log_dict[r"Overall % of reject"] = str(round((total_rejects_for_all_images/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1)) * 100, 2)) + r"%"
             log_dict["Overall total num of passed"] = total_annotation_for_all_images - total_rejects_for_all_images
             log_dict[r"Overall % of passed"] = str(round((total_annotation_for_all_images - total_rejects_for_all_images)/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1) * 100, 2)) + r"%"
-            log_dict[r"Overall % of info loss"] = str(round(total_info_loss_for_all_images, 2)) + r"%"
+            info_loss_list = [f"{image_name}: {segment_name}" for image_name, image_info in image_stats_dict.items() for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0]
+
+            log_dict["Info loss info"] = {
+                                        r"Overall % of info loss": (str(round(total_info_loss_for_all_images, 2)) + r"%"),
+                                        "list of images with loss": info_loss_list
+            } 
             log_dict["image info"] = image_stats_dict
 
             head, _ = gs.path_leaf(args.root_dir)
-            with open(os.path.join(head, f"busxray_stats_with_{args.cutoff_threshold}.json"), 'w') as outfile:
+            with open(os.path.join(head, f"busxray_stats_with_{args.cutoff_threshold}_threshold.json"), 'w') as outfile:
                 json.dump(log_dict, outfile, indent=4)
 
 

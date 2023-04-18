@@ -165,13 +165,10 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
 
     # Get the original image size and adjust it
     size_elem = root.find('size')
+
     # Calculate the new width and height
     new_width = new_coordinates[1] - new_coordinates[0]
     new_height = new_coordinates[3] - new_coordinates[2]
-    # Adjust the width and height of the image element
-    # size_elem.find('width').text = str(new_width)
-    # size_elem.find('height').text = str(new_height)
-    # size_elem.find('depth').text = size_elem.find('depth')
 
     # Calculate the offset for the new coordinates
     x_offset = new_coordinates[0]
@@ -309,8 +306,8 @@ def open_image(image_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"C:\alp\HTX\cleanup_busxray_script\annotations")
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"C:\alp\HTX\cleanup_busxray_script\annotations_adjusted")
+    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"annotations")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
     parser.add_argument("--display", help="display the annotated images", action="store_true")
     parser.add_argument("--display-path", help="path to display a single image file", required=False)
 
