@@ -1,328 +1,47 @@
 {
     "Percentage threshold value set": 0.3,
-    "Overall total num of annotation": 1270,
-    "Overall total num of reject": 134,
-    "Overall % of reject": "10.55%",
-    "Overall total num of passed": 1136,
-    "Overall % of passed": "89.45%",
+    "Overall total num of annotation": 1196,
+    "Overall total num of reject": 124,
+    "Overall % of reject": "10.37%",
+    "Overall total num of passed": 1072,
+    "Overall % of passed": "89.63%",
     "Info loss info": {
-        "Overall % of info loss": "0.15%",
-        "list of images with loss": [
-            "adjusted_1833_annotated_segmented: segment_320_640.png",
-            "adjusted_1833_annotated_segmented: segment_640_640.png",
-            "adjusted_1833_annotated_segmented: segment_640_960.png",
-            "adjusted_1833_annotated_segmented: segment_960_640.png",
-            "adjusted_1833_annotated_segmented: segment_960_960.png",
-            "adjusted_1837_annotated_segmented: segment_640_1280.png",
-            "adjusted_1837_annotated_segmented: segment_640_320.png",
-            "adjusted_357_annotated_segmented: segment_640_1920.png",
-            "adjusted_357_annotated_segmented: segment_640_1965.png",
-            "adjusted_357_annotated_segmented: segment_960_960.png",
-            "adjusted_358_annotated_segmented: segment_640_960.png",
-            "adjusted_359_annotated_segmented: segment_320_640.png",
-            "adjusted_359_annotated_segmented: segment_640_640.png",
-            "adjusted_360_annotated_segmented: segment_1145_640.png",
-            "adjusted_360_annotated_segmented: segment_960_640.png"
-        ]
+        "Overall % of info loss": "0.17%",
+        "list of images with loss": {
+            "adjusted_1833_annotated_segmented -> 0.25190476190476185": [
+                "segment_640_640.png -> 0.82",
+                "segment_640_960.png -> 0.66",
+                "segment_960_640.png -> 3.13",
+                "segment_960_960.png -> 0.68"
+            ],
+            "adjusted_1837_annotated_segmented -> 0.24625": [
+                "segment_640_1280.png -> 8.83",
+                "segment_640_320.png -> 1.02"
+            ],
+            "adjusted_357_annotated_segmented -> 1.0859999999999999": [
+                "segment_640_1920.png -> 1.62",
+                "segment_640_1965.png -> 1.79",
+                "segment_960_960.png -> 40.03"
+            ],
+            "adjusted_358_annotated_segmented -> 0.33225": [
+                "segment_640_960.png -> 13.29"
+            ],
+            "adjusted_359_annotated_segmented -> 0.683": [
+                "segment_320_640.png -> 10.17",
+                "segment_640_640.png -> 17.15"
+            ],
+            "adjusted_360_annotated_segmented -> 0.07575": [
+                "segment_1145_640.png -> 0.48",
+                "segment_960_640.png -> 2.55"
+            ]
+        }
     },
     "image info": {
-        "adjusted_1832_annotated_segmented": {
-            "image's total annotation": 42,
-            "image's total reject": 6,
-            "image's total info loss": 0.0,
-            "image's segment info": {
-                "segment_0_0.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_1280.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_1600.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_1920.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_1971.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_320.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_640.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_960.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1053_0.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1053_1280.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1053_1600.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1053_1920.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1053_1971.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1053_320.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1053_640.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1053_960.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_0.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 2,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_1280.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_1600.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_1920.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_1971.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_320.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 5,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_640.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 4,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_960.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_640_0.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 3,
-                    "segment_info_loss": 0.0
-                },
-                "segment_640_1280.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_640_1600.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_640_1920.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_640_1971.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_640_320.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 6,
-                    "segment_info_loss": 0.0
-                },
-                "segment_640_640.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 4,
-                    "segment_info_loss": 0.0
-                },
-                "segment_640_960.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 2,
-                    "segment_info_loss": 0.0
-                },
-                "segment_960_0.png": {
-                    "num_of_reject": 2,
-                    "num_of_total": 3,
-                    "segment_info_loss": 0.0
-                },
-                "segment_960_1280.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_960_1600.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_960_1920.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_960_1971.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_960_320.png": {
-                    "num_of_reject": 3,
-                    "num_of_total": 4,
-                    "segment_info_loss": 0.0
-                },
-                "segment_960_640.png": {
-                    "num_of_reject": 1,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_960_960.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                }
-            }
-        },
         "adjusted_1833_annotated_segmented": {
-            "image's total annotation": 82,
-            "image's total reject": 17,
-            "image's total info loss": 0.202,
+            "image's total annotation": 50,
+            "image's total reject": 13,
+            "image's total info loss": 0.25190476190476185,
             "image's segment info": {
-                "segment_0_0.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_1280.png": {
-                    "num_of_reject": 1,
-                    "num_of_total": 2,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_1600.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_1920.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_1980.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_320.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_640.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 2,
-                    "segment_info_loss": 0.0
-                },
-                "segment_0_960.png": {
-                    "num_of_reject": 2,
-                    "num_of_total": 3,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1057_0.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1057_1280.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 2,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1057_1600.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1057_1920.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1057_1980.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 0,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1057_320.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 2,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1057_640.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 5,
-                    "segment_info_loss": 0.0
-                },
-                "segment_1057_960.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 5,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_0.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 1,
-                    "segment_info_loss": 0.0
-                },
                 "segment_320_1280.png": {
                     "num_of_reject": 1,
                     "num_of_total": 2,
@@ -342,16 +61,6 @@
                     "num_of_reject": 0,
                     "num_of_total": 0,
                     "segment_info_loss": 0.0
-                },
-                "segment_320_320.png": {
-                    "num_of_reject": 0,
-                    "num_of_total": 2,
-                    "segment_info_loss": 0.0
-                },
-                "segment_320_640.png": {
-                    "num_of_reject": 1,
-                    "num_of_total": 4,
-                    "segment_info_loss": 2.79
                 },
                 "segment_320_960.png": {
                     "num_of_reject": 4,

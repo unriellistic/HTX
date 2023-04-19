@@ -110,7 +110,8 @@ adjusted_1832_annotated_segmented": {
             "image's total annotation": 42,
             "image's total reject": 6,
             "image's total info loss": 0.0,
-            "image's segment info": {
+            "image's segment info": { ...
+			}
 
 for 1833:
 adjusted_1833_annotated_segmented": {

@@ -42,7 +42,8 @@ Things to work on:
     - Possible routes are using gaussian blur (might introduce artefacts which causes model degradation),
     - (implemented) or simply snip away those parts of the image (have to run some sampling to see how much this method cuts away other portions of the image.)
         - function implemented, can consider decoupling it for user to turn on or off.
-- Add in tracker for risky images
+- (done) Add in tracker for risky images
+- Refactor code to take out middle man, meaning don't save image and read it and save it and read it, perform all steps in cv2 or json format, as it is an unnecessary step for real-time ops.
 """
 import cv2
 import os
@@ -198,8 +199,6 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
             return False
         else:
             return True
-
-
 
     # Log file
     log_dict = {'num_of_reject': 0,
@@ -528,25 +527,86 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
         # A pre-emptive check incase mask_dict["plane_coordinate_to_mask"] doesn't have any values. 
         total_percentage_of_annotation_cut_for_segment = 0.0
         if len(mask_dict["plane_coordinate_to_mask"]):
-            for mask_tuple in mask_dict["plane_coordinate_to_mask"]:
-                """
-                mask_tuple is a tuple that contains information in this format:
-                mask_dict['plane_coordinate_to_mask'].append((plane_direction, 
-                                                                value_to_mask, 
-                                                                0.0 if total_area_of_annotation_cut == 0.0 else total_area_of_annotation_cut/total_object_annotation_area))
-                """
-                total_percentage_of_annotation_cut_for_segment += mask_tuple[2]
-                # total_percentage_of_annotation_cut_for_segment/len(mask_dict["object_coordinates"].values())
+
+            # Create a copy of plane_coordinate_to_mask
+            plane_coordinate_to_mask_copy = {"plane_coordinate_to_mask": []}
+            # Create an empty set to keep track of the unique plane directions encountered
+            unique_plane_directions = set()
+            # Create an empty list to store the mask tuples that will be returned
+            copy_mask_tuples = []
+            """
+            original_mask_tuple is a tuple that contains information in this format:
+            mask_dict['plane_coordinate_to_mask'].append((plane_direction, 
+                                                            value_to_mask, 
+                                                            0.0 if total_area_of_annotation_cut == 0.0 else total_area_of_annotation_cut/total_object_annotation_area))
+            """
+            # Loop through each mask tuple in the mask dictionary
+            for original_mask_tuple in mask_dict["plane_coordinate_to_mask"]:
+                
+                # Get the plane direction from the current mask tuple
+                plane_direction = original_mask_tuple[0]
+                
+                # Check if this plane direction has been encountered before
+                if plane_direction in unique_plane_directions:
+                    # If the plane direction has been encountered before, perform the check
+                    # Get the current mask tuple in the copy list with the same plane direction
+                    current_mask_tuple = next((t for t in copy_mask_tuples if t[0] == plane_direction), None)
+                    if current_mask_tuple is not None and original_mask_tuple[1] <= current_mask_tuple[1]:
+                        # Update the mask tuple in the copy list by removing the original_mask_tuple
+                        mask_dict["plane_coordinate_to_mask"].remove(original_mask_tuple)
+                        # Add the current_mask_tuple into the list of current tuples
+                        copy_mask_tuples.append(original_mask_tuple)
+                        # Update percentage info by substracting information that was added in the big else branch
+                        total_percentage_of_annotation_cut_for_segment -= original_mask_tuple[2]
+                    else:
+                        # means the current_mask_tuple[1] has a smaller value than the original_mask_tuple
+                        mask_dict["plane_coordinate_to_mask"].remove(current_mask_tuple)
+                        # Update percentage info by substracting information that was added in the big else branch
+                        total_percentage_of_annotation_cut_for_segment -= current_mask_tuple[2]
+                else:
+                    # If the plane direction is new, add it to the set of unique plane directions
+                    unique_plane_directions.add(plane_direction)
+                    
+                    # Add the mask tuple to the list of masked tuples to be returned
+                    copy_mask_tuples.append(original_mask_tuple)
+
+                    total_percentage_of_annotation_cut_for_segment += original_mask_tuple[2]
+
         # End of function
         return total_percentage_of_annotation_cut_for_segment
        
+    def find_new_coordinate_to_crop():
+        new_xmin_of_cropped_segment = 0
+        new_xmax_of_cropped_segment = segment_width
+        new_ymin_of_cropped_segment = 0
+        new_ymax_of_cropped_segment = segment_height
+        for mask_tuple in mask_dict["plane_coordinate_to_mask"]:
+            """
+            mask_tuple is a tuple that contains information in this format:
+            mask_dict['plane_coordinate_to_mask'].append((plane_direction, 
+                                                            value_to_mask, 
+                                                            0.0 if total_area_of_annotation_cut == 0.0 else total_area_of_annotation_cut/total_object_annotation_area))
+            """
+            # Check is plane_direction == "left", it means it'll mask off from the left
+            if mask_tuple[0] == "left":
+                new_xmin_of_cropped_segment = mask_tuple[1]
+            # Check is plane_direction == "right", it means it'll mask off from the right
+            elif mask_tuple[0] == "right":
+                new_xmax_of_cropped_segment = mask_tuple[1]
+            # Check is plane_direction == "top", it means it'll mask off from the top
+            elif mask_tuple[0] == "top":
+                new_ymin_of_cropped_segment = mask_tuple[1]
+            # Check is plane_direction == "bot", it means it'll mask off from the bot
+            else:
+                new_ymax_of_cropped_segment = mask_tuple[1]
+
 
     # Tabulate info loss via find_best_place_to_crop() and multiply it by 100 to transform 0.2 -> 20%
     segment_info_loss = round(100 * find_best_plane_to_crop(), 2)
     
     # Update XML file
     annotation_info_loss = cutoff_thres_info.find('annotation_info_loss')
-    annotation_info_loss.text = str(segment_info_loss)
+    annotation_info_loss.text = str(segment_info_loss) + r"%"
     # Update log_dict
     log_dict["segment_info_loss"] = segment_info_loss
 
@@ -557,45 +617,29 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
     with open(output_annotation_path, 'w') as f:
         f.write(xml_string)
     
+    # Cut off the image
+
     return log_dict
 
-def mask_out_object_features_below_threshold(image_path):
+def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
+    """
+    Function does analysis on a dir folder that contains the adjusted image and XML files. 
+    It creates a folder for each image and segments it up, readjusting the annotation XML file and tabulates the information loss with the given threshold.
 
-    return
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"C:\alp\HTX\cleanup_busxray_script\annotations_adjusted")
-    parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
-    parser.add_argument("--segment-size", help="size of each segment", default=640)
-    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
-    parser.add_argument("--special-items", help="a list of string items to supercede the threshold set", default=['cig'])
-
-    # uncomment below if want to debug in IDE
-    # import sys
-    # Manually set the command-line arguments for debugging
-    # sys.argv = ['segment_bus_images_v3.py', '--root-dir', r"D:\leann\busxray_woodlands\annotations_adjusted", '--overlap-portion', "0.5", '--cutoff-threshold', "0.3"]
-
-    args = parser.parse_args()
-
-    # Get path to directory
-    # Check if default parameter is applied, if so get full path.
-    if args.root_dir == "annotations_adjusted":
-        path_to_dir = os.path.join(os.getcwd(), args.root_dir)
-    # Else, use path specified by user
-    else:
-        path_to_dir = args.root_dir
-
+    Returns:
+    None: It directly outputs the log file into the root directory specified.
+    """
+    
     # Load the images
     list_of_images = gs.load_images(path_to_dir)
     
     # Segment up the images
-    # print("Processing images...")
-    # os.chdir(path_to_dir)
-    # for image in tqdm(list_of_images):
-    #     segment_image(image_path=image,
-    #                 segment_size=int(args.segment_size), 
-    #                 overlap_percent=float(args.overlap_portion))
+    print("Processing images...")
+    os.chdir(path_to_dir)
+    for image in tqdm(list_of_images):
+        segment_image(image_path=image,
+                    segment_size=int(args.segment_size), 
+                    overlap_percent=float(args.overlap_portion))
 
     # Segment up the annotation
     print("Processing XML files...")
@@ -603,9 +647,35 @@ if __name__ == "__main__":
     """
     Log file in the form of:
     {
-      ["Overall total num of annotation"] = total_annotation_for_all_images
-      ["Overall total num of reject"] = total_rejects_for_all_images
-      ["image info"] = image_stats_dict
+    
+    "Percentage threshold value set": 0.5,
+    "Overall total num of annotation": 122,
+    "Overall total num of reject": 30,
+    "Overall % of reject": "24.59%",
+    "Overall total num of passed": 92,
+    "Overall % of passed": "75.41%",
+    "Info loss info": {
+        "Overall % of info loss": "0.04%",
+        "list of images with loss": {
+            "adjusted_360_annotated_segmented -> 0.07575": [
+                "segment_1145_640.png -> 0.48",
+                "segment_960_640.png -> 2.55"
+            ]
+        }
+    },
+    "image info": {
+        "adjusted_359_annotated_segmented": {
+            "image's total annotation": 49,
+            "image's total reject": 15,
+            "image's total info loss": 0.0,
+            "image's segment info": {
+                "segment_320_640.png": {
+                    "num_of_reject": 4,
+                    "num_of_total": 7,
+                    "segment_info_loss": 0.0
+                },
+                ...,
+
     }
     """
     log_dict = {}
@@ -624,10 +694,10 @@ if __name__ == "__main__":
             """
             image log file in the form of:
             {
-              "image's total annotation": total_annotation_for_one_image,
-              "image's total reject": total_annotation_for_one_image,
-              "image's total info loss": total_info_loss,
-              "image's segment info": segment_stats_dict,
+            "image's total annotation": total_annotation_for_one_image,
+            "image's total reject": total_annotation_for_one_image,
+            "image's total info loss": total_info_loss,
+            "image's segment info": segment_stats_dict,
             }
             """
             image_stats_dict = {}
@@ -701,11 +771,12 @@ if __name__ == "__main__":
             log_dict[r"Overall % of reject"] = str(round((total_rejects_for_all_images/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1)) * 100, 2)) + r"%"
             log_dict["Overall total num of passed"] = total_annotation_for_all_images - total_rejects_for_all_images
             log_dict[r"Overall % of passed"] = str(round((total_annotation_for_all_images - total_rejects_for_all_images)/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1) * 100, 2)) + r"%"
-            info_loss_list = [f"{image_name}: {segment_name}" for image_name, image_info in image_stats_dict.items() for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0]
+            # info_loss_list = [f"{image_name}: {segment_name}" for image_name, image_info in image_stats_dict.items() for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0]
+            info_loss_dict = {'{} -> {}'.format(image_name, image_info["image's total info loss"]): [f"{segment_name} -> {segment_info['segment_info_loss']}" for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0] for image_name, image_info in image_stats_dict.items() if any(segment_info["segment_info_loss"] != 0.0 for segment_info in image_info["image's segment info"].values())}
 
             log_dict["Info loss info"] = {
                                         r"Overall % of info loss": (str(round(total_info_loss_for_all_images, 2)) + r"%"),
-                                        "list of images with loss": info_loss_list
+                                        "list of images with loss": info_loss_dict
             } 
             log_dict["image info"] = image_stats_dict
 
@@ -713,8 +784,62 @@ if __name__ == "__main__":
             with open(os.path.join(head, f"busxray_stats_with_{args.cutoff_threshold}_threshold.json"), 'w') as outfile:
                 json.dump(log_dict, outfile, indent=4)
 
+def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
+    """
+    Crop an OpenCV image based on the provided coordinates.
+    The output will be in a cv2 format.
 
+    Args:
+        img: The input image.
+        xmin: The minimum x-coordinate.
+        xmax: The maximum x-coordinate.
+        ymin: The minimum y-coordinate.
+        ymax: The maximum y-coordinate.
 
+    Returns:
+        The cropped image.
+    """
+    img_height, img_width = img.shape[:2]
+
+    # Check that coordinates are valid and do not exceed the dimension of the image
+    if xmin < 0 or xmin >= img_width:
+        raise ValueError("xmin is out of bounds")
+    if xmax < xmin or xmax >= img_width:
+        raise ValueError("xmax is out of bounds")
+    if ymin < 0 or ymin >= img_height:
+        raise ValueError("ymin is out of bounds")
+    if ymax < ymin or ymax >= img_height:
+        raise ValueError("ymax is out of bounds")
+
+    cropped_img = img[ymin:ymax, xmin:xmax]
+    return cropped_img
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"C:\Users\User1\Desktop\alp\cleanup_busxray_script\annotations_adjusted")
+    parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
+    parser.add_argument("--segment-size", help="size of each segment", default=640)
+    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.5)
+    parser.add_argument("--special-items", help="a list of string items to supercede the threshold set", default=['cig'])
+
+    # uncomment below if want to debug in IDE
+    # import sys
+    # Manually set the command-line arguments for debugging
+    # sys.argv = ['segment_bus_images_v3.py', '--root-dir', r"D:\leann\busxray_woodlands\annotations_adjusted", '--overlap-portion', "0.5", '--cutoff-threshold', "0.3"]
+
+    args = parser.parse_args()
+
+    # Get path to directory
+    # Check if default parameter is applied, if so get full path.
+    if args.root_dir == "annotations_adjusted":
+        path_to_dir = os.path.join(os.getcwd(), args.root_dir)
+    # Else, use path specified by user
+    else:
+        path_to_dir = args.root_dir
+
+    # This function performs analysis on a folder that contains images
+    bulk_image_analysis_of_info_loss_and_segment_annotation(args=args)
+    
     # For individual folder testing, uncomment if applicable.
     """
     SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
