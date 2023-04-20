@@ -14,7 +14,7 @@ The function reads the input image using OpenCV, calculates the number of rows a
 image based on its size and overlap percentage, creates an output directory to store the segmented images, 
 segments the image into multiple parts using nested loops, and saves each segment as a PNG image file in the output directory.
 
-The second function adjust_annotations_for_segment adjusts the annotation file for a segmented image. 
+The second function adjust_annotations_for_segment_and_mask_it adjusts the annotation file for a segmented image. 
 The function takes the paths of the segmented image and its original annotation file as input arguments. 
 The function first loads the segmented image to get its dimensions and then parses the original 
 annotation XML file using the ElementTree module. Next, the function creates a new XML file for the segmented image 
@@ -44,6 +44,7 @@ Things to work on:
         - function implemented, can consider decoupling it for user to turn on or off.
 - (done) Add in tracker for risky images
 - Refactor code to take out middle man, meaning don't save image and read it and save it and read it, perform all steps in cv2 or json format, as it is an unnecessary step for real-time ops.
+    Too inefficient to convert my current scripts into a generalised solution for both, im creating a new real_time_script that's lean and clean for ops instead.
 """
 import cv2
 import os
@@ -110,14 +111,14 @@ def segment_image(image_path, segment_size, overlap_percent):
             cv2.imwrite(segment_path, segment)
 
 
-def adjust_annotations_for_segment(segment_path, original_annotation_path, output_annotation_path, cutoff_threshold, special_items):
+def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation_path, output_path, cutoff_threshold, special_items):
     """
     Adjusts the Pascal VOC annotation standard for an image segment.
 
     Args:
     segment_path (str): Path of the image segment.
     original_annotation_path (str): Path of the original XML annotation file.
-    output_annotation_path (str): Path to directory to store annotation.
+    output_path (str): Path to directory to store annotation and masked image.
     cutoff_threshold (float): Value to specific threshold at which to remove an object's annotation even though it's in the image
     special_items (list): A list of string items that contains the names of object to avoid threshlding (e.g. cig)
 
@@ -135,7 +136,7 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
 
     # Create a new XML file for the segmented image
     _, filename = os.path.split(segment_path)
-    output_annotation_path = os.path.join(output_annotation_path, gs.change_file_extension(filename, "") + f'_{int(float(cutoff_threshold)*100)}_percent.xml')
+    output_path_for_xml = os.path.join(output_path, gs.change_file_extension(filename, "") + f'_{int(float(cutoff_threshold)*100)}_percent.xml')
     segmented_annotation = ET.Element('annotation')
     ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
     ET.SubElement(segmented_annotation, 'filename').text = filename
@@ -149,6 +150,13 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
     cutoff_thres_info = ET.SubElement(segmented_annotation, 'cutoff_threshold_info')
     ET.SubElement(cutoff_thres_info, 'cutoff_threshold').text = str(cutoff_threshold)
     ET.SubElement(cutoff_thres_info, 'annotation_info_loss').text = str(0)
+    # Write the x and y offset into JSON file for future inference usage
+    offset = ET.SubElement(segmented_annotation, 'original_segment_offset_info')
+    # Initiate placeholder first, alter value later
+    ET.SubElement(offset, 'x_min_offset').text = "0"
+    ET.SubElement(offset, 'x_max_offset').text = "0"
+    ET.SubElement(offset, 'y_min_offset').text = "0"
+    ET.SubElement(offset, 'y_max_offset').text = "0"
 
     # Get coordinate values from segment image name
     numbers = re.findall(r'\d+', filename)
@@ -341,9 +349,19 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
             """
             if x_value_to_mask < y_value_to_mask:
                 # if the 'if statement' is true, it means distance from left or right to x_value_to_mask is smaller than distance from top or bot to y_value_to_mask
+                
+                # If plane is right, re-adjust the x_value_to_mask
+                if x_plane_to_cut == "right":
+                    x_value_to_mask = right
+
                 return x_plane_to_cut, x_value_to_mask
             else:
                 # else, y_value_to_mask is smaller, append this instead.
+
+                 # If plane is bot, re-adjust the x_value_to_mask
+                if y_plane_to_cut == "bot":
+                    y_value_to_mask = right
+
                 return y_plane_to_cut, y_value_to_mask
         
         # Keep track of total info loss for the segment 
@@ -599,6 +617,8 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
             # Check is plane_direction == "bot", it means it'll mask off from the bot
             else:
                 new_ymax_of_cropped_segment = mask_tuple[1]
+        
+        return new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment
 
 
     # Tabulate info loss via find_best_place_to_crop() and multiply it by 100 to transform 0.2 -> 20%
@@ -607,17 +627,37 @@ def adjust_annotations_for_segment(segment_path, original_annotation_path, outpu
     # Update XML file
     annotation_info_loss = cutoff_thres_info.find('annotation_info_loss')
     annotation_info_loss.text = str(segment_info_loss) + r"%"
+    
     # Update log_dict
     log_dict["segment_info_loss"] = segment_info_loss
+    
+    # Get new coordinates after applying mask plane
+    new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment = find_new_coordinate_to_crop()
+    # Crop the image
+    cropped_img = mask_out_image_by_coordinates(img=segment_img, xmin=new_xmin_of_cropped_segment, xmax=new_xmax_of_cropped_segment, ymin=new_ymin_of_cropped_segment, ymax=new_ymax_of_cropped_segment)
+    # Save the image
+    cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned.png"), cropped_img)
+
+    # Update new coordinates
+    # If x_min = 0, means no cropping was done on the left side
+    # If x_max = segment_width, means no cropping done on right
+    # If y_min = 0, means no crop done on top
+    # If y_max = segment_height, means no crop done at bot
+    x_min_offset = offset.find("x_min_offset")
+    x_min_offset.text = str(new_xmin_of_cropped_segment)
+    x_max_offset = offset.find("x_max_offset")
+    x_max_offset.text = str(new_xmax_of_cropped_segment)
+    y_min_offset = offset.find("y_min_offset")
+    y_min_offset.text = str(new_ymin_of_cropped_segment)
+    y_max_offset = offset.find("y_max_offset")
+    y_max_offset.text = str(new_ymax_of_cropped_segment)
 
     # Create an XML string with pretty formatting
     xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='    ')
 
     # Write the XML string to a file
-    with open(output_annotation_path, 'w') as f:
+    with open(output_path_for_xml, 'w') as f:
         f.write(xml_string)
-    
-    # Cut off the image
 
     return log_dict
 
@@ -630,16 +670,16 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
     None: It directly outputs the log file into the root directory specified.
     """
     
-    # Load the images
+    # Load the images. exclude_string is for when we're re-running the code, we don't want to fetch the cleaned images again
     list_of_images = gs.load_images(path_to_dir)
     
     # Segment up the images
-    print("Processing images...")
-    os.chdir(path_to_dir)
-    for image in tqdm(list_of_images):
-        segment_image(image_path=image,
-                    segment_size=int(args.segment_size), 
-                    overlap_percent=float(args.overlap_portion))
+    # print("Processing images...")
+    # os.chdir(path_to_dir)
+    # for image in tqdm(list_of_images):
+    #     segment_image(image_path=image,
+    #                 segment_size=int(args.segment_size), 
+    #                 overlap_percent=float(args.overlap_portion))
 
     # Segment up the annotation
     print("Processing XML files...")
@@ -718,16 +758,16 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
                 for file in os.listdir(os.path.join(root, subdir)):
                     
                     # In case the script is re-run after it had ran before, check that we only call the
-                    # adjust_annotations_for_segment function on png images.
-                    if file.endswith(".png"):
+                    # adjust_annotations_for_segment_and_mask_it function on png images. if cleaned in file, we don't perform function on it
+                    if file.endswith(".png") and "cleaned" not in file:
                         # Matches with the file name. ALERT HARD CODED NAME HERE!!!
                         name_of_original_xml_file = subdir[0:-10]+".xml"
 
                         # XML file created within function. Return function returns statistics. New key generated for each segment, values will be the stats for each segment.
                         # Only PNGs should be here
-                        segment_stats_dict[f"{file}"] = adjust_annotations_for_segment(segment_path=os.path.join(root, subdir, file), 
+                        segment_stats_dict[f"{file}"] = adjust_annotations_for_segment_and_mask_it(segment_path=os.path.join(root, subdir, file), 
                                                     original_annotation_path=os.path.join(root, name_of_original_xml_file),
-                                                    output_annotation_path=os.path.join(root, subdir),
+                                                    output_path=os.path.join(root, subdir),
                                                     cutoff_threshold=args.cutoff_threshold,
                                                     special_items=args.special_items)
                         
@@ -802,13 +842,13 @@ def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
     img_height, img_width = img.shape[:2]
 
     # Check that coordinates are valid and do not exceed the dimension of the image
-    if xmin < 0 or xmin >= img_width:
+    if xmin < 0 or xmin > img_width:
         raise ValueError("xmin is out of bounds")
-    if xmax < xmin or xmax >= img_width:
+    if xmax < xmin or xmax > img_width:
         raise ValueError("xmax is out of bounds")
-    if ymin < 0 or ymin >= img_height:
+    if ymin < 0 or ymin > img_height:
         raise ValueError("ymin is out of bounds")
-    if ymax < ymin or ymax >= img_height:
+    if ymax < ymin or ymax > img_height:
         raise ValueError("ymax is out of bounds")
 
     cropped_img = img[ymin:ymax, xmin:xmax]
@@ -847,5 +887,5 @@ if __name__ == "__main__":
     os.chdir(SEGMENT_DIR)
     segment_list = gs.load_images(SEGMENT_DIR)
     for image in segment_list:
-        adjust_annotations_for_segment(image, ANNOTATION_PATH)
+        adjust_annotations_for_segment_and_mask_it(image, ANNOTATION_PATH)
     """

@@ -21,20 +21,22 @@ A place to store common functions:
     - e.g. change_file_extension("xray_scan.tiff", ".jpg")
 
 @author: alp
-@last modified: 12/4/23 11:27am
+@last modified: 20/4/23 10:27am
 """
 
 import os
 from pathlib import Path
 from tqdm import tqdm
 
-def load_images(path_to_images, file_type="all"):
+def load_images(path_to_images, file_type="all", recursive=False):
     """
     Function returns a list of full paths to images found in the path_to_image user specify.
 
     Args:
         path_to_images: A variable that contains the full path to the directory of interest, which contains images. 
         file_type: A variable that specifies what file type to look for. Default = "all"
+        recursive: A boolean variable that specifies whether the function should look recursively into each folder in the directory specified. default=False
+        exclude_string: A string variable that specifies the pattern of string to avoid collecting
 
     Returns:
         images: A list containing the full paths to the images.
@@ -55,7 +57,16 @@ def load_images(path_to_images, file_type="all"):
     # Checks if path specified is a file, folder, or a directory of subdirectories
     if os.path.isfile(p):
         check_if_file_is_an_image(p)
-    elif os.path.isdir(p):
+    
+    # Checks for current directory's files
+    elif os.path.isdir(p) and not recursive:
+        print("Collecting a list of images from", p)
+        for file in os.listdir(p):
+            if os.path.isfile(os.path.join(p, file)):
+                check_if_file_is_an_image(os.path.join(p, file))
+
+    # Checks for current directory file and recursively searches each folder
+    elif os.path.isdir(p) and recursive:
         print("Collecting a list of images from", p)
         for root, _, files in os.walk(p):
             for file in files:

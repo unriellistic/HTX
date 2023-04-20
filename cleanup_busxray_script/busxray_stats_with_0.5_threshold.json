@@ -1,10 +1,10 @@
 {
     "Percentage threshold value set": 0.5,
-    "Overall total num of annotation": 122,
-    "Overall total num of reject": 30,
-    "Overall % of reject": "24.59%",
-    "Overall total num of passed": 92,
-    "Overall % of passed": "75.41%",
+    "Overall total num of annotation": 151,
+    "Overall total num of reject": 36,
+    "Overall % of reject": "23.84%",
+    "Overall total num of passed": 115,
+    "Overall % of passed": "76.16%",
     "Info loss info": {
         "Overall % of info loss": "0.04%",
         "list of images with loss": {
@@ -16,10 +16,70 @@
     },
     "image info": {
         "adjusted_359_annotated_segmented": {
-            "image's total annotation": 49,
-            "image's total reject": 15,
+            "image's total annotation": 78,
+            "image's total reject": 21,
             "image's total info loss": 0.0,
             "image's segment info": {
+                "segment_0_640.png": {
+                    "num_of_reject": 2,
+                    "num_of_total": 3,
+                    "segment_info_loss": 0.0
+                },
+                "segment_0_960.png": {
+                    "num_of_reject": 1,
+                    "num_of_total": 3,
+                    "segment_info_loss": 0.0
+                },
+                "segment_1147_0.png": {
+                    "num_of_reject": 0,
+                    "num_of_total": 1,
+                    "segment_info_loss": 0.0
+                },
+                "segment_1147_320.png": {
+                    "num_of_reject": 0,
+                    "num_of_total": 2,
+                    "segment_info_loss": 0.0
+                },
+                "segment_1147_640.png": {
+                    "num_of_reject": 1,
+                    "num_of_total": 2,
+                    "segment_info_loss": 0.0
+                },
+                "segment_1147_960.png": {
+                    "num_of_reject": 1,
+                    "num_of_total": 3,
+                    "segment_info_loss": 0.0
+                },
+                "segment_320_0.png": {
+                    "num_of_reject": 0,
+                    "num_of_total": 3,
+                    "segment_info_loss": 0.0
+                },
+                "segment_320_1280.png": {
+                    "num_of_reject": 0,
+                    "num_of_total": 3,
+                    "segment_info_loss": 0.0
+                },
+                "segment_320_1600.png": {
+                    "num_of_reject": 1,
+                    "num_of_total": 2,
+                    "segment_info_loss": 0.0
+                },
+                "segment_320_1920.png": {
+                    "num_of_reject": 0,
+                    "num_of_total": 1,
+                    "segment_info_loss": 0.0
+                },
+                "segment_320_1972.png": {
+                    "num_of_reject": 0,
+                    "num_of_total": 1,
+                    "segment_info_loss": 0.0
+                },
+                "segment_320_320.png": {
+                    "num_of_reject": 0,
+                    "num_of_total": 5,
+                    "segment_info_loss": 0.0
+                },
                 "segment_320_640.png": {
                     "num_of_reject": 4,
                     "num_of_total": 7,

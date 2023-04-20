@@ -3,6 +3,8 @@ To run the pre-processing on the images. Run the scripts in this order:
 2) crop_bus_images.py
 3) segment_bus_images.py
 
+The current folder should contain a "exp" folder which contains sub-folders of each image.
+
 For in-depth explanation of each script, can look below or at the explanation given within the script.
 
 ####################################################################################################################### 

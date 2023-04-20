@@ -1,22 +1,18 @@
 """
 NOT COMPLETE
-This Python script uses the watchdog library to monitor a folder for new images. When a new image is added to the folder, 
-the script processes the image using an AI object detection algorithm (replace INPUT_FUNCTION with your own function) and 
-saves the output image to another folder.
+This script receives a cv2-formatted image and performs the following:
+    1) It segments up the image and stores them in a dict format in the format of:
+        image_dict = {"0_0": 
+                        {
+                            "cv2_image": <cv2-format image>,
+                            "json_file_info": <json-format image>},
+                        {
+                            "cv2_image": <cv2-format image>,
+                            "json_file_info": <json-format image>},
+                        }...
+                    }
 
-To use this script, you will need to install the opencv-python, numpy, and watchdog libraries. Then, modify the input_dir 
-and output_dir variables to match the input and output directories on your system.
-
-Next, create an object of the ImageProcessor class and pass in the input and output directories as arguments. 
-This object will handle the image processing.
-
-Finally, set up a FileSystemEventHandler object to handle file creation events, and use an Observer object to monitor 
-the input directory for changes. When a new file is created, the ImageHandler class will call the process_image method 
-of the ImageProcessor object to process the new image.
-
-To run the script, simply execute the Python file in a terminal or command prompt window. The script will run continuously 
-in the background, monitoring the input directory for changes. To stop the script, press Ctrl+C in the terminal or command prompt window.
-
+Some parts of the code contains this #canbeimproved , these are parts where we can consider changing the algorithm to improve the processing speed
 """
 
 import os
@@ -28,29 +24,143 @@ from watchdog.events import FileSystemEventHandler
 
 
 class ImageProcessor:
-    # Define ImageProcessor class with input and output directories
-    def __init__(self, input_dir, output_dir):
-        self.input_dir = input_dir
-        self.output_dir = output_dir
+    """
+    Define ImageProcessor class with 
+    """
+    def __init__(self, input_cv2_image):
+        """
+        input_cv2_image: needs to be a cv2 image
+        """
+        # Check if input is a cv2 image
+        if isinstance(self.input_cv2_image, np.ndarray):
+            self.input_cv2_image = input_cv2_image
+        else:
+            raise TypeError("Image must be a numpy ndarray.")
 
-    # Define function to process image
-    def process_image(self, filename):
-        # Check that the file is a JPEG image
-        if not filename.endswith(".jpg"):
-            return
-        # Define input and output paths for image
-        input_path = os.path.join(self.input_dir, filename)
-        output_path = os.path.join(self.output_dir, filename)
+        # Nothing is cropped at the start
+        self.image_dict["cropped_coordinates"] = {"xmin": 0,
+                                                  "xmax": 0,
+                                                  "ymin": 0,
+                                                  "ymax": 0}
 
-        # Load image
-        image = cv2.imread(input_path)
+    # Define function to store the cropped coordinates
+    def crop_image(self):
+        
+        print("Cropping image...")
+        x_start, x_end, y_start, y_end = find_black_to_white_transition(self.input_cv2_image)
+        # Update cropped coordinates
+        self.image_dict["cropped_coordinates"] = {"xmin": x_start,
+                                                "xmax": x_end,
+                                                "ymin": y_start,
+                                                "ymax": y_end}
 
-        # Run image through AI detection algorithm
-        # Replace INPUT_FUNCTION with your own function
-        image = INPUT_FUNCTION(image)
+        # Algorithm to detect the edge of the bus in the image
+        def find_black_to_white_transition(image):
 
-        # Save output image
-        cv2.imwrite(output_path, image)
+            # Convert to grayscale
+            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            # Constants
+            BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 100 # For top_to_bot and bot_to_top. Ensures that residual black lines don't affect top and bot crop.
+            BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE = 100 # This needs to be big for some files that thinks the edge is too much towards the center. But results in slower computation, #canbeimproved
+
+            # Functions to find optimal xy co-ordinates to crop
+
+            def left_to_right():
+                # Iterate over pixels starting from left side of the image and moving towards the right
+                # to find first black-to-white transition
+                # Start at half of height to avoid white background (0-60) + light specks at 60~200
+                most_left_x = image.shape[1]
+                x_value_to_start_from = 0
+                # Start from middle part of image, then iterate to the bottom
+                for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
+                    for x in range(x_value_to_start_from, gray_image.shape[1] - 1):
+                        if gray_image[y, x] < 128 and gray_image[y, x + 1] >= 128:
+                            # Found black-to-white transition
+                            # Check if most_left_x has a x-value smaller than current x, if smaller it means it's positioned more left in the image.
+                            # And since we don't want to cut off any image, we find the x that has the smallest value, which indicates that it's at the
+                            # leftest-most part of the image
+                            if most_left_x > x:
+                                most_left_x = x
+                                # Check if this will lead to out-of-bound index error
+                                if most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE < 0:
+                                    x_value_to_start_from = 0
+                                else:
+                                    x_value_to_start_from = most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                            # Found the transition, stop finding for this y-value
+                            break
+                return most_left_x
+
+            def right_to_left():
+                # Iterate over pixels starting from right side of the image and moving towards the left
+                # to find first black-to-white transition
+                # Start at half of height of image because that's the fattest part of the bus
+                for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
+                    for x in range(gray_image.shape[1]-1, 0, -1):
+                        if gray_image[y, x] >= 128 and gray_image[y, x - 1] < 128:
+                            # Found the y-coordinate in the center of the image's black-to-white transition
+                            return x
+                # If no transition detected, don't crop anything
+                return gray_image.shape[1]
+
+            def top_to_bot():
+                # Iterate over pixels starting from top side of the image and moving towards the bottom
+                # to find first black-to-white transition
+                most_top_y = image.shape[0]
+                y_value_to_start_from = 0
+                for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
+                    for y in range(y_value_to_start_from, gray_image.shape[0]-1):
+                        if gray_image[y, x] >= 128 and gray_image[y+1, x] < 128:
+                            # Found black-to-white transition
+                            # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
+                            # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
+                            # top-most part of the image
+                            if most_top_y > y:
+                                most_top_y = y
+                                # Check if this will lead to out-of-bound index error
+                                if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE < 0:
+                                    y_value_to_start_from = 0
+                                else:
+                                    y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                            # Found the transition, stop finding for this x-value
+                            break
+                return most_top_y
+
+            def bot_to_top():
+                # Iterate over pixels starting from bottom side of the image and moving towards the top
+                # to find first black-to-white transition
+                most_bot_y = 0
+                y_value_to_start_from = gray_image.shape[0] - 1
+                for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
+                    for y in range(y_value_to_start_from, 0, -1):
+                        if gray_image[y, x] >= 128 and gray_image[y-1, x] < 128:
+                            # Found black-to-white transition
+                            # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
+                            # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
+                            # top part of the image
+                            if most_bot_y < y:
+                                most_bot_y = y
+                                # Check if this will lead to out-of-bound index error
+                                if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE > gray_image.shape[0] - 1:
+                                    y_value_to_start_from = gray_image.shape[0] - 1
+                                else:
+                                    y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                            # Found the transition, stop finding for this x-value
+                            break
+                return most_bot_y
+
+            # Needs to run in this order as top_to_bot() utilises the x_start and x_end value.
+            # Trim left black box
+            x_start = left_to_right()
+            # Trim right white empty space
+            x_end = right_to_left()
+            # Trim top white empty space
+            y_start = top_to_bot()
+            # Trim bot white empty space
+            y_end = bot_to_top()
+            return  x_start, x_end, y_start, y_end
+
+        
+        
 
 
 class ImageHandler(FileSystemEventHandler):
@@ -72,20 +182,3 @@ if __name__ == "__main__":
     # Define input and output directories
     input_dir = "input/"
     output_dir = "output/"
-
-    # Create ImageProcessor object
-    processor = ImageProcessor(input_dir, output_dir)
-
-    # Set up watchdog observer to monitor input directory for changes
-    event_handler = ImageHandler(processor)
-    observer = Observer()
-    observer.schedule(event_handler, input_dir, recursive=False)
-    observer.start()
-
-    try:
-        # Keep script running until interrupted
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
