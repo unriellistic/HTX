@@ -29,7 +29,7 @@ Input arguments:
 --cutoff-threshold: Float value, indicates threshold by which to not label an annotation that has been segmented
 Full example:
 To run the segmenting function:
-python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_adjusted" --overlap-portion 640 --overlap-portion 0.5 --cutoff-threshold 0.3
+python segment_bus_images_v2.py --root-dir "D:\leann\busxray_woodlands\annotations_adjusted" --overlap-portion 640 --overlap-portion 0.5 --cutoff-threshold 0.3
 -> This will cause the function to look at root directory at <annotations_adjusted>, splits the segment in 640x640 pieces. 
 -> The overlap will be half of the image size, in this case half of 640 is 320. So the next segment after the first x_start = 0, x_end = 640, will be x_start = 320, x_end = 920.
 -> Meaning the sliding window will be in increments of 320 pixels, in both width and height.
@@ -250,12 +250,12 @@ if __name__ == "__main__":
     list_of_images = gs.load_images(path_to_dir)
     
     # Segment up the images
-    # print("Processing images...")
-    # os.chdir(path_to_dir)
-    # for image in tqdm(list_of_images):
-    #     segment_image(image_path=image,
-    #                 segment_size=int(args.segment_size), 
-    #                 overlap_percent=float(args.overlap_portion))
+    print("Processing images...")
+    os.chdir(path_to_dir)
+    for image in tqdm(list_of_images):
+        segment_image(image_path=image,
+                    segment_size=int(args.segment_size), 
+                    overlap_percent=float(args.overlap_portion))
 
     # Segment up the annotation
     print("Processing XML files...")

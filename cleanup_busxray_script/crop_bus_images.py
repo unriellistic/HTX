@@ -306,8 +306,8 @@ def open_image(image_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"C:\Users\User1\Desktop\alp\cleanup_busxray_script\annotations")
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"C:\Users\User1\Desktop\alp\cleanup_busxray_script\annotations_adjusted")
+    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"annotations")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
     parser.add_argument("--display", help="display the annotated images", action="store_true")
     parser.add_argument("--display-path", help="path to display a single image file", required=False)
 

@@ -29,7 +29,7 @@ Input arguments:
 --cutoff-threshold: Float value, indicates threshold by which to not label an annotation that has been segmented
 Full example:
 To run the segmenting function:
-python segment_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations_adjusted" --overlap-portion 640 --overlap-portion 0.5 --cutoff-threshold 0.3
+python segment_bus_images_v3.py --root-dir "D:\leann\busxray_woodlands\annotations_adjusted" --overlap-portion 640 --overlap-portion 0.5 --cutoff-threshold 0.3 --special-items ['cig']
 -> This will cause the function to look at root directory at <annotations_adjusted>, splits the segment in 640x640 pieces. 
 -> The overlap will be half of the image size, in this case half of 640 is 320. So the next segment after the first x_start = 0, x_end = 640, will be x_start = 320, x_end = 920.
 -> Meaning the sliding window will be in increments of 320 pixels, in both width and height.
@@ -358,9 +358,9 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
             else:
                 # else, y_value_to_mask is smaller, append this instead.
 
-                 # If plane is bot, re-adjust the x_value_to_mask
+                 # If plane is bot, re-adjust the y_value_to_mask
                 if y_plane_to_cut == "bot":
-                    y_value_to_mask = right
+                    y_value_to_mask = bot
 
                 return y_plane_to_cut, y_value_to_mask
         
@@ -546,8 +546,6 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
         total_percentage_of_annotation_cut_for_segment = 0.0
         if len(mask_dict["plane_coordinate_to_mask"]):
 
-            # Create a copy of plane_coordinate_to_mask
-            plane_coordinate_to_mask_copy = {"plane_coordinate_to_mask": []}
             # Create an empty set to keep track of the unique plane directions encountered
             unique_plane_directions = set()
             # Create an empty list to store the mask tuples that will be returned
@@ -568,19 +566,20 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                 if plane_direction in unique_plane_directions:
                     # If the plane direction has been encountered before, perform the check
                     # Get the current mask tuple in the copy list with the same plane direction
-                    current_mask_tuple = next((t for t in copy_mask_tuples if t[0] == plane_direction), None)
-                    if current_mask_tuple is not None and original_mask_tuple[1] <= current_mask_tuple[1]:
+                    compare_against_existing_mask_tuple_with_same_plane = next((t for t in copy_mask_tuples if t[0] == plane_direction), None)
+                    if original_mask_tuple[1] <= compare_against_existing_mask_tuple_with_same_plane[1] and compare_against_existing_mask_tuple_with_same_plane is not None:
                         # Update the mask tuple in the copy list by removing the original_mask_tuple
-                        mask_dict["plane_coordinate_to_mask"].remove(original_mask_tuple)
-                        # Add the current_mask_tuple into the list of current tuples
+                        mask_dict["plane_coordinate_to_mask"].remove(compare_against_existing_mask_tuple_with_same_plane)
+                        copy_mask_tuples.remove(compare_against_existing_mask_tuple_with_same_plane)
+                        # Add the compare_against_existing_mask_tuple_with_same_plane into the list of current tuples
                         copy_mask_tuples.append(original_mask_tuple)
                         # Update percentage info by substracting information that was added in the big else branch
-                        total_percentage_of_annotation_cut_for_segment -= original_mask_tuple[2]
+                        total_percentage_of_annotation_cut_for_segment -= compare_against_existing_mask_tuple_with_same_plane[2]
                     else:
-                        # means the current_mask_tuple[1] has a smaller value than the original_mask_tuple
-                        mask_dict["plane_coordinate_to_mask"].remove(current_mask_tuple)
+                        # means the compare_against_existing_mask_tuple_with_same_plane[1] has a smaller value than the original_mask_tuple
+                        mask_dict["plane_coordinate_to_mask"].remove(original_mask_tuple)
                         # Update percentage info by substracting information that was added in the big else branch
-                        total_percentage_of_annotation_cut_for_segment -= current_mask_tuple[2]
+                        total_percentage_of_annotation_cut_for_segment -= original_mask_tuple[2]
                 else:
                     # If the plane direction is new, add it to the set of unique plane directions
                     unique_plane_directions.add(plane_direction)
@@ -674,12 +673,12 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
     list_of_images = gs.load_images(path_to_dir)
     
     # Segment up the images
-    # print("Processing images...")
-    # os.chdir(path_to_dir)
-    # for image in tqdm(list_of_images):
-    #     segment_image(image_path=image,
-    #                 segment_size=int(args.segment_size), 
-    #                 overlap_percent=float(args.overlap_portion))
+    print("Processing images...")
+    os.chdir(path_to_dir)
+    for image in tqdm(list_of_images):
+        segment_image(image_path=image,
+                    segment_size=int(args.segment_size), 
+                    overlap_percent=float(args.overlap_portion))
 
     # Segment up the annotation
     print("Processing XML files...")
@@ -856,10 +855,10 @@ def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"C:\Users\User1\Desktop\alp\cleanup_busxray_script\annotations_adjusted")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\leann\busxray_woodlands\annotations_adjusted")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
-    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.5)
+    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
     parser.add_argument("--special-items", help="a list of string items to supercede the threshold set", default=['cig'])
 
     # uncomment below if want to debug in IDE
