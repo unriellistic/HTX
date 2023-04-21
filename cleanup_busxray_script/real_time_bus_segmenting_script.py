@@ -232,7 +232,13 @@ class ImageProcessor:
 
 if __name__ == "__main__":
     test_image = cv2.imread(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
+    # Create an object
     test = ImageProcessor(input_cv2_image=test_image)
+    # Calls crop function to crop away black and white line
     test.crop_image()
+    # Calls the segment function to segment up the image
     test.segment_image(segment_size=640, overlap_percent=0.5)
+    # get_segment_info returns a dict of segment info in the format of
+    # key: segment_0_0
+    # value: np.array
     print(test.get_segment_info())
