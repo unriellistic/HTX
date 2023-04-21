@@ -19,8 +19,16 @@ import os
 import cv2
 import numpy as np
 import time
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+
+def time_func(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"function {func.__name__} took {elapsed_time:.3f} seconds to run.")
+        return result
+    return wrapper
 
 
 class ImageProcessor:
@@ -32,28 +40,22 @@ class ImageProcessor:
         input_cv2_image: needs to be a cv2 image
         """
         # Check if input is a cv2 image
-        if isinstance(self.input_cv2_image, np.ndarray):
-            self.input_cv2_image = input_cv2_image
+        if isinstance(input_cv2_image, np.ndarray):
+            self.original_image = input_cv2_image
         else:
             raise TypeError("Image must be a numpy ndarray.")
 
         # Nothing is cropped at the start
-        self.image_dict["cropped_coordinates"] = {"xmin": 0,
+        self.image_dict = {"cropped_coordinates": {"xmin": 0,
                                                   "xmax": 0,
                                                   "ymin": 0,
-                                                  "ymax": 0}
+                                                  "ymax": 0}}
+        self.segment_image_info = {}
 
     # Define function to store the cropped coordinates
+    @time_func
     def crop_image(self):
         
-        print("Cropping image...")
-        x_start, x_end, y_start, y_end = find_black_to_white_transition(self.input_cv2_image)
-        # Update cropped coordinates
-        self.image_dict["cropped_coordinates"] = {"xmin": x_start,
-                                                "xmax": x_end,
-                                                "ymin": y_start,
-                                                "ymax": y_end}
-
         # Algorithm to detect the edge of the bus in the image
         def find_black_to_white_transition(image):
 
@@ -158,27 +160,79 @@ class ImageProcessor:
             # Trim bot white empty space
             y_end = bot_to_top()
             return  x_start, x_end, y_start, y_end
-
         
-        
+        # Performing function
+        print("Cropping image...")
+        x_start, x_end, y_start, y_end = find_black_to_white_transition(self.original_image)
+        # Update cropped coordinates
+        self.image_dict["cropped_coordinates"] = {"xmin": x_start,
+                                                "xmax": x_end,
+                                                "ymin": y_start,
+                                                "ymax": y_end}
 
+    @time_func
+    def segment_image(self, segment_size=640, overlap_percent=0.5):
+        """
+        Segments an image of any dimension into pieces of specified by <segment_size>,
+        with a specified overlap percentage specified by <overlap_percent>.
 
-class ImageHandler(FileSystemEventHandler):
-    # Define ImageHandler class to handle file system events
-    def __init__(self, processor):
-        super().__init__()
-        self.processor = processor
+        Args:
+        segment_size (int): Integer number for segment size.
+        overlap_percent (float): The percentage of overlap between adjacent segments (0 to 1).
 
-    # Define function to handle file creation events
-    def on_created(self, event):
-        # Ignore events that aren't new files
-        if event.is_directory:
-            return
-        # Process new image
-        self.processor.process_image(os.path.basename(event.src_path))
+        Returns:
+        None: The function saves the segmented images in it's np-array form to the segment_image_info dictionary.
+        """
+        print("Segmenting image...")
+        # Read the image using OpenCV
+        img = self.original_image.copy()
+
+        # Crop the img copy based off the crop_image() function, which uses self.image_dict["cropped_coordinates"].
+        img = img[self.image_dict["cropped_coordinates"]["ymin"]:self.image_dict["cropped_coordinates"]["ymax"], self.image_dict["cropped_coordinates"]["xmin"]:self.image_dict["cropped_coordinates"]["xmax"]]
+    
+        # Get the height and width of the image
+        height, width = img.shape[:2]
+
+        # Calculate the number of rows and columns required to segment the image
+        overlap_pixels = int(segment_size * overlap_percent)
+        segment_stride = segment_size - overlap_pixels
+        num_rows = int(np.ceil((height - segment_size) / segment_stride)) + 1
+        num_cols = int(np.ceil((width - segment_size) / segment_stride)) + 1
+
+        # Segment the image into pieces of 640 by 640 with the specified overlap percentage
+        for row in range(num_rows):
+            for col in range(num_cols):
+                y_start = row * segment_stride
+                y_end = y_start + segment_size
+                x_start = col * segment_stride
+                x_end = x_start + segment_size
+
+                # Check if the remaining section of the image is less than 640 pixels
+                if y_end > height:
+                    y_end = height
+                    y_start = height - segment_size
+                if x_end > width:
+                    x_end = width
+                    x_start = width - segment_size
+
+                segment = img[y_start:y_end, x_start:x_end]
+                self.segment_image_info['segment_{}_{}'.format(y_start, x_start)] = segment
+
+    def get_segment_info(self):
+        """
+        Helper function that returns the key, value stored in segment_image_info dictionary. 
+        Key contains the segment name, segment_0_0 means the image was taken from the xmin=0, ymin=0 portion of the cropped image.
+        Returns: 
+        - self.segment_image_info: (dict),
+            key: segment name 
+            value: np.array of segment image
+        """
+        return self.segment_image_info
 
 
 if __name__ == "__main__":
-    # Define input and output directories
-    input_dir = "input/"
-    output_dir = "output/"
+    test_image = cv2.imread(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
+    test = ImageProcessor(input_cv2_image=test_image)
+    test.crop_image()
+    test.segment_image(segment_size=640, overlap_percent=0.5)
+    print(test.get_segment_info())
