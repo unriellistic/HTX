@@ -229,6 +229,24 @@ class ImageProcessor:
         """
         return self.segment_image_info
 
+def calling_relevant_class_function(cv2_image, segment_size=640, overlap_percent=0.5):
+    """
+    Takes an image as an input, and calls the relevant class function to do the necessary pre-processing for the image
+
+    Return:
+    image_class.get_segment_info(): a dict structure which contains all the image info and it's segment info
+
+    """
+    # Create an object
+    image_class = ImageProcessor(input_cv2_image=cv2_image)
+    # Calls crop function to crop away black and white line
+    image_class.crop_image()
+    # Calls the segment function to segment up the image
+    image_class.segment_image(segment_size=segment_size, overlap_percent=overlap_percent)
+    # get_segment_info returns a dict of segment info in the format of
+    # key: segment_0_0
+    # value: np.array
+    return image_class.get_segment_info()
 
 if __name__ == "__main__":
     test_image = cv2.imread(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
