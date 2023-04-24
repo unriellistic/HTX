@@ -6,19 +6,24 @@ This script does 2 functions:
     e.g. 355_annotated.xml -> adjusted_355_annotated.xml
 
 Variables to change:
-    -ROOT_DIR: Folder where images and XML annotations are stored. They need to be the same name except for the extension. Script will crash if either one of the file is not present.
+    -root_dir_image: Folder where images and XML annotations are stored. They need to be the same name except for the extension. Script will crash if either one of the file is not present.
     -TARGET_DIR: Folder to store the cropped images and adjusted XML files
 
 Input arguments:
---root-dir: specifies the folder containing the image and annotation files. The path specified must contain a folder of both the XML and image file with the same name, only difference being the .jpg or .xml.
+--root-dir-images: specifies the folder containing the image files. The path specified must contain a folder of the image file with the same name.
     e.g. 355_annotated.jpg and 355_annotated.xml
+--root-dir-annotations: specifies the folder containing the annotation files. The path specified must contain a folder of the XML file with the same name.
+    e.g. ..\images\355_annotated.jpg and ..\labels\355_annotated.xml
 --target-dir: specifies the folder to place the cropped bus images.
 --display: an optional argument that can be specified to just display the annotated image without running the cropping function.
 --display-path: specifies the path to a singular image file to display.
 
 Full example:
 To run the cropping function:
-python crop_bus_images.py --root-dir "D:\leann\busxray_woodlands\annotations" --target-dir "D:\leann\busxray_woodlands\annotations_adjusted"
+python crop_bus_images.py --root-dir-images "D:\leann\busxray_woodlands\annotations" --root-dir-annotations "D:\leann\busxray_woodlands\annotations" --target-dir "D:\leann\busxray_woodlands\annotations_adjusted"
+
+To store files in the directory it was found:
+python crop_bus_images.py --store --root-dir-images "D:\leann\busxray_woodlands\annotations" --root-dir-annotations "D:\leann\busxray_woodlands\annotations"
 
 To display the all cropped images:
 python crop_bus_images.py --target-dir "D:\leann\busxray_woodlands\annotations_adjusted" --display-only
@@ -222,7 +227,7 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
     
     return
 
-def resize_image_and_xml_annotation(input_file_name, output_dir_path):
+def resize_image_and_xml_annotation(input_file_image, input_file_label, output_dir_path):
     """
     The resize_image_and_xml_annotation function takes an input image file path and an output directory path as input parameters. 
     The function first reads the image from the input file path using the OpenCV library's cv2.imread() function. 
@@ -238,14 +243,15 @@ def resize_image_and_xml_annotation(input_file_name, output_dir_path):
     Finally, the function returns the resized image.
 
     Args:
-    input_file_name (str): The file path of the image file.
+    input_file_image (str): The path to the image file.
+    input_file_annotation (str): The path to the annotation file.
     output_dir_path (str): The file path where the modified XML should be written to.
     
     Returns:
     None: function writes the modified XML and resized image to the output file path.
     """
     # Read image from file
-    image = cv2.imread(input_file_name)
+    image = cv2.imread(input_file_image)
     # Find boundaries to crop
     x_start, x_end, y_start, y_end = find_black_to_white_transition(image)
 
@@ -259,23 +265,37 @@ def resize_image_and_xml_annotation(input_file_name, output_dir_path):
     # Resize image
     resized_image = cv2.resize(cropped_image, (new_width, new_height))
 
-    # Get head and filename, because annotated XML file has same name as image
-    head, filename = gs.path_leaf(input_file_name)
+    # Get image_head and image_filename
+    image_head, image_filename = gs.path_leaf(input_file_image)
+    # Get label_head and label_filename
+    label_head, label_filename = gs.path_leaf(input_file_label)
 
-    # Write resized image to file
-    image_file_path = os.path.join(output_dir_path, f"adjusted_{filename}")
-    cv2.imwrite(image_file_path, resized_image)
-    
-    # Change file extension to XML.
-    xml_file_name = gs.change_file_extension(filename, ".xml")
-    # Get XML file path
-    xml_file_path = os.path.join(head, xml_file_name)
-    # Save XML file path
-    adjusted_xml_file_path = os.path.join(output_dir_path, f"adjusted_{xml_file_name}")
-    # Run XML adjustment function
-    adjust_xml_annotation(xml_file_path=xml_file_path, 
-                          new_coordinates=(x_start, x_end, y_start, y_end), 
-                          output_dir_path=adjusted_xml_file_path)
+    # Check if user wants to store at current directory
+    if output_dir_path == "store":
+        # Write resized image to current directory
+        image_file_path = os.path.join(image_head, f"adjusted_{image_filename}")
+        # Save image
+        cv2.imwrite(image_file_path, resized_image)
+
+        # Save XML file path
+        adjusted_xml_file_path = os.path.join(label_head, f"adjusted_{label_filename}")
+        # Adjust annotation (aka labels)
+        adjust_xml_annotation(  xml_file_path=input_file_label, 
+                                new_coordinates=(x_start, x_end, y_start, y_end), 
+                                output_dir_path=label_head)
+    # Else, store at target directory
+    else:
+        # Write resized image to output directory
+        image_file_path = os.path.join(output_dir_path, f"adjusted_{image_filename}")
+        # Save image
+        cv2.imwrite(image_file_path, resized_image)
+
+        # Save XML file path
+        adjusted_xml_file_path = os.path.join(output_dir_path, f"adjusted_{label_filename}")
+        # Adjust annotation (aka labels)
+        adjust_xml_annotation(  xml_file_path=input_file_label, 
+                                new_coordinates=(x_start, x_end, y_start, y_end), 
+                                output_dir_path=adjusted_xml_file_path)
 
     return None
 
@@ -306,24 +326,42 @@ def open_image(image_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="folder containing the image and annotation files", default=r"annotations")
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
+    # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"annotations")
+    # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"annotations")
+    # parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
+    # parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
+    # parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
+    # parser.add_argument("--display", help="display the annotated images", action="store_true")
+    # parser.add_argument("--display-path", help="path to display a single image file", required=False)
+
+    # uncomment below if want to debug in IDE
+    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files")
+    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files")
+    parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files_adjusted")
+    parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     parser.add_argument("--display", help="display the annotated images", action="store_true")
     parser.add_argument("--display-path", help="path to display a single image file", required=False)
 
+
+
     args = parser.parse_args()
-
-    # uncomment below if want to debug in IDE
-    # import sys
-    # sys.argv = ['crop_bus_images.py', '--root-dir', r"C:\Users\User1\Desktop\alp\for soo kng\annotations"]
-
-    # Get path to root directory
+    
+    # Get path to root directory image
     # Check if default parameter is applied, if so get full path.
-    if args.root_dir == "annotations":
-        path_to_root_dir = os.path.join(os.getcwd(), args.root_dir)
+    if args.root_dir_images == "annotations":
+        path_to_root_dir_images = os.path.join(os.getcwd(), args.root_dir_images)
     # Else, use path specified by user
     else:
-        path_to_root_dir = args.root_dir
+        path_to_root_dir_images = args.root_dir_images
+
+    # Get path to root directory annotation
+    # Check if default parameter is applied, if so get full path.
+    if args.root_dir_annotations == "annotations":
+        path_to_root_dir_annotations = os.path.join(os.getcwd(), args.root_dir_annotations)
+    # Else, use path specified by user
+    else:
+        path_to_root_dir_annotations = args.root_dir_annotations
 
     # Get path to target directory
     # Check if default parameter is applied, if so get full path.
@@ -336,20 +374,39 @@ if __name__ == '__main__':
     # If user didn't specify display, just perform cropping without displaying
     if not args.display_path or not args.display:
         # Load images from folder
-        images = gs.load_images(path_to_root_dir)
+        images = gs.load_images(path_to_root_dir_images, recursive=args.recursive_search)
+        annotations = gs.load_images(path_to_root_dir_annotations, recursive=args.recursive_search, file_type=".xml")
 
         # Create the output directory if it does not exist
-        if not os.path.exists(path_to_target_dir):
+        if args.store==False and not os.path.exists(path_to_target_dir):
             os.makedirs(path_to_target_dir)
 
+        list_of_non_existent_labels = []
         for image in tqdm(images):
             # function to return the file extension
             file_extension = pathlib.Path(image).suffix
+
+            # Get path to image and label
+            input_file_image = os.path.join(path_to_root_dir_images, image)
+            input_file_label = os.path.join(path_to_root_dir_annotations, gs.change_file_extension(image, new_file_extension=".xml"))
+
+            # Check if path exists for label
+            if os.path.exists(input_file_label) is False:
+                _, temp_filename = gs.path_leaf(gs.change_file_extension(image, new_file_extension=".xml"))
+                list_of_non_existent_labels.append(temp_filename)
+                continue
+
             # Resize + adjust XML function and save it there
-            input_file_name = os.path.join(path_to_root_dir, image)
-            resize_image_and_xml_annotation(input_file_name=input_file_name,
-                                            output_dir_path=path_to_target_dir)
-    
+            # Check if we want to store in current directory
+            if args.store:
+                resize_image_and_xml_annotation(input_file_image=input_file_image,
+                                                input_file_label=input_file_label,
+                                                output_dir_path="store")
+            else:
+                resize_image_and_xml_annotation(input_file_image=input_file_image,
+                                                input_file_label=input_file_label,
+                                                output_dir_path=path_to_target_dir)
+        
     # If display option selected, then display the whole list in the --target-dir, or if a --display-path is specified, display just a singular image
     if args.display or args.display_path:
         if args.display_path:
@@ -363,6 +420,8 @@ if __name__ == '__main__':
                     print("Displaying image", display_path)
                     open_image(display_path)
 
+    # print out non-existent labels
+    print("List of non-existent labels:", list_of_non_existent_labels)
     # To open an image to check
     # open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
     # open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented\segment_156_397.png")

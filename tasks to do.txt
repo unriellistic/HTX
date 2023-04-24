@@ -1,2 +1,3 @@
 -word doc for hscode
--stats compilation for eyefox 
+-XML annotation adjustment failed because divide by zero, can rerun that portion.
+- Need to find a way to pair xml annotation in the train/test/valid folders, and convert them to YOLO format

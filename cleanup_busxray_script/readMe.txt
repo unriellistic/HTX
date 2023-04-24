@@ -8,7 +8,7 @@ The current folder should contain a "exp" folder which contains sub-folders of e
 For in-depth explanation of each script, can look below or at the explanation given within the script.
 
 ####################################################################################################################### 
-1) compile_annotations_busxray.py
+1) compile_annotations_busxray.py (run this file only if you need to consolidate all images and annotation into one folder, if such a folder already exist, no need run this)
 Command to run:
 python compile_annotations_busxray.py
 

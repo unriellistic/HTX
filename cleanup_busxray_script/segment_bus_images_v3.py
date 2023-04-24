@@ -781,7 +781,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
                     total_info_loss_for_one_image += stats['segment_info_loss']
 
                 # Re-adjusts info loss based on the number of segments (this part may need re-adjusting)
-                total_info_loss_for_one_image = total_info_loss_for_one_image/len(segment_stats_dict.keys())
+                total_info_loss_for_one_image = total_info_loss_for_one_image/(1 if len(segment_stats_dict.keys())==0 else len(segment_stats_dict.keys()))
 
                 # Tabulate total stats for one image in a subdir
                 image_stats_dict[f"{subdir}"] = {
