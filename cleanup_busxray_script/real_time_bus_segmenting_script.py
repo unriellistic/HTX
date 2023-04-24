@@ -15,12 +15,13 @@ This script receives a cv2-formatted image and performs the following:
 Some parts of the code contains this #canbeimproved , these are parts where we can consider changing the algorithm to improve the processing speed
 """
 
-import os
-import cv2
-import numpy as np
+import cv2, numpy as np
 import time
 
 def time_func(func):
+    """
+    A function to keep track and print out time taken for each function
+    """
     def wrapper(*args, **kwargs):
         start_time = time.time()
         result = func(*args, **kwargs)
@@ -33,7 +34,7 @@ def time_func(func):
 
 class ImageProcessor:
     """
-    Define ImageProcessor class with 
+    Define ImageProcessor class with functions that crops white and black borders, and segments itself
     """
     def __init__(self, input_cv2_image):
         """
@@ -177,8 +178,8 @@ class ImageProcessor:
         with a specified overlap percentage specified by <overlap_percent>.
 
         Args:
-        segment_size (int): Integer number for segment size.
-        overlap_percent (float): The percentage of overlap between adjacent segments (0 to 1).
+        segment_size (int): Integer number to specify the pixel length and width of the segment size. Default=640
+        overlap_percent (float): The percentage of overlap between adjacent segments (0 to 1). Default=0.5, 50%
 
         Returns:
         None: The function saves the segmented images in it's np-array form to the segment_image_info dictionary.
@@ -220,8 +221,9 @@ class ImageProcessor:
 
     def get_segment_info(self):
         """
-        Helper function that returns the key, value stored in segment_image_info dictionary. 
+        Helper function that returns the dict segment_image_info dictionary. 
         Key contains the segment name, segment_0_0 means the image was taken from the xmin=0, ymin=0 portion of the cropped image.
+        Value contains the np-array of the image.
         Returns: 
         - self.segment_image_info: (dict),
             key: segment name 
@@ -231,9 +233,15 @@ class ImageProcessor:
 
 def calling_relevant_class_function(cv2_image, segment_size=640, overlap_percent=0.5):
     """
-    Takes an image as an input, and calls the relevant class function to do the necessary pre-processing for the image
+    Takes an image as an input, and calls the relevant class function to do the necessary pre-processing for the image.
+
+    Args:
+    cv2_image: A cv2-formatted image, an np-array.
+    segment_size (int): Integer number to specify the pixel length and width of the segment size. Default=640
+    overlap_percent (float): The percentage of overlap between adjacent segments (0 to 1). Default=0.5, 50%
 
     Return:
+    image_class: A class object that performs functions on the cv2 image inputted.
     image_class.get_segment_info(): a dict structure which contains all the image info and it's segment info
 
     """
@@ -246,7 +254,7 @@ def calling_relevant_class_function(cv2_image, segment_size=640, overlap_percent
     # get_segment_info returns a dict of segment info in the format of
     # key: segment_0_0
     # value: np.array
-    return image_class.get_segment_info()
+    return image_class, image_class.get_segment_info()
 
 if __name__ == "__main__":
     test_image = cv2.imread(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
