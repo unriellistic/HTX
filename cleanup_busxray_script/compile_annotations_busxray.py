@@ -1,5 +1,7 @@
 """
-This script does 2 function:
+This script works only for the original "exp" directory-structure.
+
+It does 2 function:
 1) It goes through each folder in the "exp" folder and looks for the files with "annotated" (both .xml and .jpg) and copies 
 them over into a folder called "annotated". 
 2) It saves both the annotated.jpg as well as the annotated.xml, and relabels them according to the original exp folder annotation. 
