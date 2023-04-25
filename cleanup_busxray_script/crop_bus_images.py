@@ -227,7 +227,7 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
     
     return
 
-def resize_image_and_xml_annotation(input_file_image, input_file_label, output_dir_path):
+def resize_image_and_xml_annotation(input_file_image, input_file_label, output_dir_path, crop_only=False):
     """
     The resize_image_and_xml_annotation function takes an input image file path and an output directory path as input parameters. 
     The function first reads the image from the input file path using the OpenCV library's cv2.imread() function. 
@@ -279,10 +279,11 @@ def resize_image_and_xml_annotation(input_file_image, input_file_label, output_d
 
         # Save XML file path
         adjusted_xml_file_path = os.path.join(label_head, f"adjusted_{label_filename}")
-        # Adjust annotation (aka labels)
-        adjust_xml_annotation(  xml_file_path=input_file_label, 
-                                new_coordinates=(x_start, x_end, y_start, y_end), 
-                                output_dir_path=label_head)
+        if not crop_only:
+            # Adjust annotation (aka labels)
+            adjust_xml_annotation(  xml_file_path=input_file_label, 
+                                    new_coordinates=(x_start, x_end, y_start, y_end), 
+                                    output_dir_path=label_head)
     # Else, store at target directory
     else:
         # Write resized image to output directory
@@ -292,10 +293,11 @@ def resize_image_and_xml_annotation(input_file_image, input_file_label, output_d
 
         # Save XML file path
         adjusted_xml_file_path = os.path.join(output_dir_path, f"adjusted_{label_filename}")
-        # Adjust annotation (aka labels)
-        adjust_xml_annotation(  xml_file_path=input_file_label, 
-                                new_coordinates=(x_start, x_end, y_start, y_end), 
-                                output_dir_path=adjusted_xml_file_path)
+        if not crop_only:
+            # Adjust annotation (aka labels)
+            adjust_xml_annotation(  xml_file_path=input_file_label, 
+                                    new_coordinates=(x_start, x_end, y_start, y_end), 
+                                    output_dir_path=adjusted_xml_file_path)
 
     return None
 
@@ -333,12 +335,13 @@ if __name__ == '__main__':
     # parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     # parser.add_argument("--display", help="display the annotated images", action="store_true")
     # parser.add_argument("--display-path", help="path to display a single image file", required=False)
+    parser.add_argument("--crop-only", help="only crop the clean image without readjusting xml", action="store_true", default=True)
 
     # uncomment below if want to debug in IDE
-    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files")
-    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files")
+    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\Compiled_Clean_Images")
+    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\Compiled_Clean_Images")
     parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files_adjusted")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\adjusted_Compiled_Clean_Images")
     parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     parser.add_argument("--display", help="display the annotated images", action="store_true")
     parser.add_argument("--display-path", help="path to display a single image file", required=False)
@@ -374,7 +377,7 @@ if __name__ == '__main__':
     # If user didn't specify display, just perform cropping without displaying
     if not args.display_path or not args.display:
         # Load images from folder
-        images = gs.load_images(path_to_root_dir_images, recursive=args.recursive_search)
+        images = gs.load_images(path_to_root_dir_images, recursive=args.recursive_search, file_type="y.tiff")
         annotations = gs.load_images(path_to_root_dir_annotations, recursive=args.recursive_search, file_type=".xml")
 
         # Create the output directory if it does not exist
@@ -390,22 +393,40 @@ if __name__ == '__main__':
             input_file_image = os.path.join(path_to_root_dir_images, image)
             input_file_label = os.path.join(path_to_root_dir_annotations, gs.change_file_extension(image, new_file_extension=".xml"))
 
-            # Check if path exists for label
-            if os.path.exists(input_file_label) is False:
-                _, temp_filename = gs.path_leaf(gs.change_file_extension(image, new_file_extension=".xml"))
-                list_of_non_existent_labels.append(temp_filename)
-                continue
-
-            # Resize + adjust XML function and save it there
-            # Check if we want to store in current directory
-            if args.store:
-                resize_image_and_xml_annotation(input_file_image=input_file_image,
-                                                input_file_label=input_file_label,
-                                                output_dir_path="store")
+            # Check if user wants to crop only
+            if args.crop_only:
+                # Resize + adjust XML function and save it there
+                # Check if we want to store in current directory
+                if args.store:
+                    resize_image_and_xml_annotation(input_file_image=input_file_image,
+                                                    input_file_label=input_file_label,
+                                                    output_dir_path="store",
+                                                    crop_only=args.crop_only)
+                else:
+                    resize_image_and_xml_annotation(input_file_image=input_file_image,
+                                                    input_file_label=input_file_label,
+                                                    output_dir_path=path_to_target_dir,
+                                                    crop_only=args.crop_only)
+            # If want to crop + adjust XML
             else:
-                resize_image_and_xml_annotation(input_file_image=input_file_image,
-                                                input_file_label=input_file_label,
-                                                output_dir_path=path_to_target_dir)
+                # Check if path exists for label
+                if os.path.exists(input_file_label) is False:
+                    _, temp_filename = gs.path_leaf(gs.change_file_extension(image, new_file_extension=".xml"))
+                    list_of_non_existent_labels.append(temp_filename)
+                    continue
+
+                # Resize + adjust XML function and save it there
+                # Check if we want to store in current directory
+                if args.store:
+                    resize_image_and_xml_annotation(input_file_image=input_file_image,
+                                                    input_file_label=input_file_label,
+                                                    output_dir_path="store",
+                                                    crop_only=args.crop_only)
+                else:
+                    resize_image_and_xml_annotation(input_file_image=input_file_image,
+                                                    input_file_label=input_file_label,
+                                                    output_dir_path=path_to_target_dir,
+                                                    crop_only=args.crop_only)
         
     # If display option selected, then display the whole list in the --target-dir, or if a --display-path is specified, display just a singular image
     if args.display or args.display_path:

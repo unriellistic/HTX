@@ -98,13 +98,13 @@ After generating the try-it-out example thumbdrive:
 Should have 34 files in a folder called "annotations", consist of 17 jpg, and 17 xml.
 Should have 51 items in a fodler called "annotations_adjusted", consist of 34 files (17 jpg, 17 xml) and 17 folders, and each folder contains divided segments in 640x640 images with 320 increment.
 	E.g. in adjusted_355_annotated_segment:
-	segment_0_0.png, segment_0_320.png, segment_0_640.png, ..., segment_0_1999.png,
-	segment_320_0.png, segment_320_320.png, segment_320_640.png, ..., segment_320_1999.png,
+	segment_0_0.jpg, segment_0_320.jpg, segment_0_640.jpg, ..., segment_0_1999.jpg,
+	segment_320_0.jpg, segment_320_320.jpg, segment_320_640.jpg, ..., segment_320_1999.jpg,
 	.
 	.
 	.
-	segment_960_0.png, segment_960_320.png, segment_960_640.png, ..., segment_960_1999.png,
-	segment_1150_0.png, segment_1150_320.png, segment_1150_640.png, ..., segment_1150_1999.png,
+	segment_960_0.jpg, segment_960_320.jpg, segment_960_640.jpg, ..., segment_960_1999.jpg,
+	segment_1150_0.jpg, segment_1150_320.jpg, segment_1150_640.jpg, ..., segment_1150_1999.jpg,
 
 Correct results:
 for 1832:
@@ -121,7 +121,7 @@ adjusted_1833_annotated_segmented": {
             "image's total reject": 17,
             "image's total info loss": 1.6285,
             "image's segment info": {
-			"segment_320_640.png": {
+			"segment_320_640.jpg": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
                     "info_loss": 56.99

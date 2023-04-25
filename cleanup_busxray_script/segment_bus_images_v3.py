@@ -12,7 +12,7 @@ The first function segment_image segments an input image into smaller parts of 6
 The function takes the path of the image to be segmented, overlap percentage, and segment size as input arguments. 
 The function reads the input image using OpenCV, calculates the number of rows and columns required to segment the 
 image based on its size and overlap percentage, creates an output directory to store the segmented images, 
-segments the image into multiple parts using nested loops, and saves each segment as a PNG image file in the output directory.
+segments the image into multiple parts using nested loops, and saves each segment as a .jpg image file in the output directory.
 
 The second function adjust_annotations_for_segment_and_mask_it adjusts the annotation file for a segmented image. 
 The function takes the paths of the segmented image and its original annotation file as input arguments. 
@@ -107,7 +107,7 @@ def segment_image(image_path, segment_size, overlap_percent):
                 x_start = width - segment_size
 
             segment = img[y_start:y_end, x_start:x_end]
-            segment_path = output_dir + '\segment_{}_{}.png'.format(y_start, x_start)
+            segment_path = output_dir + '\segment_{}_{}.jpg'.format(y_start, x_start)
             cv2.imwrite(segment_path, segment)
 
 
@@ -125,7 +125,8 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
     Returns:
     log_dict: The function saves the adjusted annotation to a new XML file for the segmented image and outputs a log file to track statistics.
     """
-
+    # A constant thres variable for special items
+    CUTOFF_THRES_FOR_SPECIAL_ITEMS = 0.1
     # Load the segment image to get its dimensions
     segment_img = cv2.imread(segment_path)
     segment_height, segment_width, segment_depth = segment_img.shape
@@ -136,7 +137,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
 
     # Create a new XML file for the segmented image
     _, filename = os.path.split(segment_path)
-    output_path_for_xml = os.path.join(output_path, gs.change_file_extension(filename, "") + f'_{int(float(cutoff_threshold)*100)}_percent.xml')
+    output_path_for_xml = os.path.join(output_path, gs.change_file_extension(filename, "") + f'_cleaned.xml')
     segmented_annotation = ET.Element('annotation')
     ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
     ET.SubElement(segmented_annotation, 'filename').text = filename
@@ -257,8 +258,8 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
             adjusted_area = calculate_size_of_area(xmin=xmin_adjusted, xmax=xmax_adjusted, ymin=ymin_adjusted, ymax=ymax_adjusted)
             original_area = calculate_size_of_area(xmin=xmin_original, xmax=xmax_original, ymin=ymin_original, ymax=ymax_original)
 
-            # Check if annotation is above threshold, or if annotation is in special_items. If either, create annotation for it.
-            if ((adjusted_area/original_area) >= float(cutoff_threshold)) or any(object_name.text == item for item in special_items):
+            # Check if annotation is above threshold, or if annotation is in special_items and above 10% threshold. If either, create annotation for it.
+            if ((adjusted_area/original_area) >= float(cutoff_threshold)) or (any(object_name.text == item for item in special_items) and (adjusted_area/original_area) >= CUTOFF_THRES_FOR_SPECIAL_ITEMS):
                 # Store annotation in XML file
                 create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)
 
@@ -635,7 +636,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
     # Crop the image
     cropped_img = mask_out_image_by_coordinates(img=segment_img, xmin=new_xmin_of_cropped_segment, xmax=new_xmax_of_cropped_segment, ymin=new_ymin_of_cropped_segment, ymax=new_ymax_of_cropped_segment)
     # Save the image
-    cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned.png"), cropped_img)
+    cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned.jpg"), cropped_img)
 
     # Update new coordinates
     # If x_min = 0, means no cropping was done on the left side
@@ -670,7 +671,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
     """
     
     # Load the images. exclude_string is for when we're re-running the code, we don't want to fetch the cleaned images again
-    list_of_images = gs.load_images(path_to_dir)
+    list_of_images = [i for i in gs.load_images(path_to_dir) if "adjusted" in i]
     
     # Segment up the images
     print("Processing images...")
@@ -697,8 +698,8 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
         "Overall % of info loss": "0.04%",
         "list of images with loss": {
             "adjusted_360_annotated_segmented -> 0.07575": [
-                "segment_1145_640.png -> 0.48",
-                "segment_960_640.png -> 2.55"
+                "segment_1145_640.jpg -> 0.48",
+                "segment_960_640.jpg -> 2.55"
             ]
         }
     },
@@ -708,7 +709,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
             "image's total reject": 15,
             "image's total info loss": 0.0,
             "image's segment info": {
-                "segment_320_640.png": {
+                "segment_320_640.jpg": {
                     "num_of_reject": 4,
                     "num_of_total": 7,
                     "segment_info_loss": 0.0
@@ -757,8 +758,8 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
                 for file in os.listdir(os.path.join(root, subdir)):
                     
                     # In case the script is re-run after it had ran before, check that we only call the
-                    # adjust_annotations_for_segment_and_mask_it function on png images. if cleaned in file, we don't perform function on it
-                    if file.endswith(".png") and "cleaned" not in file:
+                    # adjust_annotations_for_segment_and_mask_it function on jpg images. if cleaned in file, we don't perform function on it
+                    if file.endswith(".jpg") and "cleaned" not in file:
                         # Matches with the file name. ALERT HARD CODED NAME HERE!!!
                         name_of_original_xml_file = subdir[0:-10]+".xml"
 
@@ -811,7 +812,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
             log_dict["Overall total num of passed"] = total_annotation_for_all_images - total_rejects_for_all_images
             log_dict[r"Overall % of passed"] = str(round((total_annotation_for_all_images - total_rejects_for_all_images)/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1) * 100, 2)) + r"%"
             # info_loss_list = [f"{image_name}: {segment_name}" for image_name, image_info in image_stats_dict.items() for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0]
-            info_loss_dict = {'{} -> {}'.format(image_name, image_info["image's total info loss"]): [f"{segment_name} -> {segment_info['segment_info_loss']}" for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0] for image_name, image_info in image_stats_dict.items() if any(segment_info["segment_info_loss"] != 0.0 for segment_info in image_info["image's segment info"].values())}
+            info_loss_dict = {'{} -> {}'.format(image_name, round(image_info["image's total info loss"], 3)): [f"{segment_name} -> {segment_info['segment_info_loss']}" for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0] for image_name, image_info in image_stats_dict.items() if any(segment_info["segment_info_loss"] != 0.0 for segment_info in image_info["image's segment info"].values())}
 
             log_dict["Info loss info"] = {
                                         r"Overall % of info loss": (str(round(total_info_loss_for_all_images, 2)) + r"%"),

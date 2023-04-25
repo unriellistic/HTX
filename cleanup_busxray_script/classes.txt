@@ -1,0 +1,1 @@
+["cig", "guns", "human", "knives", "drugs", "exp"]
