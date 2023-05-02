@@ -33,8 +33,8 @@ classes = ["cig", "guns", "human", "knives", "drugs", "exp"]
 # output_dir = r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files_adjusted\adjusted_PA8506K Higer 49 seats-Threat-4-final_color_segmented"
 # image_dir = r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files_adjusted\adjusted_PA8506K Higer 49 seats-Threat-4-final_color_segmented"
 
-ROOT_DIR = r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files_adjusted (segmented only)"
-SCAN_BUS_DIR = r"D:\BusXray\scanbus_training\scanbus_training_1_dataset"
+ROOT_DIR = r"D:\BusXray\scanbus_training\Segmented files"
+SCAN_BUS_DIR = r"D:\BusXray\scanbus_training\Segmented files"
 # identify all the xml files in the annotations folder (input directory)
 files = gs.load_images(path_to_images=ROOT_DIR, file_type=".xml", recursive=True)
 

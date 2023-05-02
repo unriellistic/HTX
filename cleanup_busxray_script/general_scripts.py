@@ -5,7 +5,7 @@ A place to store common functions:
     - e.g. To load all image file type:
         load_images(<filepath_to_folder>, file_type="all")
     - e.g. To load only png file type:
-        load_images(<filepath_to_folder>, file_type=".png")
+        load_images(<filepath_to_folder>, file_type=[".png"])
 
 - save_to_excel: saves information to an excel file in the current directory
     - function: def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=False):
@@ -33,8 +33,8 @@ def load_images(path_to_images, file_type="all", recursive=False):
     Function returns a list of full paths to images found in the path_to_image user specify.
 
     Args:
-        path_to_images: A variable that contains the full path to the directory of interest, which contains images. 
-        file_type: A variable that specifies what file type to look for. Default = "all"
+        path_to_images: A path variable that contains the full path to the directory of interest, which contains images. 
+        file_type: A list that specifies what file type to look for. e.g. [".jpg", ".tiff"]. Default = "all"
         recursive: A boolean variable that specifies whether the function should look recursively into each folder in the directory specified. default=False
         exclude_string: A string variable that specifies the pattern of string to avoid collecting
 
@@ -51,8 +51,10 @@ def load_images(path_to_images, file_type="all", recursive=False):
             if path_to_images.lower().endswith(list_of_image_file_format) and path_to_images is not None:
                 images_path.append(path_to_images)
         else:
-            if path_to_images.lower().endswith(file_type) and path_to_images is not None:
-                images_path.append(path_to_images)
+            # Iterate through each element in the list
+            for one_file_type in file_type:     
+                if path_to_images.lower().endswith(one_file_type) and path_to_images is not None:
+                    images_path.append(path_to_images)
                 
     # Checks if path specified is a file, folder, or a directory of subdirectories
     if os.path.isfile(p):
