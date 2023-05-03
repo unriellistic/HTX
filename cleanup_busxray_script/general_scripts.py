@@ -34,7 +34,7 @@ def load_images(path_to_images, file_type="all", recursive=False):
 
     Args:
         path_to_images: A path variable that contains the full path to the directory of interest, which contains images. 
-        file_type: A list that specifies what file type to look for. e.g. [".jpg", ".tiff"]. Default = "all"
+        file_type: A tuple or a string that specifies what file type to look for. e.g. (".jpg", ".tiff") or ".jpg". Default = "all"
         recursive: A boolean variable that specifies whether the function should look recursively into each folder in the directory specified. default=False
         exclude_string: A string variable that specifies the pattern of string to avoid collecting
 
@@ -50,11 +50,9 @@ def load_images(path_to_images, file_type="all", recursive=False):
         if file_type == "all":
             if path_to_images.lower().endswith(list_of_image_file_format) and path_to_images is not None:
                 images_path.append(path_to_images)
-        else:
-            # Iterate through each element in the list
-            for one_file_type in file_type:     
-                if path_to_images.lower().endswith(one_file_type) and path_to_images is not None:
-                    images_path.append(path_to_images)
+        else:    
+            if path_to_images.lower().endswith(file_type) and path_to_images is not None:
+                images_path.append(path_to_images)
                 
     # Checks if path specified is a file, folder, or a directory of subdirectories
     if os.path.isfile(p):

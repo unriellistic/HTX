@@ -1,5 +1,12 @@
 - word doc for hscode
-- pptx for tuas trial, 
-- Need to run the xml2yolo function on segmented folder. Just finished performing the segmentation on the clean and threat images and copy and pasting it over. There are some images that wasn't cropped properly, need to figure out why it's so.
-- Then finish up the check_filename_and_copy_over... script, I think the main bulk of logic is coded in, just need to test it out.
-- Files were not copied finish from original file adjsuted (Cropped), go recopy to segment
+- pptx for tuas trial (done on tues)
+- Then finish up the check_filename_and_copy_over... script, I think the main bulk of logic is coded in, just need to test it out. (done on tues)
+- There are some images that wasn't cropped properly, need to figure out why it's so.
+- Perform pre-processing for monochrome images
+	+ 3/5/2023
+	+ Performed it fully through once, haven't checked yet.
+	+ I think need to properly check through the base images from the start first and standardise the functions, because now it's very messy because the image names are not standardised.
+
+- Understand the current data class split information
+	+ The data split between train/test/val, based off it's bus model and class.
+

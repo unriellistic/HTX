@@ -73,7 +73,7 @@ def segment_image(image_path, segment_size, overlap_percent):
     """
 
     # Read the image using OpenCV
-    img = cv2.imread(image_path)
+    img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
     # Get the height and width of the image
     height, width = img.shape[:2]
@@ -107,7 +107,8 @@ def segment_image(image_path, segment_size, overlap_percent):
                 x_start = width - segment_size
 
             segment = img[y_start:y_end, x_start:x_end]
-            segment_path = output_dir + '\segment_{}_{}.jpg'.format(y_start, x_start)
+            # "."+filename.split(".")[-1] is just to dynamically get the file type from the original image
+            segment_path = output_dir + '\segment_{}_{}{}'.format(y_start, x_start, "."+filename.split(".")[-1])
             cv2.imwrite(segment_path, segment)
 
 
@@ -636,7 +637,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
     # Crop the image
     cropped_img = mask_out_image_by_coordinates(img=segment_img, xmin=new_xmin_of_cropped_segment, xmax=new_xmax_of_cropped_segment, ymin=new_ymin_of_cropped_segment, ymax=new_ymax_of_cropped_segment)
     # Save the image
-    cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned.jpg"), cropped_img)
+    cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned" + "."+filename.split(".")[-1]), cropped_img)
 
     # Update new coordinates
     # If x_min = 0, means no cropping was done on the left side
@@ -759,7 +760,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
                     
                     # In case the script is re-run after it had ran before, check that we only call the
                     # adjust_annotations_for_segment_and_mask_it function on jpg images. if cleaned in file, we don't perform function on it
-                    if file.endswith(".jpg") and "cleaned" not in file:
+                    if file.endswith((".tif", ".jpg", ".png")) and "cleaned" not in file:
                         # Matches with the file name. ALERT HARD CODED NAME HERE!!!
                         name_of_original_xml_file = subdir[0:-10]+".xml"
 
@@ -791,7 +792,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
                                                 "image's total info loss": total_info_loss_for_one_image,
                                                 "image's segment info": segment_stats_dict,
                                                 }
-            
+        
             # Tabulate total statistics across all images
             total_rejects_for_all_images = 0
             total_annotation_for_all_images = 0
@@ -856,12 +857,12 @@ def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\leann\busxray_woodlands\annotations_adjusted")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images_adjusted")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
     parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
     parser.add_argument("--special-items", help="a list of string items to supercede the threshold set", default=['cig'])
-
+    
     # uncomment below if want to debug in IDE
     # import sys
     # Manually set the command-line arguments for debugging

@@ -5,6 +5,8 @@ This script does 2 functions:
 2. It re-adjusts the pascal VOC annotation according to how much the image was cropped and relabels the file with adjusted_<filename>.xml
     e.g. 355_annotated.xml -> adjusted_355_annotated.xml
 
+If image does not have xml file (clean images), if user specify --crop-only, script will generate an empty xml file for it.
+
 Variables to change:
     -root_dir_image: Folder where images and XML annotations are stored. They need to be the same name except for the extension. Script will crash if either one of the file is not present.
     -TARGET_DIR: Folder to store the cropped images and adjusted XML files
@@ -17,6 +19,9 @@ Input arguments:
 --target-dir: specifies the folder to place the cropped bus images.
 --display: an optional argument that can be specified to just display the annotated image without running the cropping function.
 --display-path: specifies the path to a singular image file to display.
+--store: will cause the files generated to be stored at directory where image/annotation was found
+--crop-only: specifies whether the image is to be cropped only, also generates an empty xml for it.
+--recursive-search: if true, will search both image and root dir recursively
 
 Full example:
 To run the cropping function:
@@ -35,7 +40,7 @@ python crop_bus_images.py --display --display-path "D:\leann\busxray_woodlands\a
 This will cause the function to look at root directory at <annotations> and saves the file at <annotations_adjusted>.
 
 @current_author: Alp
-@last modified: 12/4/2023 2:48pm
+@last updated: 2/5/2023 2:48pm
 """
 
 import cv2
@@ -43,14 +48,26 @@ import general_scripts as gs
 import os, pathlib, argparse
 from tqdm import tqdm
 import xml.dom.minidom as minidom # For pretty formatting
+import numpy as np
 
 def find_black_to_white_transition(image):
 
-    # Convert to grayscale
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Convert to grayscale if it's not already in grayscale
+    if image.shape[2] != 1:
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray_image = image
+
     # Constants
     BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 100 # For top_to_bot and bot_to_top. Ensures that residual black lines don't affect top and bot crop.
-    BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE = 100
+    BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE = 100 # Larger value to be more careful of the left black box
+    BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE = 40 # Top down is usually more clear cut, can set to a lower value
+
+    # Check if image is 16-bit or 8-bit and adjust pixel value accordingly
+    if gray_image.dtype == np.uint8:
+        PIXEL_INTENSITY_VALUE = 128
+    else:
+        PIXEL_INTENSITY_VALUE = 32768
 
     # Functions to find optimal xy co-ordinates to crop
 
@@ -59,11 +76,11 @@ def find_black_to_white_transition(image):
         # to find first black-to-white transition
         # Start at half of height to avoid white background (0-60) + light specks at 60~200
         most_left_x = image.shape[1]
-        x_value_to_start_from = 0
+        x_value_to_start_from = 50 # Sometimes there is white part at the start of the image, then it doesn't crop out the black portion.
         # Start from middle part of image, then iterate to the bottom
         for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
             for x in range(x_value_to_start_from, gray_image.shape[1] - 1):
-                if gray_image[y, x] < 128 and gray_image[y, x + 1] >= 128:
+                if gray_image[y, x] < PIXEL_INTENSITY_VALUE and gray_image[y, x + 1] >= PIXEL_INTENSITY_VALUE:
                     # Found black-to-white transition
                     # Check if most_left_x has a x-value smaller than current x, if smaller it means it's positioned more left in the image.
                     # And since we don't want to cut off any image, we find the x that has the smallest value, which indicates that it's at the
@@ -71,10 +88,10 @@ def find_black_to_white_transition(image):
                     if most_left_x > x:
                         most_left_x = x
                         # Check if this will lead to out-of-bound index error
-                        if most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE < 0:
+                        if most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE < 0:
                             x_value_to_start_from = 0
                         else:
-                            x_value_to_start_from = most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                            x_value_to_start_from = most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE
                     # Found the transition, stop finding for this y-value
                     break
         return most_left_x
@@ -85,7 +102,7 @@ def find_black_to_white_transition(image):
         # Start at half of height of image because that's the fattest part of the bus
         for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
             for x in range(gray_image.shape[1]-1, 0, -1):
-                if gray_image[y, x] >= 128 and gray_image[y, x - 1] < 128:
+                if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y, x - 1] < PIXEL_INTENSITY_VALUE:
                     # Found the y-coordinate in the center of the image's black-to-white transition
                     return x
         # If no transition detected, don't crop anything
@@ -98,7 +115,7 @@ def find_black_to_white_transition(image):
         y_value_to_start_from = 0
         for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
             for y in range(y_value_to_start_from, gray_image.shape[0]-1):
-                if gray_image[y, x] >= 128 and gray_image[y+1, x] < 128:
+                if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y+1, x] < PIXEL_INTENSITY_VALUE:
                     # Found black-to-white transition
                     # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
                     # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
@@ -106,10 +123,10 @@ def find_black_to_white_transition(image):
                     if most_top_y > y:
                         most_top_y = y
                         # Check if this will lead to out-of-bound index error
-                        if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE < 0:
+                        if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE < 0:
                             y_value_to_start_from = 0
                         else:
-                            y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                            y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
                     # Found the transition, stop finding for this x-value
                     break
         return most_top_y
@@ -121,7 +138,7 @@ def find_black_to_white_transition(image):
         y_value_to_start_from = gray_image.shape[0] - 1
         for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
             for y in range(y_value_to_start_from, 0, -1):
-                if gray_image[y, x] >= 128 and gray_image[y-1, x] < 128:
+                if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y-1, x] < PIXEL_INTENSITY_VALUE:
                     # Found black-to-white transition
                     # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
                     # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
@@ -129,10 +146,10 @@ def find_black_to_white_transition(image):
                     if most_bot_y < y:
                         most_bot_y = y
                         # Check if this will lead to out-of-bound index error
-                        if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE > gray_image.shape[0] - 1:
+                        if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE > gray_image.shape[0] - 1:
                             y_value_to_start_from = gray_image.shape[0] - 1
                         else:
-                            y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                            y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
                     # Found the transition, stop finding for this x-value
                     break
         return most_bot_y
@@ -221,6 +238,8 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
     # Create an XML string with pretty formatting
     xml_string = minidom.parseString(ET.tostring(adjusted_annotation)).toprettyxml(indent='     ')
 
+    # temporary solution for 16-bit depth images with different XML name
+    output_dir_path = output_dir_path[:-15] + "temp_image_low.xml"
     # Write the XML string to a file
     with open(output_dir_path, 'w') as f:
         f.write(xml_string)
@@ -251,7 +270,11 @@ def resize_image_and_xml_annotation(input_file_image, input_file_label, output_d
     None: function writes the modified XML and resized image to the output file path.
     """
     # Read image from file
-    image = cv2.imread(input_file_image)
+    image = cv2.imread(input_file_image, cv2.IMREAD_UNCHANGED)
+
+    # Check if image is a .tif format. If it is, it won't have shape[2] attribute to specify the channel size, give it one for easy future processing
+    if image.dtype == np.uint16:
+        image.shape = (image.shape[0], image.shape[1], 1)
     # Find boundaries to crop
     x_start, x_end, y_start, y_end = find_black_to_white_transition(image)
 
@@ -335,16 +358,17 @@ if __name__ == '__main__':
     # parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     # parser.add_argument("--display", help="display the annotated images", action="store_true")
     # parser.add_argument("--display-path", help="path to display a single image file", required=False)
-    parser.add_argument("--crop-only", help="only crop the clean image without readjusting xml", action="store_true", default=True)
+    # parser.add_argument("--crop-only", help="only crop the clean image without readjusting xml. Generates an empty XML file.", action="store_true", default=False)
 
     # uncomment below if want to debug in IDE
-    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\Compiled_Clean_Images")
-    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\Compiled_Clean_Images")
+    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images")
+    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images")
     parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\adjusted_Compiled_Clean_Images")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images_adjusted")
     parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
-    parser.add_argument("--display", help="display the annotated images", action="store_true")
-    parser.add_argument("--display-path", help="path to display a single image file", required=False)
+    parser.add_argument("--display", help="display the annotated images", action="store_true", default=True)
+    parser.add_argument("--display-path", help="path to display a single image file", required=False, default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images_adjusted\adjusted_PA8506K Higer 49 seats-Threat-10-temp_image_low_segmented\segment_0_960.tif")
+    parser.add_argument("--crop-only", help="only crop the clean image without readjusting xml. Generates an empty XML file.", action="store_true", default=False)
 
 
 
@@ -377,7 +401,7 @@ if __name__ == '__main__':
     # If user didn't specify display, just perform cropping without displaying
     if not args.display_path or not args.display:
         # Load images from folder
-        images = gs.load_images(path_to_root_dir_images, recursive=args.recursive_search, file_type="y.tiff")
+        images = gs.load_images(path_to_root_dir_images, recursive=args.recursive_search, file_type="all")
         annotations = gs.load_images(path_to_root_dir_annotations, recursive=args.recursive_search, file_type=".xml")
 
         # Create the output directory if it does not exist
@@ -392,6 +416,11 @@ if __name__ == '__main__':
             # Get path to image and label
             input_file_image = os.path.join(path_to_root_dir_images, image)
             input_file_label = os.path.join(path_to_root_dir_annotations, gs.change_file_extension(image, new_file_extension=".xml"))
+
+            # Temporary solution for xml with different names
+            image_path, image_filename = gs.path_leaf(input_file_image)
+            label_filename = image_filename[:-18]+"final_color.xml"
+            input_file_label = os.path.join(path_to_root_dir_annotations, label_filename)
 
             # Check if user wants to crop only
             if args.crop_only:

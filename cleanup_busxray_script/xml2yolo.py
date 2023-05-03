@@ -29,12 +29,9 @@ def yolo_to_xml_bbox(bbox, w, h):
 
 
 classes = ["cig", "guns", "human", "knives", "drugs", "exp"]
-# input_dir = r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files_adjusted\adjusted_PA8506K Higer 49 seats-Threat-4-final_color_segmented"
-# output_dir = r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files_adjusted\adjusted_PA8506K Higer 49 seats-Threat-4-final_color_segmented"
-# image_dir = r"D:\BusXray\scanbus_training\Compiled_Threat_Images\Original files_adjusted\adjusted_PA8506K Higer 49 seats-Threat-4-final_color_segmented"
 
-ROOT_DIR = r"D:\BusXray\scanbus_training\Segmented files"
-SCAN_BUS_DIR = r"D:\BusXray\scanbus_training\Segmented files"
+ROOT_DIR = r"D:\BusXray\scanbus_training\segmented files for monochrome images"
+SCAN_BUS_DIR = r"D:\BusXray\scanbus_training\segmented files for monochrome images"
 # identify all the xml files in the annotations folder (input directory)
 files = gs.load_images(path_to_images=ROOT_DIR, file_type=".xml", recursive=True)
 
@@ -43,7 +40,7 @@ for fil in tqdm(files):
     filepath, basename = gs.path_leaf(fil)
     filename = os.path.splitext(basename)[0]
     # check if the label contains the corresponding image file
-    if not os.path.exists(os.path.join(filepath, f"{filename}.jpg")):
+    if not os.path.exists(os.path.join(filepath, f"{filename}.tif")):
         print(f"{filename} image does not exist!")
         continue
 
@@ -73,5 +70,5 @@ for fil in tqdm(files):
             f.write("\n".join(result))
 
 # generate the classes file as reference
-with open(os.path.join(filepath, "classes.txt"), 'w', encoding='utf8') as f:
-    f.write(json.dumps(classes))
+# with open(os.path.join(filepath, "classes.txt"), 'w', encoding='utf8') as f:
+#     f.write(json.dumps(classes))
