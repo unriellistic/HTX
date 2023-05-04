@@ -58,6 +58,9 @@ import argparse
 from tqdm import tqdm
 import json # For tracking of stats
 
+# A constant thres variable for special items
+CUTOFF_THRES_FOR_SPECIAL_ITEMS = 0.1 # 0.1 stands for 10%. To adjust the acceptable threshold for special items.
+
 def segment_image(image_path, segment_size, overlap_percent):
     """
     Segments an image of any dimension into pieces of specified by <segment_size>,
@@ -126,49 +129,6 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
     Returns:
     log_dict: The function saves the adjusted annotation to a new XML file for the segmented image and outputs a log file to track statistics.
     """
-    # A constant thres variable for special items
-    CUTOFF_THRES_FOR_SPECIAL_ITEMS = 0.1
-    # Load the segment image to get its dimensions
-    segment_img = cv2.imread(segment_path)
-    segment_height, segment_width, segment_depth = segment_img.shape
-
-    # Parse the original annotation XML file
-    tree = ET.parse(original_annotation_path)
-    root = tree.getroot()
-
-    # Create a new XML file for the segmented image
-    _, filename = os.path.split(segment_path)
-    output_path_for_xml = os.path.join(output_path, gs.change_file_extension(filename, "") + f'_cleaned.xml')
-    segmented_annotation = ET.Element('annotation')
-    ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
-    ET.SubElement(segmented_annotation, 'filename').text = filename
-    ET.SubElement(segmented_annotation, 'path').text = segment_path
-    source = ET.SubElement(segmented_annotation, 'source')
-    ET.SubElement(source, 'database').text = 'Unknown'
-    size = ET.SubElement(segmented_annotation, 'size')
-    ET.SubElement(size, 'width').text = str(segment_width)
-    ET.SubElement(size, 'height').text = str(segment_height)
-    ET.SubElement(size, 'depth').text = str(segment_depth)
-    cutoff_thres_info = ET.SubElement(segmented_annotation, 'cutoff_threshold_info')
-    ET.SubElement(cutoff_thres_info, 'cutoff_threshold').text = str(cutoff_threshold)
-    ET.SubElement(cutoff_thres_info, 'annotation_info_loss').text = str(0)
-    # Write the x and y offset into JSON file for future inference usage
-    offset = ET.SubElement(segmented_annotation, 'original_segment_offset_info')
-    # Initiate placeholder first, alter value later
-    ET.SubElement(offset, 'x_min_offset').text = "0"
-    ET.SubElement(offset, 'x_max_offset').text = "0"
-    ET.SubElement(offset, 'y_min_offset').text = "0"
-    ET.SubElement(offset, 'y_max_offset').text = "0"
-
-    # Get coordinate values from segment image name
-    numbers = re.findall(r'\d+', filename)
-    xmin_segment = int(numbers[1])
-    ymin_segment = int(numbers[0])
-    xmax_segment = xmin_segment + segment_width
-    ymax_segment = ymin_segment + segment_height
-    segment_x_coordinates = range(xmin_segment, xmax_segment, 1)
-    segment_y_coordinates = range(ymin_segment, ymax_segment, 1)
-
     def create_new_object_annotation(xmin, ymin, xmax, ymax):
         # Create a new object annotation with the adjusted bounding box coordinates
         segmented_obj = ET.SubElement(segmented_annotation, 'object')
@@ -189,7 +149,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
         x1, x2 = range1.start, range1.stop
         y1, y2 = range2.start, range2.stop
         return x1 <= y2 and y1 <= x2
-    
+
     def convert_coordinates_to_range(xmin, xmax, ymin, ymax):
         """
         a function to convert coordinate into a form usable by the range_overlap function
@@ -197,10 +157,10 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
         range_form_x_coordinates = range(xmin, xmax, 1)
         range_form_y_coordinates = range(ymin, ymax, 1)
         return range_form_x_coordinates, range_form_y_coordinates
-    
+
     def calculate_size_of_area(xmin, xmax, ymin, ymax):
         return (xmax - xmin)*(ymax - ymin)
-    
+
     def check_if_info_loss(info_loss):
         """
         Checks if there is any info loss, if there isn't returns False
@@ -209,90 +169,6 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
             return False
         else:
             return True
-
-    # Log file
-    log_dict = {'num_of_reject': 0,
-                'num_of_total': 0,}
-    
-    # Dictionary of values that we want to mask. Stores a list of x and y values that we will be cutting off
-    mask_dict = {"plane_coordinate_to_mask": [],
-                 "object_coordinates": {},
-                 "mask_object_coordinates": {}}
-
-    # Loop over the object annotations in the original annotation file
-    for index, obj in enumerate(root.findall('object')):
-        # Get object type and bounding box coordinates for the current object
-        object_name = obj.find('name')
-        bbox = obj.find('bndbox')
-        xmin_original = int(bbox.find('xmin').text)
-        ymin_original = int(bbox.find('ymin').text)
-        xmax_original = int(bbox.find('xmax').text)
-        ymax_original = int(bbox.find('ymax').text)
-        original_x_coordinates = range(xmin_original, xmax_original, 1)
-        original_y_coordinates = range(ymin_original, ymax_original, 1)
-
-        # Check whether any point of the annotation is in the current segment
-        if range_overlap(original_x_coordinates, segment_x_coordinates) and range_overlap(original_y_coordinates, segment_y_coordinates):
-
-            # Adjust the bounding box coordinates to be relative to the top left corner of the segment
-            xmin_adjusted = max(0, xmin_original - xmin_segment)
-            ymin_adjusted = max(0, ymin_original - ymin_segment)
-
-            # If bounding box exists past segment xmax, label it at the segment's boundary
-            if xmax_original > xmax_segment:
-                xmax_adjusted = segment_width
-            # Else re-adjust xmax by subtracting the location of the segment's x-min coordinate
-            else:
-                xmax_adjusted = xmax_original - xmin_segment
-            
-            # If bounding box exists past segment ymax, label it at the segment's boundary
-            if ymax_original > ymax_segment:
-                ymax_adjusted = segment_width
-            # Else re-adjust xmax by subtracting the location of the segment's x-min coordinate
-            else:
-                ymax_adjusted = ymax_original - ymin_segment
-            
-            # Update object count
-            log_dict['num_of_total'] += 1
-
-            # Check if percentage overlap is greater than threshold. It finds the original area divided by adjusted area and checks if it's more than cutoff_threshold.
-            adjusted_area = calculate_size_of_area(xmin=xmin_adjusted, xmax=xmax_adjusted, ymin=ymin_adjusted, ymax=ymax_adjusted)
-            original_area = calculate_size_of_area(xmin=xmin_original, xmax=xmax_original, ymin=ymin_original, ymax=ymax_original)
-
-            # Check if annotation is above threshold, or if annotation is in special_items and above 10% threshold. If either, create annotation for it.
-            if ((adjusted_area/original_area) >= float(cutoff_threshold)) or (any(object_name.text == item for item in special_items) and (adjusted_area/original_area) >= CUTOFF_THRES_FOR_SPECIAL_ITEMS):
-                # Store annotation in XML file
-                create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)
-
-                # Store object's coordinate for statistic tracking
-                mask_dict["object_coordinates"][f"obj_index_{index}"] = {
-                                                                            "object_name": object_name,
-                                                                            "xmin": xmin_adjusted,
-                                                                            "ymin": ymin_adjusted,
-                                                                            "xmax": xmax_adjusted,
-                                                                            "ymax": ymax_adjusted
-                                                                         }
-            # Else, reject it and log the data for it.
-            else:
-                # Increment rejected box
-                log_dict['num_of_reject'] += 1
-
-                """
-                Store mask object's coordinate to see what's the best way to crop it out.
-                Meaning, we will check if the x or y coordinate intersects with annotated boxes, if it doesn't we will cut via the plane
-                that prioritises not cutting off any boxes first, and then if both plane will cut off boxes, we prioritise the one with the
-                least amount of information loss
-                """
-                # Store mask object's coordinate
-                mask_dict["mask_object_coordinates"][f"mask_obj_index_{index}"] = {
-                                                                            "object_name": object_name,
-                                                                            "xmin": xmin_adjusted,
-                                                                            "ymin": ymin_adjusted,
-                                                                            "xmax": xmax_adjusted,
-                                                                            "ymax": ymax_adjusted
-                                                                         }
-    
-    # At this point, the code finishes checking each segment's threshold limit and continues to check which is the best way to crop the image
     
     def find_best_plane_to_crop():
         """
@@ -620,11 +496,137 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                 new_ymax_of_cropped_segment = mask_tuple[1]
         
         return new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment
-
-
-    # Tabulate info loss via find_best_place_to_crop() and multiply it by 100 to transform 0.2 -> 20%
-    segment_info_loss = round(100 * find_best_plane_to_crop(), 2)
     
+    # Load the segment image to get its dimensions
+    segment_img = cv2.imread(segment_path)
+    segment_height, segment_width, segment_depth = segment_img.shape
+
+    # Create a new XML file for the segmented image
+    _, filename = os.path.split(segment_path)
+    output_path_for_xml = os.path.join(output_path, gs.change_file_extension(filename, "") + f'_cleaned.xml')
+    segmented_annotation = ET.Element('annotation')
+    ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
+    ET.SubElement(segmented_annotation, 'filename').text = filename
+    ET.SubElement(segmented_annotation, 'path').text = segment_path
+    source = ET.SubElement(segmented_annotation, 'source')
+    ET.SubElement(source, 'database').text = 'Unknown'
+    size = ET.SubElement(segmented_annotation, 'size')
+    ET.SubElement(size, 'width').text = str(segment_width)
+    ET.SubElement(size, 'height').text = str(segment_height)
+    ET.SubElement(size, 'depth').text = str(segment_depth)
+    cutoff_thres_info = ET.SubElement(segmented_annotation, 'cutoff_threshold_info')
+    ET.SubElement(cutoff_thres_info, 'cutoff_threshold').text = str(cutoff_threshold)
+    ET.SubElement(cutoff_thres_info, 'annotation_info_loss').text = str(0)
+    # Write the x and y offset into JSON file for future inference usage
+    offset = ET.SubElement(segmented_annotation, 'original_segment_offset_info')
+    # Initiate placeholder first, alter value later
+    ET.SubElement(offset, 'x_min_offset').text = "0"
+    ET.SubElement(offset, 'x_max_offset').text = "0"
+    ET.SubElement(offset, 'y_min_offset').text = "0"
+    ET.SubElement(offset, 'y_max_offset').text = "0"
+
+    # Get coordinate values from segment image name
+    numbers = re.findall(r'\d+', filename)
+    xmin_segment = int(numbers[1])
+    ymin_segment = int(numbers[0])
+    xmax_segment = xmin_segment + segment_width
+    ymax_segment = ymin_segment + segment_height
+    segment_x_coordinates = range(xmin_segment, xmax_segment, 1)
+    segment_y_coordinates = range(ymin_segment, ymax_segment, 1)
+
+    # Log file
+    log_dict = {'num_of_reject': 0,
+                'num_of_total': 0,}
+    
+    # Dictionary of values that we want to mask. Stores a list of x and y values that we will be cutting off
+    mask_dict = {"plane_coordinate_to_mask": [],
+                 "object_coordinates": {},
+                 "mask_object_coordinates": {}}
+    
+    # Check if there's an XML file
+    if os.path.exists(original_annotation_path):
+        # Parse the original annotation XML file
+        tree = ET.parse(original_annotation_path)
+        root = tree.getroot()
+
+        # Loop over the object annotations in the original annotation file
+        for index, obj in enumerate(root.findall('object')):
+            # Get object type and bounding box coordinates for the current object
+            object_name = obj.find('name')
+            bbox = obj.find('bndbox')
+            xmin_original = int(bbox.find('xmin').text)
+            ymin_original = int(bbox.find('ymin').text)
+            xmax_original = int(bbox.find('xmax').text)
+            ymax_original = int(bbox.find('ymax').text)
+            original_x_coordinates = range(xmin_original, xmax_original, 1)
+            original_y_coordinates = range(ymin_original, ymax_original, 1)
+
+            # Check whether any point of the annotation is in the current segment
+            if range_overlap(original_x_coordinates, segment_x_coordinates) and range_overlap(original_y_coordinates, segment_y_coordinates):
+
+                # Adjust the bounding box coordinates to be relative to the top left corner of the segment
+                xmin_adjusted = max(0, xmin_original - xmin_segment)
+                ymin_adjusted = max(0, ymin_original - ymin_segment)
+
+                # If bounding box exists past segment xmax, label it at the segment's boundary
+                if xmax_original > xmax_segment:
+                    xmax_adjusted = segment_width
+                # Else re-adjust xmax by subtracting the location of the segment's x-min coordinate
+                else:
+                    xmax_adjusted = xmax_original - xmin_segment
+                
+                # If bounding box exists past segment ymax, label it at the segment's boundary
+                if ymax_original > ymax_segment:
+                    ymax_adjusted = segment_width
+                # Else re-adjust xmax by subtracting the location of the segment's x-min coordinate
+                else:
+                    ymax_adjusted = ymax_original - ymin_segment
+                
+                # Update object count
+                log_dict['num_of_total'] += 1
+
+                # Check if percentage overlap is greater than threshold. It finds the original area divided by adjusted area and checks if it's more than cutoff_threshold.
+                adjusted_area = calculate_size_of_area(xmin=xmin_adjusted, xmax=xmax_adjusted, ymin=ymin_adjusted, ymax=ymax_adjusted)
+                original_area = calculate_size_of_area(xmin=xmin_original, xmax=xmax_original, ymin=ymin_original, ymax=ymax_original)
+
+                # Check if annotation is above threshold, or if annotation is in special_items and above 10% threshold. If either, create annotation for it.
+                if ((adjusted_area/original_area) >= float(cutoff_threshold)) or (any(object_name.text == item for item in special_items) and (adjusted_area/original_area) >= CUTOFF_THRES_FOR_SPECIAL_ITEMS):
+                    # Store annotation in XML file
+                    create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)
+
+                    # Store object's coordinate for statistic tracking
+                    mask_dict["object_coordinates"][f"obj_index_{index}"] = {
+                                                                                "object_name": object_name,
+                                                                                "xmin": xmin_adjusted,
+                                                                                "ymin": ymin_adjusted,
+                                                                                "xmax": xmax_adjusted,
+                                                                                "ymax": ymax_adjusted
+                                                                            }
+                # Else, reject it and log the data for it.
+                else:
+                    # Increment rejected box
+                    log_dict['num_of_reject'] += 1
+
+                    """
+                    Store mask object's coordinate to see what's the best way to crop it out.
+                    Meaning, we will check if the x or y coordinate intersects with annotated boxes, if it doesn't we will cut via the plane
+                    that prioritises not cutting off any boxes first, and then if both plane will cut off boxes, we prioritise the one with the
+                    least amount of information loss
+                    """
+                    # Store mask object's coordinate
+                    mask_dict["mask_object_coordinates"][f"mask_obj_index_{index}"] = {
+                                                                                "object_name": object_name,
+                                                                                "xmin": xmin_adjusted,
+                                                                                "ymin": ymin_adjusted,
+                                                                                "xmax": xmax_adjusted,
+                                                                                "ymax": ymax_adjusted
+                                                                            }
+        # Tabulate info loss via find_best_place_to_crop() and multiply it by 100 to transform 0.2 -> 20%
+        segment_info_loss = round(100 * find_best_plane_to_crop(), 2)    
+
+    else:
+        segment_info_loss = 0.0
+
     # Update XML file
     annotation_info_loss = cutoff_thres_info.find('annotation_info_loss')
     annotation_info_loss.text = str(segment_info_loss) + r"%"
@@ -763,7 +765,6 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
                     if file.endswith((".tif", ".jpg", ".png")) and "cleaned" not in file:
                         # Matches with the file name. ALERT HARD CODED NAME HERE!!!
                         name_of_original_xml_file = subdir[0:-10]+".xml"
-
                         # XML file created within function. Return function returns statistics. New key generated for each segment, values will be the stats for each segment.
                         # Only PNGs should be here
                         segment_stats_dict[f"{file}"] = adjust_annotations_for_segment_and_mask_it(segment_path=os.path.join(root, subdir, file), 
@@ -857,7 +858,7 @@ def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images_adjusted")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
     parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)

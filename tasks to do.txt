@@ -6,6 +6,8 @@
 	+ 3/5/2023
 	+ Performed it fully through once, haven't checked yet.
 	+ I think need to properly check through the base images from the start first and standardise the functions, because now it's very messy because the image names are not standardised.
+	+ 4/5/2023
+	+ Ok, it's standardised, finished refactoring the code. Just need to run and test whether it works.
 
 - Understand the current data class split information
 	+ The data split between train/test/val, based off it's bus model and class.
