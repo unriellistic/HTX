@@ -1,27 +1,33 @@
 """
+Images with XML files must have the same name. Only difference being the file extension.
+e.g.
+    image file: PC1866G Scania KIB4X2 49 seats-threat-100.tiff
+    annotation file: PC1866G Scania KIB4X2 49 seats-threat-100.xml
+
+Image file can be any supported image format, while annotation file must be in .xml format. 
+
 This script does 2 functions:
 1. It cleans up the black boxes and white boundary in the bus image and relabels the file with adjusted_<filename>.jpg
     e.g. 355_annotated.jpg -> adjusted_355_annotated.jpg
 2. It re-adjusts the pascal VOC annotation according to how much the image was cropped and relabels the file with adjusted_<filename>.xml
     e.g. 355_annotated.xml -> adjusted_355_annotated.xml
-
-If image does not have xml file (clean images), if user specify --crop-only, script will generate an empty xml file for it.
+    Note: If image does not have it's corresponding xml file (clean images), script ignores it and does not adjust the xml file.
 
 Variables to change:
-    -root_dir_image: Folder where images and XML annotations are stored. They need to be the same name except for the extension. Script will crash if either one of the file is not present.
-    -TARGET_DIR: Folder to store the cropped images and adjusted XML files
+    -root_dir_image: Folder where images is stored.
+    -root_dir_annotations: Folder where annotation is stored.
+    -target_dir: Folder to store the cropped images and adjusted XML files
 
 Input arguments:
---root-dir-images: specifies the folder containing the image files. The path specified must contain a folder of the image file with the same name.
+--root-dir-images: specifies the folder containing the image files. The path specified must contain a folder of the image file with the same name as the annotated file in the annotation folder.
     e.g. 355_annotated.jpg and 355_annotated.xml
---root-dir-annotations: specifies the folder containing the annotation files. The path specified must contain a folder of the XML file with the same name.
+--root-dir-annotations: specifies the folder containing the annotation files. The path specified must contain a folder of the XML file with the same name as the image file in the image folder.
     e.g. ..\images\355_annotated.jpg and ..\labels\355_annotated.xml
 --target-dir: specifies the folder to place the cropped bus images.
 --display: an optional argument that can be specified to just display the annotated image without running the cropping function.
 --display-path: specifies the path to a singular image file to display.
 --store: will cause the files generated to be stored at directory where image/annotation was found
---crop-only: specifies whether the image is to be cropped only, also generates an empty xml for it.
---recursive-search: if true, will search both image and root dir recursively
+--recursive-search: if true, will search both image and root dir recursively. Only works if both image and annotation file are in the same folder (can be subdirs, but same subdirs)
 
 Full example:
 To run the cropping function:
@@ -40,7 +46,13 @@ python crop_bus_images.py --display --display-path "D:\leann\busxray_woodlands\a
 This will cause the function to look at root directory at <annotations> and saves the file at <annotations_adjusted>.
 
 @current_author: Alp
-@last updated: 2/5/2023 2:48pm
+@created at: 4/4/2023 10:23am
+@last updated: 4/5/2023 4:48pm
+    Patch notes:
+        4/5/2023: 
+            + Re-factored resize_image_and_xml_annotation, took out image cropping functions and created a new crop_image function.
+            + Made adjustments to iteration values for find_black_to_white_transition function to improve efficiency by a factor of 10.
+
 """
 
 import cv2
@@ -49,6 +61,7 @@ import os, pathlib, argparse
 from tqdm import tqdm
 import xml.dom.minidom as minidom # For pretty formatting
 import numpy as np
+import re # to extract unique number from filename
 
 def find_black_to_white_transition(image):
 
@@ -62,6 +75,7 @@ def find_black_to_white_transition(image):
     BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 100 # For top_to_bot and bot_to_top. Ensures that residual black lines don't affect top and bot crop.
     BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE = 100 # Larger value to be more careful of the left black box
     BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE = 40 # Top down is usually more clear cut, can set to a lower value
+    PIXEL_VALUE_TO_JUMP_FOR_X_VALUE = 20 # No need to iterate through every x-value, one diagonal line in an image is ~30 pixels
 
     # Check if image is 16-bit or 8-bit and adjust pixel value accordingly
     if gray_image.dtype == np.uint8:
@@ -113,7 +127,9 @@ def find_black_to_white_transition(image):
         # to find first black-to-white transition
         most_top_y = image.shape[0]
         y_value_to_start_from = 0
-        for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
+        # Start at halfway point because the highest point is always at the end of the bus
+        # Jump by PIXEL_VALUE_TO_JUMP_FOR_X_VALUE for efficiency. Potential to improve algorithm here.
+        for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end, PIXEL_VALUE_TO_JUMP_FOR_X_VALUE):
             for y in range(y_value_to_start_from, gray_image.shape[0]-1):
                 if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y+1, x] < PIXEL_INTENSITY_VALUE:
                     # Found black-to-white transition
@@ -136,7 +152,9 @@ def find_black_to_white_transition(image):
         # to find first black-to-white transition
         most_bot_y = 0
         y_value_to_start_from = gray_image.shape[0] - 1
-        for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
+        # Start at halfway point because the highest point is always at the end of the bus
+        # Jump by PIXEL_VALUE_TO_JUMP_FOR_X_VALUE for efficiency. Potential to improve algorithm here.
+        for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end, PIXEL_VALUE_TO_JUMP_FOR_X_VALUE):
             for y in range(y_value_to_start_from, 0, -1):
                 if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y-1, x] < PIXEL_INTENSITY_VALUE:
                     # Found black-to-white transition
@@ -239,35 +257,20 @@ def adjust_xml_annotation(xml_file_path, new_coordinates, output_dir_path):
     xml_string = minidom.parseString(ET.tostring(adjusted_annotation)).toprettyxml(indent='     ')
 
     # temporary solution for 16-bit depth images with different XML name
-    output_dir_path = output_dir_path[:-15] + "temp_image_low.xml"
+    # output_dir_path = output_dir_path[:-15] + "temp_image_low.xml"
+
     # Write the XML string to a file
     with open(output_dir_path, 'w') as f:
         f.write(xml_string)
     
     return
 
-def resize_image_and_xml_annotation(input_file_image, input_file_label, output_dir_path, crop_only=False):
+def crop_image(input_file_image, output_dir_path):
     """
-    The resize_image_and_xml_annotation function takes an input image file path and an output directory path as input parameters. 
-    The function first reads the image from the input file path using the OpenCV library's cv2.imread() function. 
-    It then uses another function called find_black_to_white_transition() to identify the boundaries of the image that need to be cropped to remove any black borders or edges.
-
-    After finding the boundaries, the function crops the image from the left-hand side and resizes it to a new height and width using the cv2.resize() function. 
-    It then writes the resized image to a new file path in the output directory with the prefix "adjusted_" using the cv2.imwrite() function.
-
-    The function then extracts the filename from the input file path and replaces the file extension with ".xml" to get the corresponding annotation file name. 
-    It saves the new XML file path with the same "adjusted_" prefix as the image file. It then calls another function called adjust_xml_annotation() 
-    which adjusts the coordinates of the annotations in the XML file to match the resized image's dimensions and new crop boundaries.
-
-    Finally, the function returns the resized image.
-
+    The crop_image function takes in an image, crops and savees it, and returns the cropped coordinates.
+    
     Args:
     input_file_image (str): The path to the image file.
-    input_file_annotation (str): The path to the annotation file.
-    output_dir_path (str): The file path where the modified XML should be written to.
-    
-    Returns:
-    None: function writes the modified XML and resized image to the output file path.
     """
     # Read image from file
     image = cv2.imread(input_file_image, cv2.IMREAD_UNCHANGED)
@@ -290,8 +293,6 @@ def resize_image_and_xml_annotation(input_file_image, input_file_label, output_d
 
     # Get image_head and image_filename
     image_head, image_filename = gs.path_leaf(input_file_image)
-    # Get label_head and label_filename
-    label_head, label_filename = gs.path_leaf(input_file_label)
 
     # Check if user wants to store at current directory
     if output_dir_path == "store":
@@ -299,14 +300,6 @@ def resize_image_and_xml_annotation(input_file_image, input_file_label, output_d
         image_file_path = os.path.join(image_head, f"adjusted_{image_filename}")
         # Save image
         cv2.imwrite(image_file_path, resized_image)
-
-        # Save XML file path
-        adjusted_xml_file_path = os.path.join(label_head, f"adjusted_{label_filename}")
-        if not crop_only:
-            # Adjust annotation (aka labels)
-            adjust_xml_annotation(  xml_file_path=input_file_label, 
-                                    new_coordinates=(x_start, x_end, y_start, y_end), 
-                                    output_dir_path=label_head)
     # Else, store at target directory
     else:
         # Write resized image to output directory
@@ -314,9 +307,46 @@ def resize_image_and_xml_annotation(input_file_image, input_file_label, output_d
         # Save image
         cv2.imwrite(image_file_path, resized_image)
 
+    return x_start, x_end, y_start, y_end
+
+
+def resize_image_and_xml_annotation(input_file_image, input_file_label, output_dir_path):
+    """
+    The resize_image_and_xml_annotation function takes an input image file path and an output directory path as input parameters. 
+    This function calls the crop_image function as well as the adjust_xml_annotation
+
+    Args:
+    input_file_image (str): The path to the image file.
+    input_file_annotation (str): The path to the annotation file.
+    output_dir_path (str): The file path where the modified XML should be written to.
+    
+    Returns:
+    None: function writes the modified XML and resized image to the output file path.
+    """
+    # Crop image and get coordinates cropped
+    x_start, x_end, y_start, y_end = crop_image(input_file_image, output_dir_path)
+
+    # Get label_head and label_filename
+    label_head, label_filename = gs.path_leaf(input_file_label)
+
+    # Check if user wants to store at current directory
+    if output_dir_path == "store":
+        # Save XML file path
+        adjusted_xml_file_path = os.path.join(label_head, f"adjusted_{label_filename}")
+        
+        # Check if XML file exists, if it does, perform adjustment, else ignore
+        if os.path.exists(input_file_label):
+            # Adjust annotation (aka labels)
+            adjust_xml_annotation(  xml_file_path=input_file_label, 
+                                    new_coordinates=(x_start, x_end, y_start, y_end), 
+                                    output_dir_path=label_head)
+    # Else, store at target directory
+    else:
         # Save XML file path
         adjusted_xml_file_path = os.path.join(output_dir_path, f"adjusted_{label_filename}")
-        if not crop_only:
+
+        # Check if XML file exists, if it does, perform adjustment, else ignore
+        if os.path.exists(input_file_label):
             # Adjust annotation (aka labels)
             adjust_xml_annotation(  xml_file_path=input_file_label, 
                                     new_coordinates=(x_start, x_end, y_start, y_end), 
@@ -349,6 +379,17 @@ def open_image(image_path):
     # Show Matplotlib window
     plt.show()
 
+# Function finds unique identifier in the form of -<number>-. If filename contains -<number>threat- or -threat-, it won't pick that up.
+def extract_unique_number(filename):
+    pattern = r'-(\d+)-'
+    matches = re.findall(pattern, filename)
+    if len(matches) > 1:
+        print('Warning: multiple matches found for pattern, selecting the first one found')
+    if matches:
+        return matches[0]
+    else:
+        return None
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"annotations")
@@ -358,22 +399,22 @@ if __name__ == '__main__':
     # parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     # parser.add_argument("--display", help="display the annotated images", action="store_true")
     # parser.add_argument("--display-path", help="path to display a single image file", required=False)
-    # parser.add_argument("--crop-only", help="only crop the clean image without readjusting xml. Generates an empty XML file.", action="store_true", default=False)
 
     # uncomment below if want to debug in IDE
-    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images")
-    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images")
+    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\temp")
+    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\temp")
     parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images_adjusted")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome")
     parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
-    parser.add_argument("--display", help="display the annotated images", action="store_true", default=True)
-    parser.add_argument("--display-path", help="path to display a single image file", required=False, default=r"D:\BusXray\scanbus_training\Compiled_Threat_Images\YOLO_removeThreat_images_adjusted\adjusted_PA8506K Higer 49 seats-Threat-10-temp_image_low_segmented\segment_0_960.tif")
-    parser.add_argument("--crop-only", help="only crop the clean image without readjusting xml. Generates an empty XML file.", action="store_true", default=False)
+    parser.add_argument("--display", help="display the annotated images", action="store_true", default=False)
+    parser.add_argument("--display-path", help="path to display a single image file", required=False)
 
 
 
     args = parser.parse_args()
-    
+    """
+    Just to clear some bug that occurs if root-dir default options settings is left as such
+    """
     # Get path to root directory image
     # Check if default parameter is applied, if so get full path.
     if args.root_dir_images == "annotations":
@@ -418,44 +459,36 @@ if __name__ == '__main__':
             input_file_label = os.path.join(path_to_root_dir_annotations, gs.change_file_extension(image, new_file_extension=".xml"))
 
             # Temporary solution for xml with different names
-            image_path, image_filename = gs.path_leaf(input_file_image)
-            label_filename = image_filename[:-18]+"final_color.xml"
-            input_file_label = os.path.join(path_to_root_dir_annotations, label_filename)
+            # image_path, image_filename = gs.path_leaf(input_file_image)
+            # label_filename = image_filename[:-18]+"final_color.xml"
+            # input_file_label = os.path.join(path_to_root_dir_annotations, label_filename)
 
-            # Check if user wants to crop only
-            if args.crop_only:
-                # Resize + adjust XML function and save it there
+            # Get the unique identifier (the running number)
+            _, image_filename = gs.path_leaf(input_file_image)
+            unique_id = extract_unique_number(image_filename)
+
+            # If label does not exist
+            if os.path.exists(input_file_label) is False:
+                _, temp_filename = gs.path_leaf(gs.change_file_extension(image, new_file_extension=".xml"))
+                list_of_non_existent_labels.append(temp_filename)
                 # Check if we want to store in current directory
                 if args.store:
-                    resize_image_and_xml_annotation(input_file_image=input_file_image,
-                                                    input_file_label=input_file_label,
-                                                    output_dir_path="store",
-                                                    crop_only=args.crop_only)
+                    crop_image(input_file_image, "store")
                 else:
-                    resize_image_and_xml_annotation(input_file_image=input_file_image,
-                                                    input_file_label=input_file_label,
-                                                    output_dir_path=path_to_target_dir,
-                                                    crop_only=args.crop_only)
-            # If want to crop + adjust XML
+                    crop_image(input_file_image, path_to_target_dir)
+            
+            # else, if it does exist
             else:
-                # Check if path exists for label
-                if os.path.exists(input_file_label) is False:
-                    _, temp_filename = gs.path_leaf(gs.change_file_extension(image, new_file_extension=".xml"))
-                    list_of_non_existent_labels.append(temp_filename)
-                    continue
-
                 # Resize + adjust XML function and save it there
                 # Check if we want to store in current directory
                 if args.store:
                     resize_image_and_xml_annotation(input_file_image=input_file_image,
                                                     input_file_label=input_file_label,
-                                                    output_dir_path="store",
-                                                    crop_only=args.crop_only)
+                                                    output_dir_path="store")
                 else:
                     resize_image_and_xml_annotation(input_file_image=input_file_image,
                                                     input_file_label=input_file_label,
-                                                    output_dir_path=path_to_target_dir,
-                                                    crop_only=args.crop_only)
+                                                    output_dir_path=path_to_target_dir)
         
     # If display option selected, then display the whole list in the --target-dir, or if a --display-path is specified, display just a singular image
     if args.display or args.display_path:
