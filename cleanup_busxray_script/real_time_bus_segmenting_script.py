@@ -60,11 +60,23 @@ class ImageProcessor:
         # Algorithm to detect the edge of the bus in the image
         def find_black_to_white_transition(image):
 
-            # Convert to grayscale
-            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            # Convert to grayscale if it's not already in grayscale
+            if image.shape[2] != 1:
+                gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            else:
+                gray_image = image
+
             # Constants
             BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 100 # For top_to_bot and bot_to_top. Ensures that residual black lines don't affect top and bot crop.
-            BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE = 100 # This needs to be big for some files that thinks the edge is too much towards the center. But results in slower computation, #canbeimproved
+            BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE = 100 # Larger value to be more careful of the left black box
+            BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE = 40 # Top down is usually more clear cut, can set to a lower value
+            PIXEL_VALUE_TO_JUMP_FOR_X_VALUE = 20 # No need to iterate through every x-value, one diagonal line in an image is ~30 pixels
+
+            # Check if image is 16-bit or 8-bit and adjust pixel value accordingly
+            if gray_image.dtype == np.uint8:
+                PIXEL_INTENSITY_VALUE = 128
+            else:
+                PIXEL_INTENSITY_VALUE = 32768
 
             # Functions to find optimal xy co-ordinates to crop
 
@@ -73,11 +85,11 @@ class ImageProcessor:
                 # to find first black-to-white transition
                 # Start at half of height to avoid white background (0-60) + light specks at 60~200
                 most_left_x = image.shape[1]
-                x_value_to_start_from = 0
+                x_value_to_start_from = 50 # Sometimes there is white part at the start of the image, then it doesn't crop out the black portion.
                 # Start from middle part of image, then iterate to the bottom
                 for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
                     for x in range(x_value_to_start_from, gray_image.shape[1] - 1):
-                        if gray_image[y, x] < 128 and gray_image[y, x + 1] >= 128:
+                        if gray_image[y, x] < PIXEL_INTENSITY_VALUE and gray_image[y, x + 1] >= PIXEL_INTENSITY_VALUE:
                             # Found black-to-white transition
                             # Check if most_left_x has a x-value smaller than current x, if smaller it means it's positioned more left in the image.
                             # And since we don't want to cut off any image, we find the x that has the smallest value, which indicates that it's at the
@@ -85,10 +97,10 @@ class ImageProcessor:
                             if most_left_x > x:
                                 most_left_x = x
                                 # Check if this will lead to out-of-bound index error
-                                if most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE < 0:
+                                if most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE < 0:
                                     x_value_to_start_from = 0
                                 else:
-                                    x_value_to_start_from = most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                                    x_value_to_start_from = most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE
                             # Found the transition, stop finding for this y-value
                             break
                 return most_left_x
@@ -99,7 +111,7 @@ class ImageProcessor:
                 # Start at half of height of image because that's the fattest part of the bus
                 for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
                     for x in range(gray_image.shape[1]-1, 0, -1):
-                        if gray_image[y, x] >= 128 and gray_image[y, x - 1] < 128:
+                        if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y, x - 1] < PIXEL_INTENSITY_VALUE:
                             # Found the y-coordinate in the center of the image's black-to-white transition
                             return x
                 # If no transition detected, don't crop anything
@@ -110,9 +122,11 @@ class ImageProcessor:
                 # to find first black-to-white transition
                 most_top_y = image.shape[0]
                 y_value_to_start_from = 0
-                for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
+                # Start at halfway point because the highest point is always at the end of the bus
+                # Jump by PIXEL_VALUE_TO_JUMP_FOR_X_VALUE for efficiency. Potential to improve algorithm here.
+                for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end, PIXEL_VALUE_TO_JUMP_FOR_X_VALUE):
                     for y in range(y_value_to_start_from, gray_image.shape[0]-1):
-                        if gray_image[y, x] >= 128 and gray_image[y+1, x] < 128:
+                        if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y+1, x] < PIXEL_INTENSITY_VALUE:
                             # Found black-to-white transition
                             # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
                             # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
@@ -120,10 +134,10 @@ class ImageProcessor:
                             if most_top_y > y:
                                 most_top_y = y
                                 # Check if this will lead to out-of-bound index error
-                                if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE < 0:
+                                if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE < 0:
                                     y_value_to_start_from = 0
                                 else:
-                                    y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                                    y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
                             # Found the transition, stop finding for this x-value
                             break
                 return most_top_y
@@ -133,9 +147,11 @@ class ImageProcessor:
                 # to find first black-to-white transition
                 most_bot_y = 0
                 y_value_to_start_from = gray_image.shape[0] - 1
-                for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end):
+                # Start at halfway point because the highest point is always at the end of the bus
+                # Jump by PIXEL_VALUE_TO_JUMP_FOR_X_VALUE for efficiency. Potential to improve algorithm here.
+                for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end, PIXEL_VALUE_TO_JUMP_FOR_X_VALUE):
                     for y in range(y_value_to_start_from, 0, -1):
-                        if gray_image[y, x] >= 128 and gray_image[y-1, x] < 128:
+                        if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y-1, x] < PIXEL_INTENSITY_VALUE:
                             # Found black-to-white transition
                             # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
                             # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
@@ -143,10 +159,10 @@ class ImageProcessor:
                             if most_bot_y < y:
                                 most_bot_y = y
                                 # Check if this will lead to out-of-bound index error
-                                if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE > gray_image.shape[0] - 1:
+                                if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE > gray_image.shape[0] - 1:
                                     y_value_to_start_from = gray_image.shape[0] - 1
                                 else:
-                                    y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_XY_VALUE
+                                    y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
                             # Found the transition, stop finding for this x-value
                             break
                 return most_bot_y
@@ -160,7 +176,8 @@ class ImageProcessor:
             y_start = top_to_bot()
             # Trim bot white empty space
             y_end = bot_to_top()
-            return  x_start, x_end, y_start, y_end
+
+            return x_start, x_end, y_start, y_end
         
         # Performing function
         print("Cropping image...")
