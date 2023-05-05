@@ -1,6 +1,14 @@
 """
 This script provides two functions to segment an image into multiple smaller parts and adjust the annotation file 
-accordingly for each segment. The output is saved in the same folder as specified in the --root-dir.
+accordingly for each segment. The output is saved in the same folder as specified in the --root-dir, else if --store is specified, it'll
+store the images in the directory where it was found.
+
+Note:
+Currently if segmented image does not contain any labels, it'll generate a XML file but without objects in it.
+Future plan: 
+    refactor code such that it doesn't do this, rationale being that it's easier to differentiate which images have threats
+    from outside. Additionally, to keep the pipeline consistent such that only in the final step of converting YOLO format, then we generate
+    empty txt files for images without corresponding xml files.
 
 Update notes for V3: 
 - Updated segmented files to include cutoff threshold and information loss
@@ -34,17 +42,19 @@ python segment_bus_images_v3.py --root-dir "D:\leann\busxray_woodlands\annotatio
 -> The overlap will be half of the image size, in this case half of 640 is 320. So the next segment after the first x_start = 0, x_end = 640, will be x_start = 320, x_end = 920.
 -> Meaning the sliding window will be in increments of 320 pixels, in both width and height.
 
-@author: Alp
-@last modified: 18/4/2023 3:49pm
+@author: Alphaeus
+@created: 13/4/2023 11:57am
+@last modified: 5/5/2023 11:49am
 
 Things to work on:
 - Think of how to "mask" the < 30% threshold portion of the annotation. 
-    - Possible routes are using gaussian blur (might introduce artefacts which causes model degradation),
-    - (implemented) or simply snip away those parts of the image (have to run some sampling to see how much this method cuts away other portions of the image.)
+    + Possible routes are using gaussian blur (might introduce artefacts which causes model degradation),
+    + (implemented) or simply snip away those parts of the image (have to run some sampling to see how much this method cuts away other portions of the image.)
         - function implemented, can consider decoupling it for user to turn on or off.
+            + refactored code to run on all images, but will only run adjustment function on images w XML files.
 - (done) Add in tracker for risky images
 - Refactor code to take out middle man, meaning don't save image and read it and save it and read it, perform all steps in cv2 or json format, as it is an unnecessary step for real-time ops.
-    Too inefficient to convert my current scripts into a generalised solution for both, im creating a new real_time_script that's lean and clean for ops instead.
+    + Too inefficient to convert my current scripts into a generalised solution for both, im creating a new real_time_script that's lean and clean for ops instead.
 """
 import cv2
 import os
@@ -623,7 +633,8 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                                                                             }
         # Tabulate info loss via find_best_place_to_crop() and multiply it by 100 to transform 0.2 -> 20%
         segment_info_loss = round(100 * find_best_plane_to_crop(), 2)    
-
+    
+    # Else meaning there doesn't exist a corresponding XML file to this segment's image
     else:
         segment_info_loss = 0.0
 
@@ -762,7 +773,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
                     
                     # In case the script is re-run after it had ran before, check that we only call the
                     # adjust_annotations_for_segment_and_mask_it function on jpg images. if cleaned in file, we don't perform function on it
-                    if file.endswith((".tif", ".jpg", ".png")) and "cleaned" not in file:
+                    if file.endswith((".tiff", ".tif", ".jpg", ".png")) and "cleaned" not in file:
                         # Matches with the file name. ALERT HARD CODED NAME HERE!!!
                         name_of_original_xml_file = subdir[0:-10]+".xml"
                         # XML file created within function. Return function returns statistics. New key generated for each segment, values will be the stats for each segment.
@@ -858,10 +869,10 @@ def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
-    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
+    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.4)
     parser.add_argument("--special-items", help="a list of string items to supercede the threshold set", default=['cig'])
     
     # uncomment below if want to debug in IDE

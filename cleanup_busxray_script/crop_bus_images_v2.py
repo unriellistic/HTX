@@ -48,7 +48,8 @@ This will cause the function to look at root directory at <annotations> and save
         4/5/2023: 
             + Re-factored resize_image_and_xml_annotation, took out image cropping functions and created a new crop_image function.
             + Made adjustments to iteration values for find_black_to_white_transition function to improve efficiency by a factor of 10.
-
+        5/52023:
+            + Made the border detection function more robust at detecting the right boundary. Implemented average weight rather than single pixel transition.
 """
 
 import cv2
@@ -69,9 +70,13 @@ def find_black_to_white_transition(image):
 
     # Constants
     BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 200 # For top_to_bot and bot_to_top. Ensures that residual black lines don't affect top and bot crop.
+    BUFFER_SPACE_FROM_BOT_OF_IMAGE = 100 # For images with random white boxes at the bottom
     BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE = 100 # Larger value to be more careful of the left black box
     BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE = 40 # Top down is usually more clear cut, can set to a lower value
     PIXEL_VALUE_TO_JUMP_FOR_X_VALUE = 20 # No need to iterate through every x-plane, one diagonal line in an image is ~30 pixels
+    PIXEL_VALUE_TO_JUMP_FOR_Y_VALUE = 10 # No need to iterate through every y-plane, each feature in an image is ~20 pixels
+    # 20 was chosen due to domain exploration, artefacts are at most ~10 pixels long
+    NUM_OF_PIXEL_TO_AVERAGE = 20 # To take the average of this amount of pixels in a line. (Horizontal for x, vertical for y)
 
     # Check if image is 16-bit or 8-bit and adjust pixel value accordingly
     if gray_image.dtype == np.uint8:
@@ -87,21 +92,23 @@ def find_black_to_white_transition(image):
         # Start at half of height to avoid white background (0-60) + light specks at 60~200
         most_left_x = image.shape[1]
         x_value_to_start_from = 50 # Sometimes there is white part at the start of the image, then it doesn't crop out the black portion.
-        # Start from middle part of image, then iterate to the bottom
-        for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
-            for x in range(x_value_to_start_from, gray_image.shape[1] - 1):
-                if gray_image[y, x] < PIXEL_INTENSITY_VALUE and gray_image[y, x + 1] >= PIXEL_INTENSITY_VALUE:
+
+        # Start from middle part of image, then iterate to the bottom - some buffer space
+        for y in range(int(image.shape[0]/2), gray_image.shape[0]-BUFFER_SPACE_FROM_BOT_OF_IMAGE, PIXEL_VALUE_TO_JUMP_FOR_Y_VALUE):
+            for x in range(x_value_to_start_from, gray_image.shape[1] - 1, int(NUM_OF_PIXEL_TO_AVERAGE/4)):
+                # Check for line brightness
+                line_pixels = gray_image[y, x : x + NUM_OF_PIXEL_TO_AVERAGE]
+                avg_pixel_value = line_pixels.mean()
+                # This is to check for completely white pixels as well
+                # Because sometimes the black-border does not fully cover from top to bot, then algo would mistakenly stop at an all white plane
+                if avg_pixel_value > PIXEL_INTENSITY_VALUE:
+                    
                     # Found black-to-white transition
                     # Check if most_left_x has a x-value smaller than current x, if smaller it means it's positioned more left in the image.
                     # And since we don't want to cut off any image, we find the x that has the smallest value, which indicates that it's at the
                     # leftest-most part of the image
                     if most_left_x > x:
                         most_left_x = x
-                        # Check if this will lead to out-of-bound index error
-                        if most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE < 0:
-                            x_value_to_start_from = 0
-                        else:
-                            x_value_to_start_from = most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE
                     # Found the transition, stop finding for this y-value
                     break
         return most_left_x
@@ -110,7 +117,7 @@ def find_black_to_white_transition(image):
         # Iterate over pixels starting from right side of the image and moving towards the left
         # to find first black-to-white transition
         # Start at half of height of image because that's the fattest part of the bus
-        for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
+        for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, PIXEL_VALUE_TO_JUMP_FOR_Y_VALUE):
             for x in range(gray_image.shape[1]-1, 0, -1):
                 if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y, x - 1] < PIXEL_INTENSITY_VALUE:
                     # Found the y-coordinate in the center of the image's black-to-white transition
@@ -126,19 +133,27 @@ def find_black_to_white_transition(image):
         # Start at halfway point because the highest point is always at the end of the bus
         # Jump by PIXEL_VALUE_TO_JUMP_FOR_X_VALUE for efficiency. Potential to improve algorithm here.
         for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end, PIXEL_VALUE_TO_JUMP_FOR_X_VALUE):
-            for y in range(y_value_to_start_from, gray_image.shape[0]-1):
-                if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y+1, x] < PIXEL_INTENSITY_VALUE:
-                    # Found black-to-white transition
-                    # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
-                    # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
-                    # top-most part of the image
-                    if most_top_y > y:
-                        most_top_y = y
-                        # Check if this will lead to out-of-bound index error
-                        if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE < 0:
-                            y_value_to_start_from = 0
-                        else:
-                            y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
+            for y in range(y_value_to_start_from, gray_image.shape[0]):
+                
+                line_pixels = gray_image[y : y + NUM_OF_PIXEL_TO_AVERAGE, x]
+                avg_pixel_value = line_pixels.mean()
+                # Find a shift in pixel intensity
+                if avg_pixel_value < int(PIXEL_INTENSITY_VALUE * 1.9):
+                    for index, pixel in enumerate(line_pixels):
+                        if pixel < int(PIXEL_INTENSITY_VALUE * 1.9):
+                            # Found black-to-white transition
+                            # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
+                            # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
+                            # top-most part of the image
+                            if most_top_y > y + index:
+                                most_top_y = y + index
+                                # Check if this will lead to out-of-bound index error
+                                if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE < 0:
+                                    y_value_to_start_from = 0
+                                else:
+                                    y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
+                                # Found the transition, stop finding for this x-value
+                                break
                     # Found the transition, stop finding for this x-value
                     break
         return most_top_y
@@ -147,23 +162,33 @@ def find_black_to_white_transition(image):
         # Iterate over pixels starting from bottom side of the image and moving towards the top
         # to find first black-to-white transition
         most_bot_y = 0
-        y_value_to_start_from = gray_image.shape[0] - 1
+        y_value_to_start_from = gray_image.shape[0]
         # Start at halfway point because the highest point is always at the end of the bus
         # Jump by PIXEL_VALUE_TO_JUMP_FOR_X_VALUE for efficiency. Potential to improve algorithm here.
         for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end, PIXEL_VALUE_TO_JUMP_FOR_X_VALUE):
             for y in range(y_value_to_start_from, 0, -1):
-                if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y-1, x] < PIXEL_INTENSITY_VALUE:
-                    # Found black-to-white transition
-                    # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
-                    # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
-                    # top part of the image
-                    if most_bot_y < y:
-                        most_bot_y = y
-                        # Check if this will lead to out-of-bound index error
-                        if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE > gray_image.shape[0] - 1:
-                            y_value_to_start_from = gray_image.shape[0] - 1
-                        else:
-                            y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
+
+                line_pixels = gray_image[y - NUM_OF_PIXEL_TO_AVERAGE : y, x]
+                avg_pixel_value = line_pixels.mean()
+                # Find a shift in pixel intensity
+                if avg_pixel_value < int(PIXEL_INTENSITY_VALUE * 1.9):
+                    for index, pixel in enumerate(reversed(line_pixels)):
+                        if pixel < int(PIXEL_INTENSITY_VALUE * 1.9):
+                            # Found black-to-white transition
+                            # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
+                            # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
+                            # top part of the image
+                            if most_bot_y < y - index:
+                                most_bot_y = y - index
+                                if most_bot_y ==1952:
+                                    print()
+                                # Check if this will lead to out-of-bound index error
+                                if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE > gray_image.shape[0] - 1:
+                                    y_value_to_start_from = gray_image.shape[0] - 1
+                                else:
+                                    y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
+                                # Found the transition, stop finding for this x-value
+                                break
                     # Found the transition, stop finding for this x-value
                     break
         return most_bot_y
@@ -399,11 +424,13 @@ if __name__ == '__main__':
     # uncomment below if want to debug in IDE
     parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy")
     parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy")
+    # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\temp")
+    # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\temp")
     parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\temp")
     parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
-    parser.add_argument("--display", help="display the annotated images", action="store_true", default=True)
-    parser.add_argument("--display-path", help="path to display a single image file", required=False, default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy\adjusted_PC7036X Yutong ZK6107HE45 seats-clean-727-7 DualEnergy.tiff")
+    parser.add_argument("--display", help="display the annotated images", action="store_true", default=False)
+    parser.add_argument("--display-path", help="path to display a single image file", required=False)
 
 
 
@@ -480,6 +507,8 @@ if __name__ == '__main__':
                     resize_image_and_xml_annotation(input_file_image=input_file_image,
                                                     input_file_label=input_file_label,
                                                     output_dir_path=path_to_target_dir)
+        # print out non-existent labels
+        print("List of non-existent labels:", list_of_non_existent_labels)
         
     # If display option selected, then display the whole list in the --target-dir, or if a --display-path is specified, display just a singular image
     if args.display or args.display_path:
@@ -494,8 +523,6 @@ if __name__ == '__main__':
                     print("Displaying image", display_path)
                     open_image(display_path)
 
-    # print out non-existent labels
-    print("List of non-existent labels:", list_of_non_existent_labels)
     # To open an image to check
     # open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.jpg")
     # open_image(r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented\segment_156_397.png")

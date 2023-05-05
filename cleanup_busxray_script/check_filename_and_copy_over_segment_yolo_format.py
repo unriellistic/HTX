@@ -1,3 +1,11 @@
+"""
+The script finds the corresponding file name in each train/test/val sub-folders in image/label folders, and copies over the
+segmented version of it into the directory of the sub-folders in the form of:
+    segmented_train
+    segmented_test
+    segmented_val
+"""
+
 import general_scripts as gs
 from tqdm import tqdm
 import os, shutil
