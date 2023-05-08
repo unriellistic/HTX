@@ -180,8 +180,6 @@ def find_black_to_white_transition(image):
                             # top part of the image
                             if most_bot_y < y - index:
                                 most_bot_y = y - index
-                                if most_bot_y ==1952:
-                                    print()
                                 # Check if this will lead to out-of-bound index error
                                 if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE > gray_image.shape[0] - 1:
                                     y_value_to_start_from = gray_image.shape[0] - 1
@@ -413,24 +411,24 @@ def extract_unique_number(filename):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"annotations")
-    # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"annotations")
-    # parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
-    # parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
-    # parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
-    # parser.add_argument("--display", help="display the annotated images", action="store_true")
-    # parser.add_argument("--display-path", help="path to display a single image file", required=False)
+    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"annotations")
+    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"annotations")
+    parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
+    parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
+    parser.add_argument("--display", help="display the annotated images", action="store_true")
+    parser.add_argument("--display-path", help="path to display a single image file", required=False)
 
     # uncomment below if want to debug in IDE
-    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy")
-    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy")
-    # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\temp")
-    # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\temp")
-    parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\temp")
-    parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
-    parser.add_argument("--display", help="display the annotated images", action="store_true", default=False)
-    parser.add_argument("--display-path", help="path to display a single image file", required=False)
+    # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy")
+    # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy")
+    # # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\temp")
+    # # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\temp")
+    # parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
+    # parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\temp")
+    # parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
+    # parser.add_argument("--display", help="display the annotated images", action="store_true", default=False)
+    # parser.add_argument("--display-path", help="path to display a single image file", required=False)
 
 
 

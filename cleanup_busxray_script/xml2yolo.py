@@ -19,7 +19,7 @@ def xml_to_yolo_bbox(bbox, w, h):
 
 CLASS_LABELS = ["cig", "guns", "human", "knives", "drugs", "exp"]
 
-ROOT_DIR = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy"
+ROOT_DIR = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
 # identify all the image files in the folder (input directory)
 files = gs.load_images(path_to_images=ROOT_DIR, file_type="all", recursive=True)
 

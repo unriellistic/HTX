@@ -59,7 +59,7 @@ Command examples:
 If you run straight from the thumbdrive:
 python crop_bus_images.py
 If you run from other source:
-python compile_annotations_busxray.py --root-dir "<path to annotation>\annotation>" --annotation-dir "<path to annotations_adjusted>\annotations_adjusted"
+python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
 
 #######################################################################################################################
 3) segment_bus_images.py
