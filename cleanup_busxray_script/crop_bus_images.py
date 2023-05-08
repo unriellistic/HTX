@@ -403,7 +403,7 @@ if __name__ == '__main__':
     parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy")
     parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     parser.add_argument("--display", help="display the annotated images", action="store_true", default=True)
-    parser.add_argument("--display-path", help="path to display a single image file", required=False, default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy\adjusted_PC7036X Yutong ZK6107HE45 seats-clean-727-7 DualEnergy.tiff")
+    parser.add_argument("--display-path", help="path to display a single image file", required=False, default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome\adjusted_PC1866G Scania KIB4X2 49 seats-Threat-139-temp_image_low_segmented\segment_640_1280.tif")
 
 
 

@@ -507,6 +507,48 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
         
         return new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment
     
+    def readjust_annotations(new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment):
+        """
+        The function checks if the current cropped size of the segment cuts away any of the annotations, if it does, readjust the annotations to be within
+        the cropped space.
+        e.g.
+            "knives" object was previously:
+                xmin: 600
+                xmax: 640
+                ymin: ymin
+                ymax: ymax 
+            then the plane was cut such that the segment is now only:
+                xmin: 0
+                xmax: 620
+                ymin: 0
+                ymax: 640
+            This function will then update the knives object to be:
+                xmin: 600
+                xmax: 620 (new update)
+                ymin: ymin
+                ymax: ymax 
+        """
+        # Loop over the object annotations in the original annotation file
+        for obj in segmented_annotation.findall('object'):
+            # Get object type and bounding box coordinates for the current object
+            bbox = obj.find('bndbox')
+            xmin_original = int(bbox.find('xmin').text) if int(bbox.find('xmin').text) >= new_xmin_of_cropped_segment else 0 # readjust coordinate to zero
+            ymin_original = int(bbox.find('ymin').text) if int(bbox.find('ymin').text) >= new_ymin_of_cropped_segment else 0 # readjust coordinate to zero
+            xmax_original = int(bbox.find('xmax').text) if int(bbox.find('xmax').text) <= new_xmax_of_cropped_segment else new_xmax_of_cropped_segment
+            ymax_original = int(bbox.find('ymax').text) if int(bbox.find('xmax').text) <= new_ymax_of_cropped_segment else new_ymax_of_cropped_segment
+
+            # Update the values
+            readjusted_xmin = bbox.find("xmin")
+            readjusted_xmin.text = str(xmin_original)
+            readjusted_xmax = bbox.find("xmax")
+            readjusted_xmax.text = str(xmax_original)
+            readjusted_ymin = bbox.find("ymin")
+            readjusted_ymin.text = str(ymin_original)
+            readjusted_ymax = bbox.find("ymax")
+            readjusted_ymax.text = str(ymax_original)
+
+
+
     # Load the segment image to get its dimensions
     segment_img = cv2.imread(segment_path)
     segment_height, segment_width, segment_depth = segment_img.shape
@@ -666,6 +708,9 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
     y_max_offset = offset.find("y_max_offset")
     y_max_offset.text = str(new_ymax_of_cropped_segment)
 
+    # Check if previous annotation of objects is within new offsets, if not, adjust it so that it's within it
+    readjust_annotations(new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment)
+
     # Create an XML string with pretty formatting
     xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='    ')
 
@@ -688,12 +733,12 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
     list_of_images = [i for i in gs.load_images(path_to_dir) if "adjusted" in i]
     
     # Segment up the images
-    print("Processing images...")
-    os.chdir(path_to_dir)
-    for image in tqdm(list_of_images):
-        segment_image(image_path=image,
-                    segment_size=int(args.segment_size), 
-                    overlap_percent=float(args.overlap_portion))
+    # print("Processing images...")
+    # os.chdir(path_to_dir)
+    # for image in tqdm(list_of_images):
+    #     segment_image(image_path=image,
+    #                 segment_size=int(args.segment_size), 
+    #                 overlap_percent=float(args.overlap_portion))
 
     # Segment up the annotation
     print("Processing XML files...")
@@ -869,11 +914,11 @@ def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\temp")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
-    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.4)
-    parser.add_argument("--special-items", help="a list of string items to supercede the threshold set", default=['cig'])
+    parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
+    parser.add_argument("--special-items", help="a list of string items to supercede the threshold set", default=['cig', 'human'])
     
     # uncomment below if want to debug in IDE
     # import sys

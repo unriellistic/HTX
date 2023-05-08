@@ -2,12 +2,19 @@ To run the pre-processing on the images. Run the scripts in this order:
 1) compile_annotations_busxray.py
 2) crop_bus_images.py
 3) segment_bus_images.py
+4) xml2yolo.py (manually go into script and change variable)
+5) consolidate_segmented_files.py (manually go into script and change variable)
 
 The current folder should contain a "exp" folder which contains sub-folders of each image.
 
 For in-depth explanation of each script, can look below or at the explanation given within the script.
 
+#######################################################################################################################
+To run all one shot, copy and paste below:
+python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome" & python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
 ####################################################################################################################### 
+
+
 1) compile_annotations_busxray.py (run this file only if you need to consolidate all images and annotation into one folder, if such a folder already exist, no need run this)
 Command to run:
 python compile_annotations_busxray.py
@@ -84,7 +91,7 @@ If you run straight from the thumbdrive:
 python segment_bus_images.py 
 
 If you run from other source:
-python segment_bus_images.py --root-dir "<path to root dir>"
+python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
 
 If you want to change segmented size:
 python segment_bus_images.py --segment-size 1080
