@@ -126,6 +126,22 @@ adjusted_1833_annotated_segmented": {
                     "num_of_total": 4,
                     "info_loss": 56.99
 			}
+#######################################################################################################################
+4) xml2yolo.py
+Command to run:
+Open up script, change variable "ROOT_DIR" to the correct directory. It'll recursively search into all sub-folders in ROOT_DIR and create a converted copy of the XML file into txt, and store it in the same directory where it was found.
+
+#######################################################################################################################
+5) consolidate_segmented_files.py
+Command to run:
+Open up script, change variable "ROOT_DIR" to the correct directory and "TARGET_DIR" to the new directory you want to store it in. It'll recursively search into all sub-folders in ROOT_DIR and copy over the files that have "cleaned" in the name into the new TARGET_DIR, while renaming the image and label files to their respective original images.
+E.g. 
+adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented -> segment_0_0_cleaned.tiff
+adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented -> segment_0_320_cleaned.tiff
+becomes
+PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_0_cleaned.tiff
+PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_320_cleaned.tiff
+
 
 Additional information on the try-it-out example file IDs:
 
