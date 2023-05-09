@@ -7,8 +7,8 @@ import cv2, os, random
 """
 To check YOLO annotations (.txt files)
 """
-image_filename = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome\adjusted_PC1866G Scania KIB4X2 49 seats-Threat-139-temp_image_low_segmented\segment_640_1600_cleaned.tif"
-label_filename = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome\adjusted_PC1866G Scania KIB4X2 49 seats-Threat-139-temp_image_low_segmented\segment_640_1600_cleaned.txt"
+image_filename = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy\adjusted_PC136L Higer High Deck 49 seats-Threat-95-final_color_segmented\segment_960_320_cleaned.jpg"
+label_filename = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy\adjusted_PC136L Higer High Deck 49 seats-Threat-95-final_color_segmented\segment_960_320_cleaned.txt"
 
 def plot_one_box(x, image, color=None, label=None, line_thickness=None):
     # Plots one bounding box on image img
@@ -51,7 +51,7 @@ def draw_box_on_image(image_path, txt_path):
 
         plot_one_box([x1, y1, x2, y2], image, line_thickness=None)
 
-        cv2.imwrite(r"C:\Users\User1\Desktop\alp\cleanup_busxray_script\example.tif", image)
+        cv2.imwrite(r"C:\Users\User1\Desktop\alp\cleanup_busxray_script\example.jpg", image)
         box_number += 1
     return box_number
 
@@ -60,8 +60,8 @@ draw_box_on_image(image_path=image_filename, txt_path=label_filename)
 """
 To check Pascal VOC images (.xml files)
 """
-quick_test = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome\adjusted_PC1866G Scania KIB4X2 49 seats-Threat-139-temp_image_low_segmented\segment_640_1600_cleaned.tif"
-quick_test_xml = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome\adjusted_PC1866G Scania KIB4X2 49 seats-Threat-139-temp_image_low_segmented\segment_640_1600_cleaned.xml"
+quick_test = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy\adjusted_PC136L Higer High Deck 49 seats-Threat-95-final_color_segmented\segment_960_320_cleaned.jpg"
+quick_test_xml = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy\adjusted_PC136L Higer High Deck 49 seats-Threat-95-final_color_segmented\segment_960_320_cleaned.xml"
 
 def draw_image(img, bboxes):
     draw = ImageDraw.Draw(img)
@@ -95,4 +95,4 @@ img = cv2.imread(quick_test)
 cv2.imwrite(gs.change_file_extension(quick_test, ".jpg"), img)
 img = Image.open(gs.change_file_extension(quick_test, ".jpg"))
 
-# draw_image(img, bbox_list)
+draw_image(img, bbox_list)

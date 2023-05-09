@@ -530,23 +530,59 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
         """
         # Loop over the object annotations in the original annotation file
         for obj in segmented_annotation.findall('object'):
-            # Get object type and bounding box coordinates for the current object
+            # Get object type and bounding box coordinates for the current object and check if object was cropped off
             bbox = obj.find('bndbox')
-            xmin_original = int(bbox.find('xmin').text) if int(bbox.find('xmin').text) >= new_xmin_of_cropped_segment else 0 # readjust coordinate to zero
-            ymin_original = int(bbox.find('ymin').text) if int(bbox.find('ymin').text) >= new_ymin_of_cropped_segment else 0 # readjust coordinate to zero
-            xmax_original = int(bbox.find('xmax').text) if int(bbox.find('xmax').text) <= new_xmax_of_cropped_segment else new_xmax_of_cropped_segment
-            ymax_original = int(bbox.find('ymax').text) if int(bbox.find('xmax').text) <= new_ymax_of_cropped_segment else new_ymax_of_cropped_segment
+            xmin = int(bbox.find('xmin').text)
+            ymin = int(bbox.find('ymin').text)
+            xmax = int(bbox.find('xmax').text)
+            ymax = int(bbox.find('ymax').text)
+
+            # If xmin was cropped, adjust all values as such
+            if new_xmin_of_cropped_segment > 0:
+                # If xmax drops below zero from xmin being cropped, it means the whole annotation is cut off.
+                if xmax - new_xmin_of_cropped_segment <= 0:
+                    segmented_annotation.remove(obj)
+                    continue
+                else:
+                    xmax = xmax - new_xmin_of_cropped_segment
+                # If cropped xmin is more than annotation x min, then just set coordinate to 0
+                xmin = xmin - new_xmin_of_cropped_segment if xmin - new_xmin_of_cropped_segment > 0 else 0
+
+            if new_ymin_of_cropped_segment > 0:
+                # If ymax drops below zero from ymin being cropped, it means the whole annotation is cut off.
+                if ymax - new_ymin_of_cropped_segment <= 0:
+                    segmented_annotation.remove(obj)
+                    continue
+                else:
+                    ymax = ymax - new_ymin_of_cropped_segment
+                ymin = ymin - new_ymin_of_cropped_segment if ymin - new_ymin_of_cropped_segment > 0 else 0
+
+            # Meaning there is cropping on the xmax side
+            if new_xmax_of_cropped_segment < segment_width:
+                # If xmin is further right than new xmax being cropped, it means the whole annotation is cut off.
+                if xmin - new_xmax_of_cropped_segment >= 0:
+                    segmented_annotation.remove(obj)
+                    continue
+                # Check whether xmax is within cropped xmax range, if it is, adjust annotation xmax accordingly
+                xmax = new_xmax_of_cropped_segment if xmax > new_xmax_of_cropped_segment else xmax
+
+            # There is cropping on the ymax side
+            if new_ymax_of_cropped_segment < segment_height:
+                if ymin - new_ymax_of_cropped_segment >= 0:
+                    segmented_annotation.remove(obj)
+                    continue
+                # Check whether ymax is within cropped ymax range, if it is, adjust annotation ymax accordingly
+                ymax = new_ymax_of_cropped_segment if ymax > new_ymax_of_cropped_segment else ymax
 
             # Update the values
             readjusted_xmin = bbox.find("xmin")
-            readjusted_xmin.text = str(xmin_original)
+            readjusted_xmin.text = str(xmin)
             readjusted_xmax = bbox.find("xmax")
-            readjusted_xmax.text = str(xmax_original)
+            readjusted_xmax.text = str(xmax)
             readjusted_ymin = bbox.find("ymin")
-            readjusted_ymin.text = str(ymin_original)
+            readjusted_ymin.text = str(ymin)
             readjusted_ymax = bbox.find("ymax")
-            readjusted_ymax.text = str(ymax_original)
-
+            readjusted_ymax.text = str(ymax)
 
 
     # Load the segment image to get its dimensions
@@ -694,7 +730,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
     # Save the image
     cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned" + "."+filename.split(".")[-1]), cropped_img)
 
-    # Update new coordinates
+    # Update cropped coordinates
     # If x_min = 0, means no cropping was done on the left side
     # If x_max = segment_width, means no cropping done on right
     # If y_min = 0, means no crop done on top
@@ -707,6 +743,12 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
     y_min_offset.text = str(new_ymin_of_cropped_segment)
     y_max_offset = offset.find("y_max_offset")
     y_max_offset.text = str(new_ymax_of_cropped_segment)
+
+    # Update new image size
+    new_width_size = size.find('width')
+    new_width_size.text = str(new_xmax_of_cropped_segment - new_xmin_of_cropped_segment)
+    new_height_size = size.find('height')
+    new_height_size.text = str(new_ymax_of_cropped_segment - new_ymin_of_cropped_segment)
 
     # Check if previous annotation of objects is within new offsets, if not, adjust it so that it's within it
     readjust_annotations(new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment)

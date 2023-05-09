@@ -1,0 +1,10 @@
+opencv-python
+orjson
+sanic
+watchdog
+--extra-index-url https://download.pytorch.org/whl/cu117
+torch
+--extra-index-url https://download.pytorch.org/whl/cu117
+torchvision
+
+git+https://github.com/Ikomia-dev/detectron2@v0.6-win10

@@ -12,7 +12,6 @@ This script receives a cv2-formatted image and performs the following:
                         }...
                     }
 
-Some parts of the code contains this #canbeimproved , these are parts where we can consider changing the algorithm to improve the processing speed
 """
 
 import cv2, numpy as np
@@ -67,10 +66,14 @@ class ImageProcessor:
                 gray_image = image
 
             # Constants
-            BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 100 # For top_to_bot and bot_to_top. Ensures that residual black lines don't affect top and bot crop.
+            BUFFER_SPACE_FROM_LEFT_BLACK_BOX = 200 # For top_to_bot and bot_to_top. Ensures that residual black lines don't affect top and bot crop.
+            BUFFER_SPACE_FROM_BOT_OF_IMAGE = 100 # For images with random white boxes at the bottom
             BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE = 100 # Larger value to be more careful of the left black box
             BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE = 40 # Top down is usually more clear cut, can set to a lower value
-            PIXEL_VALUE_TO_JUMP_FOR_X_VALUE = 20 # No need to iterate through every x-value, one diagonal line in an image is ~30 pixels
+            PIXEL_VALUE_TO_JUMP_FOR_X_VALUE = 20 # No need to iterate through every x-plane, one diagonal line in an image is ~30 pixels
+            PIXEL_VALUE_TO_JUMP_FOR_Y_VALUE = 10 # No need to iterate through every y-plane, each feature in an image is ~20 pixels
+            # 20 was chosen due to domain exploration, artefacts are at most ~10 pixels long
+            NUM_OF_PIXEL_TO_AVERAGE = 20 # To take the average of this amount of pixels in a line. (Horizontal for x, vertical for y)
 
             # Check if image is 16-bit or 8-bit and adjust pixel value accordingly
             if gray_image.dtype == np.uint8:
@@ -86,21 +89,23 @@ class ImageProcessor:
                 # Start at half of height to avoid white background (0-60) + light specks at 60~200
                 most_left_x = image.shape[1]
                 x_value_to_start_from = 50 # Sometimes there is white part at the start of the image, then it doesn't crop out the black portion.
-                # Start from middle part of image, then iterate to the bottom
-                for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
-                    for x in range(x_value_to_start_from, gray_image.shape[1] - 1):
-                        if gray_image[y, x] < PIXEL_INTENSITY_VALUE and gray_image[y, x + 1] >= PIXEL_INTENSITY_VALUE:
+
+                # Start from middle part of image, then iterate to the bottom - some buffer space
+                for y in range(int(image.shape[0]/2), gray_image.shape[0]-BUFFER_SPACE_FROM_BOT_OF_IMAGE, PIXEL_VALUE_TO_JUMP_FOR_Y_VALUE):
+                    for x in range(x_value_to_start_from, gray_image.shape[1] - 1, int(NUM_OF_PIXEL_TO_AVERAGE/4)):
+                        # Check for line brightness
+                        line_pixels = gray_image[y, x : x + NUM_OF_PIXEL_TO_AVERAGE]
+                        avg_pixel_value = line_pixels.mean()
+                        # This is to check for completely white pixels as well
+                        # Because sometimes the black-border does not fully cover from top to bot, then algo would mistakenly stop at an all white plane
+                        if avg_pixel_value > PIXEL_INTENSITY_VALUE:
+                            
                             # Found black-to-white transition
                             # Check if most_left_x has a x-value smaller than current x, if smaller it means it's positioned more left in the image.
                             # And since we don't want to cut off any image, we find the x that has the smallest value, which indicates that it's at the
                             # leftest-most part of the image
                             if most_left_x > x:
                                 most_left_x = x
-                                # Check if this will lead to out-of-bound index error
-                                if most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE < 0:
-                                    x_value_to_start_from = 0
-                                else:
-                                    x_value_to_start_from = most_left_x - BUFFER_SPACE_TO_REFIND_SMALLEST_X_VALUE
                             # Found the transition, stop finding for this y-value
                             break
                 return most_left_x
@@ -109,7 +114,7 @@ class ImageProcessor:
                 # Iterate over pixels starting from right side of the image and moving towards the left
                 # to find first black-to-white transition
                 # Start at half of height of image because that's the fattest part of the bus
-                for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, 20):
+                for y in range(int(image.shape[0]/2), gray_image.shape[0]-1, PIXEL_VALUE_TO_JUMP_FOR_Y_VALUE):
                     for x in range(gray_image.shape[1]-1, 0, -1):
                         if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y, x - 1] < PIXEL_INTENSITY_VALUE:
                             # Found the y-coordinate in the center of the image's black-to-white transition
@@ -125,19 +130,27 @@ class ImageProcessor:
                 # Start at halfway point because the highest point is always at the end of the bus
                 # Jump by PIXEL_VALUE_TO_JUMP_FOR_X_VALUE for efficiency. Potential to improve algorithm here.
                 for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end, PIXEL_VALUE_TO_JUMP_FOR_X_VALUE):
-                    for y in range(y_value_to_start_from, gray_image.shape[0]-1):
-                        if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y+1, x] < PIXEL_INTENSITY_VALUE:
-                            # Found black-to-white transition
-                            # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
-                            # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
-                            # top-most part of the image
-                            if most_top_y > y:
-                                most_top_y = y
-                                # Check if this will lead to out-of-bound index error
-                                if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE < 0:
-                                    y_value_to_start_from = 0
-                                else:
-                                    y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
+                    for y in range(y_value_to_start_from, gray_image.shape[0]):
+                        
+                        line_pixels = gray_image[y : y + NUM_OF_PIXEL_TO_AVERAGE, x]
+                        avg_pixel_value = line_pixels.mean()
+                        # Find a shift in pixel intensity
+                        if avg_pixel_value < int(PIXEL_INTENSITY_VALUE * 1.9):
+                            for index, pixel in enumerate(line_pixels):
+                                if pixel < int(PIXEL_INTENSITY_VALUE * 1.9):
+                                    # Found black-to-white transition
+                                    # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
+                                    # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
+                                    # top-most part of the image
+                                    if most_top_y > y + index:
+                                        most_top_y = y + index
+                                        # Check if this will lead to out-of-bound index error
+                                        if most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE < 0:
+                                            y_value_to_start_from = 0
+                                        else:
+                                            y_value_to_start_from = most_top_y - BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
+                                        # Found the transition, stop finding for this x-value
+                                        break
                             # Found the transition, stop finding for this x-value
                             break
                 return most_top_y
@@ -146,23 +159,31 @@ class ImageProcessor:
                 # Iterate over pixels starting from bottom side of the image and moving towards the top
                 # to find first black-to-white transition
                 most_bot_y = 0
-                y_value_to_start_from = gray_image.shape[0] - 1
+                y_value_to_start_from = gray_image.shape[0]
                 # Start at halfway point because the highest point is always at the end of the bus
                 # Jump by PIXEL_VALUE_TO_JUMP_FOR_X_VALUE for efficiency. Potential to improve algorithm here.
                 for x in range(x_start + BUFFER_SPACE_FROM_LEFT_BLACK_BOX, x_end, PIXEL_VALUE_TO_JUMP_FOR_X_VALUE):
                     for y in range(y_value_to_start_from, 0, -1):
-                        if gray_image[y, x] >= PIXEL_INTENSITY_VALUE and gray_image[y-1, x] < PIXEL_INTENSITY_VALUE:
-                            # Found black-to-white transition
-                            # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
-                            # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
-                            # top part of the image
-                            if most_bot_y < y:
-                                most_bot_y = y
-                                # Check if this will lead to out-of-bound index error
-                                if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE > gray_image.shape[0] - 1:
-                                    y_value_to_start_from = gray_image.shape[0] - 1
-                                else:
-                                    y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
+
+                        line_pixels = gray_image[y - NUM_OF_PIXEL_TO_AVERAGE : y, x]
+                        avg_pixel_value = line_pixels.mean()
+                        # Find a shift in pixel intensity
+                        if avg_pixel_value < int(PIXEL_INTENSITY_VALUE * 1.9):
+                            for index, pixel in enumerate(reversed(line_pixels)):
+                                if pixel < int(PIXEL_INTENSITY_VALUE * 1.9):
+                                    # Found black-to-white transition
+                                    # Check if most_top_y has a y-value larger than current y, if larger it means it's positioned lower in the image.
+                                    # And since we don't want to cut off any image, we find the y that has the smallest value, which indicates that it's at the
+                                    # top part of the image
+                                    if most_bot_y < y - index:
+                                        most_bot_y = y - index
+                                        # Check if this will lead to out-of-bound index error
+                                        if most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE > gray_image.shape[0] - 1:
+                                            y_value_to_start_from = gray_image.shape[0] - 1
+                                        else:
+                                            y_value_to_start_from = most_bot_y + BUFFER_SPACE_TO_REFIND_SMALLEST_Y_VALUE
+                                        # Found the transition, stop finding for this x-value
+                                        break
                             # Found the transition, stop finding for this x-value
                             break
                 return most_bot_y
@@ -234,7 +255,7 @@ class ImageProcessor:
                     x_start = width - segment_size
 
                 segment = img[y_start:y_end, x_start:x_end]
-                self.segment_image_info['segment_{}_{}'.format(y_start, x_start)] = segment
+                self.segment_image_info['segment_{}_{}'.format(y_start + self.image_dict["cropped_coordinates"]["ymin"], x_start + self.image_dict["cropped_coordinates"]["xmin"])] = segment
 
     def get_segment_info(self):
         """
