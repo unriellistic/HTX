@@ -17,6 +17,7 @@ import real_time_bus_segmenting_script as rtbss
 predictor = TridentNetPredictor(config_file="models/tridentnet_fast_R_50_C4_3x.yaml",
     opts=["MODEL.WEIGHTS", "models/model_final_e1027c.pkl"]
 )
+
 def calculate_iou(box1, box2):
     """
     Calculate IoU (Intersection over Union) between two bounding boxes.

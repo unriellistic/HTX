@@ -774,7 +774,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
 
     return log_dict
 
-def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
+def bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir, args_segment_size, args_overlap_portion, args_cutoff_threshold, args_special_items):
     """
     Function does analysis on a dir folder that contains the adjusted image and XML files. 
     It creates a folder for each image and segments it up, readjusting the annotation XML file and tabulates the information loss with the given threshold.
@@ -782,17 +782,16 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
     Returns:
     None: It directly outputs the log file into the root directory specified.
     """
-    
     # Load the images. exclude_string is for when we're re-running the code, we don't want to fetch the cleaned images again
-    list_of_images = [i for i in gs.load_images(path_to_dir) if "adjusted" in i]
+    list_of_images = [i for i in gs.load_images(args_root_dir) if "adjusted" in i]
     
     # Segment up the images
     print("Processing images...")
-    os.chdir(path_to_dir)
+    os.chdir(args_root_dir)
     for image in tqdm(list_of_images):
         segment_image(image_path=image,
-                    segment_size=int(args.segment_size), 
-                    overlap_percent=float(args.overlap_portion))
+                    segment_size=int(args_segment_size), 
+                    overlap_percent=float(args_overlap_portion))
 
     # Segment up the annotation
     print("Processing XML files...")
@@ -833,7 +832,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
     """
     log_dict = {}
     lousy_root_checker = False
-    for root, dirs, _ in os.walk(path_to_dir):
+    for root, dirs, _ in os.walk(args_root_dir):
         
         # If dirs is empty, means no subdir found. This step is mainly for tqdm to work, because if don't check for empty dirs, after it successfully iterates
         # through the subdirectories, i think it somehow checks it again, but it knows that it has already parsed it, which results in tqdm printing additional lines
@@ -880,8 +879,8 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
                         segment_stats_dict[f"{file}"] = adjust_annotations_for_segment_and_mask_it(segment_path=os.path.join(root, subdir, file), 
                                                     original_annotation_path=os.path.join(root, name_of_original_xml_file),
                                                     output_path=os.path.join(root, subdir),
-                                                    cutoff_threshold=args.cutoff_threshold,
-                                                    special_items=args.special_items)
+                                                    cutoff_threshold=args_cutoff_threshold,
+                                                    special_items=args_special_items)
                         
                 # Tabulate total statistics for single image
                 total_rejects_for_one_image = 0
@@ -917,7 +916,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
             total_info_loss_for_all_images = total_info_loss_for_all_images/(len(image_stats_dict.keys()) if len(image_stats_dict.keys())!=0 else 1)
 
             # Tabulate total stats for one image in a subdir
-            log_dict["Percentage threshold value set"] = args.cutoff_threshold
+            log_dict["Percentage threshold value set"] = args_cutoff_threshold
             log_dict["Overall total num of annotation"] = total_annotation_for_all_images
             log_dict["Overall total num of reject"] = total_rejects_for_all_images
             log_dict[r"Overall % of reject"] = str(round((total_rejects_for_all_images/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1)) * 100, 2)) + r"%"
@@ -931,14 +930,14 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
             } 
             log_dict["image info"] = image_stats_dict
 
-            head, _ = gs.path_leaf(args.root_dir)
+            head, _ = gs.path_leaf(args_root_dir)
 
             # Get the current datetime
             current_datetime = datetime.datetime.now()
             # Format the datetime as a string
             formatted_datetime = current_datetime.strftime("%d-%m-%Y_%H-%M-%S")
 
-            with open(os.path.join(head, f"busxray_stats_with_{args.cutoff_threshold}_threshold_{formatted_datetime}.json"), 'w') as outfile:
+            with open(os.path.join(head, f"busxray_stats_with_{args_cutoff_threshold}_threshold_{formatted_datetime}.json"), 'w') as outfile:
                 json.dump(log_dict, outfile, indent=4)
 
 def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
@@ -989,13 +988,17 @@ if __name__ == "__main__":
     # Get path to directory
     # Check if default parameter is applied, if so get full path.
     if args.root_dir == "annotations_adjusted":
-        path_to_dir = os.path.join(os.getcwd(), args.root_dir)
+        args.root_dir = os.path.join(os.getcwd(), args.root_dir)
     # Else, use path specified by user
     else:
-        path_to_dir = args.root_dir
+        args.root_dir = args.root_dir
 
     # This function performs analysis on a folder that contains images
-    bulk_image_analysis_of_info_loss_and_segment_annotation(args=args)
+    bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir=args.root_dir,
+                                                            args_overlap_portion=args.overlap_portion,
+                                                            args_cutoff_threshold=args.cutoff_threshold,
+                                                            args_segment_size=args.segment_size,
+                                                            args_special_items=args.special_items)
     
     # For individual folder testing, uncomment if applicable.
     """

@@ -10,6 +10,9 @@
 	+ Ok, it's standardised, finished refactoring the code. Just need to run and test whether it works.
 	8/5/23
 	+ Discovered another bug, after getting cropped, coordinates don't get readjusted to new boundary. also, sometimes after cropped, xmax becomes lower than xmin, need to create a logic to remove annotated box completely if it gets cropped out.
+	9/5/23
+	+ Fixed bug, YOLO conversion used width and height of xml, but that wasn't updated.
+	+ Fixed bug, added checking for annotation that has been completely removed by cropping.
 
 - Understand the current data class split information
 	+ The data split between train/test/val, based off it's bus model and class.

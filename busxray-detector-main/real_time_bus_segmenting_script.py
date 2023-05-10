@@ -1,5 +1,4 @@
 """
-NOT COMPLETE
 This script receives a cv2-formatted image and performs the following:
     1) It segments up the image and stores them in a dict format in the format of:
         image_dict = {"0_0": 
@@ -11,7 +10,6 @@ This script receives a cv2-formatted image and performs the following:
                             "json_file_info": <json-format image>},
                         }...
                     }
-
 """
 
 import cv2, numpy as np

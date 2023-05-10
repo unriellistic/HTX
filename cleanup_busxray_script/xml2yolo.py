@@ -9,11 +9,6 @@ import os
 import general_scripts as gs
 from tqdm import tqdm
 
-# Change this to the folder that contains all the images and xml files. 
-ROOT_DIR = r"D:\BusXray\scanbus_training\temp"
-
-classes = ["cig", "guns", "human", "knives", "drugs", "exp"]
-
 def convert(size, box):
     dw = 1./(size[0])
     dh = 1./(size[1])
@@ -27,44 +22,50 @@ def convert(size, box):
     h = h*dh
     return (x,y,w,h)
 
-# identify all the image files in the folder (input directory)
-files = gs.load_images(path_to_images=ROOT_DIR, file_type="all", recursive=True)
+def convert_xml_to_yolo(root_dir, classes):
 
-# loop through each image
-for file in tqdm(files):
-    filepath, basename = gs.path_leaf(file)
-
-    # Only run the algorithm on segments with cleaned in their name
-    # To run on the adjusted image, can change this check here
-    if "cleaned" in basename:
-            
-        filename = os.path.splitext(basename)[0]
-        label_file = os.path.join(filepath, f"{filename}.xml")
-        result = []
-        out_file = open(os.path.join(filepath, f"{filename}.txt"), 'w')
-        # check if the image contains the corresponding label file
-        if not os.path.exists(label_file):
-            print(f"{file} label does not exist! Creating empty txt file...")
-            out_file.close()
-        else:
-            # parse the content of the xml file
-            tree = ET.parse(label_file)
-            root = tree.getroot()
-            size = root.find('size')
-            w = int(size.find('width').text)
-            h = int(size.find('height').text)
-
-            for obj in root.iter('object'):
-                difficult = obj.find('difficult').text
-                cls = obj.find('name').text
-                if cls not in classes or int(difficult)==1:
-                    continue
-                cls_id = classes.index(cls)
-                xmlbox = obj.find('bndbox')
-                b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text), float(xmlbox.find('ymax').text))
-                bb = convert((w,h), b)
-                out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
-            # Close file. Not tested yet
-            out_file.close()
-
+    # identify all the image files in the folder (input directory)
+    files = gs.load_images(path_to_images=root_dir, file_type="all", recursive=True)
     
+    print("Converting xml file to txt...")
+    # loop through each image
+    for file in tqdm(files):
+        filepath, basename = gs.path_leaf(file)
+
+        # Only run the algorithm on segments with cleaned in their name
+        # To run on the adjusted image, can change this check here
+        if "cleaned" in basename:
+            filename = os.path.splitext(basename)[0]
+            label_file = os.path.join(filepath, f"{filename}.xml")
+            out_file = open(os.path.join(filepath, f"{filename}.txt"), 'w')
+            # check if the image contains the corresponding label file
+            if not os.path.exists(label_file):
+                print(f"{label_file} label does not exist! Creating empty txt file...")
+                out_file.close()
+            else:
+                # parse the content of the xml file
+                tree = ET.parse(label_file)
+                root = tree.getroot()
+                size = root.find('size')
+                w = int(size.find('width').text)
+                h = int(size.find('height').text)
+
+                for obj in root.iter('object'):
+                    difficult = obj.find('difficult').text
+                    cls = obj.find('name').text
+                    if cls not in classes or int(difficult)==1:
+                        continue
+                    cls_id = classes.index(cls)
+                    xmlbox = obj.find('bndbox')
+                    b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text), float(xmlbox.find('ymax').text))
+                    bb = convert((w,h), b)
+                    out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
+                # close file
+                out_file.close()
+
+if __name__ == "__main__":
+    # For self debugging
+    print("debugging...")
+    ROOT_DIR = r"D:\BusXray\scanbus_training\temp"
+    CLASSES = ["cig", "guns", "human", "knives", "drugs", "exp"]
+    convert_xml_to_yolo(root_dir=ROOT_DIR, classes=CLASSES)

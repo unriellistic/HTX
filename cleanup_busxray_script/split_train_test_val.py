@@ -1,15 +1,22 @@
+"""
+Script splits files from from target directory to output folder in the form of:
+    images
+    |--->
+        train
+        test
+        validation
+    labels
+    |--->
+        train
+        test
+        validation
+"""
+
 import os
 import random
 import shutil
 import general_scripts as gs
 from tqdm import tqdm
-
-input_folder = r"E:\alp\segmented_master_file_for_both_clean_and_threat_images_dualenergy"
-output_folder = r"E:\alp\output_dualenergy"
-
-minput_folder = r"E:\alp\segmented_master_file_for_both_clean_and_threat_images_monochrome"
-moutput_folder = r"E:\alp\output_monochrome"
-
 
 def split_data(input_folder, output_folder, train_ratio=0.8, test_ratio=0.1, val_ratio=0.1, seed=42):
     random.seed(seed)
@@ -87,7 +94,10 @@ def split_data(input_folder, output_folder, train_ratio=0.8, test_ratio=0.1, val
 
     print('Data split completed successfully.')
 
-# Usage example:
-split_data(input_folder, output_folder)
-split_data(minput_folder, moutput_folder)
+if __name__ == "__main__":
+    print("debugging...")
+    input_folder = r"E:\alp\segmented_master_file_for_both_clean_and_threat_images_dualenergy"
+    output_folder = r"E:\alp\output_dualenergy"
+    # Usage example:
+    split_data(input_folder, output_folder)
 
