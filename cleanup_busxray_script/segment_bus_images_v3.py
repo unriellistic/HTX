@@ -67,6 +67,7 @@ import re # Find the dimension of the segmented image to find where the annotate
 import argparse
 from tqdm import tqdm
 import json # For tracking of stats
+import datetime # To save filename dynamically
 
 # A constant thres variable for special items
 CUTOFF_THRES_FOR_SPECIAL_ITEMS = 0.1 # 0.1 stands for 10%. To adjust the acceptable threshold for special items.
@@ -387,7 +388,6 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                         plane_direction = "left"
                         value_to_mask = coordinates["xmax"]
                         plane_has_info_loss_questionmark["plane 1"] = [check_if_info_loss(temp_area_of_annotation_cut), value_to_mask]
-
                     elif plane == "plane 2":
                         plane_direction = "right"
                         value_to_mask = coordinates["xmin"]
@@ -399,9 +399,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                     else:
                         plane_direction = "bot"
                         value_to_mask = coordinates["ymin"]
-                        plane_has_info_loss_questionmark["plane 4"] = [check_if_info_loss(temp_area_of_annotation_cut), value_to_mask]
-                
-                
+                        plane_has_info_loss_questionmark["plane 4"] = [check_if_info_loss(temp_area_of_annotation_cut), value_to_mask]     
                 
             """
             At this point, we have found which plane has the lowest information loss after cutting an object for this particular mask object.
@@ -548,6 +546,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                 # If cropped xmin is more than annotation x min, then just set coordinate to 0
                 xmin = xmin - new_xmin_of_cropped_segment if xmin - new_xmin_of_cropped_segment > 0 else 0
 
+            # If ymin was cropped, adjust all values as such
             if new_ymin_of_cropped_segment > 0:
                 # If ymax drops below zero from ymin being cropped, it means the whole annotation is cut off.
                 if ymax - new_ymin_of_cropped_segment <= 0:
@@ -557,7 +556,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                     ymax = ymax - new_ymin_of_cropped_segment
                 ymin = ymin - new_ymin_of_cropped_segment if ymin - new_ymin_of_cropped_segment > 0 else 0
 
-            # Meaning there is cropping on the xmax side
+            # If xmax was cropped, adjust all values as such
             if new_xmax_of_cropped_segment < segment_width:
                 # If xmin is further right than new xmax being cropped, it means the whole annotation is cut off.
                 if xmin - new_xmax_of_cropped_segment >= 0:
@@ -566,7 +565,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                 # Check whether xmax is within cropped xmax range, if it is, adjust annotation xmax accordingly
                 xmax = new_xmax_of_cropped_segment if xmax > new_xmax_of_cropped_segment else xmax
 
-            # There is cropping on the ymax side
+            # If ymax was cropped, adjust all values as such
             if new_ymax_of_cropped_segment < segment_height:
                 if ymin - new_ymax_of_cropped_segment >= 0:
                     segmented_annotation.remove(obj)
@@ -588,51 +587,52 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
     # Load the segment image to get its dimensions
     segment_img = cv2.imread(segment_path)
     segment_height, segment_width, segment_depth = segment_img.shape
-
-    # Create a new XML file for the segmented image
+    # Get filename
     _, filename = os.path.split(segment_path)
-    output_path_for_xml = os.path.join(output_path, gs.change_file_extension(filename, "") + f'_cleaned.xml')
-    segmented_annotation = ET.Element('annotation')
-    ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
-    ET.SubElement(segmented_annotation, 'filename').text = filename
-    ET.SubElement(segmented_annotation, 'path').text = segment_path
-    source = ET.SubElement(segmented_annotation, 'source')
-    ET.SubElement(source, 'database').text = 'Unknown'
-    size = ET.SubElement(segmented_annotation, 'size')
-    ET.SubElement(size, 'width').text = str(segment_width)
-    ET.SubElement(size, 'height').text = str(segment_height)
-    ET.SubElement(size, 'depth').text = str(segment_depth)
-    cutoff_thres_info = ET.SubElement(segmented_annotation, 'cutoff_threshold_info')
-    ET.SubElement(cutoff_thres_info, 'cutoff_threshold').text = str(cutoff_threshold)
-    ET.SubElement(cutoff_thres_info, 'annotation_info_loss').text = str(0)
-    # Write the x and y offset into JSON file for future inference usage
-    offset = ET.SubElement(segmented_annotation, 'original_segment_offset_info')
-    # Initiate placeholder first, alter value later
-    ET.SubElement(offset, 'x_min_offset').text = "0"
-    ET.SubElement(offset, 'x_max_offset').text = "0"
-    ET.SubElement(offset, 'y_min_offset').text = "0"
-    ET.SubElement(offset, 'y_max_offset').text = "0"
-
-    # Get coordinate values from segment image name
-    numbers = re.findall(r'\d+', filename)
-    xmin_segment = int(numbers[1])
-    ymin_segment = int(numbers[0])
-    xmax_segment = xmin_segment + segment_width
-    ymax_segment = ymin_segment + segment_height
-    segment_x_coordinates = range(xmin_segment, xmax_segment, 1)
-    segment_y_coordinates = range(ymin_segment, ymax_segment, 1)
 
     # Log file
     log_dict = {'num_of_reject': 0,
                 'num_of_total': 0,}
     
-    # Dictionary of values that we want to mask. Stores a list of x and y values that we will be cutting off
-    mask_dict = {"plane_coordinate_to_mask": [],
-                 "object_coordinates": {},
-                 "mask_object_coordinates": {}}
-    
-    # Check if there's an XML file
+    # Check if there's an XML file, if there isn't, means image is clean, no point running adjusting functions below, go to else.
     if os.path.exists(original_annotation_path):
+
+        # Create a new XML file for the segmented image
+        output_path_for_xml = os.path.join(output_path, gs.change_file_extension(filename, "") + f'_cleaned.xml')
+        segmented_annotation = ET.Element('annotation')
+        ET.SubElement(segmented_annotation, 'folder').text = os.path.dirname(segment_path)
+        ET.SubElement(segmented_annotation, 'filename').text = filename
+        ET.SubElement(segmented_annotation, 'path').text = segment_path
+        source = ET.SubElement(segmented_annotation, 'source')
+        ET.SubElement(source, 'database').text = 'Unknown'
+        size = ET.SubElement(segmented_annotation, 'size')
+        ET.SubElement(size, 'width').text = str(segment_width)
+        ET.SubElement(size, 'height').text = str(segment_height)
+        ET.SubElement(size, 'depth').text = str(segment_depth)
+        cutoff_thres_info = ET.SubElement(segmented_annotation, 'cutoff_threshold_info')
+        ET.SubElement(cutoff_thres_info, 'cutoff_threshold').text = str(cutoff_threshold)
+        ET.SubElement(cutoff_thres_info, 'annotation_info_loss').text = str(0)
+        # Write the x and y offset into JSON file for future inference usage
+        offset = ET.SubElement(segmented_annotation, 'original_segment_offset_info')
+        # Initiate placeholder first, alter value later
+        ET.SubElement(offset, 'x_min_offset').text = "0"
+        ET.SubElement(offset, 'x_max_offset').text = "0"
+        ET.SubElement(offset, 'y_min_offset').text = "0"
+        ET.SubElement(offset, 'y_max_offset').text = "0"
+
+        # Get coordinate values from segment image name
+        numbers = re.findall(r'\d+', filename)
+        xmin_segment = int(numbers[1])
+        ymin_segment = int(numbers[0])
+        xmax_segment = xmin_segment + segment_width
+        ymax_segment = ymin_segment + segment_height
+        segment_x_coordinates = range(xmin_segment, xmax_segment, 1)
+        segment_y_coordinates = range(ymin_segment, ymax_segment, 1)
+
+        # Dictionary of values that we want to mask. Stores a list of x and y values that we will be cutting off
+        mask_dict = {"plane_coordinate_to_mask": [],
+                    "object_coordinates": {},
+                    "mask_object_coordinates": {}}
         # Parse the original annotation XML file
         tree = ET.parse(original_annotation_path)
         root = tree.getroot()
@@ -711,54 +711,66 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                                                                             }
         # Tabulate info loss via find_best_place_to_crop() and multiply it by 100 to transform 0.2 -> 20%
         segment_info_loss = round(100 * find_best_plane_to_crop(), 2)    
+
+        # Update XML file
+        annotation_info_loss = cutoff_thres_info.find('annotation_info_loss')
+        annotation_info_loss.text = str(segment_info_loss) + r"%"
+        
+        # Update log_dict
+        log_dict["segment_info_loss"] = segment_info_loss
+        
+        # Get new coordinates after applying mask plane
+        new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment = find_new_coordinate_to_crop()
+        # Crop the image
+        cropped_img = mask_out_image_by_coordinates(img=segment_img, xmin=new_xmin_of_cropped_segment, xmax=new_xmax_of_cropped_segment, ymin=new_ymin_of_cropped_segment, ymax=new_ymax_of_cropped_segment)
+        # Save the image
+        cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned" + "."+filename.split(".")[-1]), cropped_img)
+
+        # Update cropped coordinates
+        # If x_min = 0, means no cropping was done on the left side
+        # If x_max = segment_width, means no cropping done on right
+        # If y_min = 0, means no crop done on top
+        # If y_max = segment_height, means no crop done at bot
+        x_min_offset = offset.find("x_min_offset")
+        x_min_offset.text = str(new_xmin_of_cropped_segment)
+        x_max_offset = offset.find("x_max_offset")
+        x_max_offset.text = str(new_xmax_of_cropped_segment)
+        y_min_offset = offset.find("y_min_offset")
+        y_min_offset.text = str(new_ymin_of_cropped_segment)
+        y_max_offset = offset.find("y_max_offset")
+        y_max_offset.text = str(new_ymax_of_cropped_segment)
+
+        # Update new image size
+        new_width_size = size.find('width')
+        new_width_size.text = str(new_xmax_of_cropped_segment - new_xmin_of_cropped_segment)
+        new_height_size = size.find('height')
+        new_height_size.text = str(new_ymax_of_cropped_segment - new_ymin_of_cropped_segment)
+
+        # Check if previous annotation of objects is within new offsets, if not, adjust it so that it's within it
+        readjust_annotations(new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment)
+
+        # Check if there is any object in xml, if there is, write an XML file, if not, don't write.
+        has_object_element_questionmark = False
+        for element in segmented_annotation:
+            if element.tag == 'object':
+                has_object_element_questionmark = True
+                break
+
+        # Check if XML structure has <object> elements
+        if has_object_element_questionmark:
+            # Create an XML string with pretty formatting
+            xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='    ')
+
+            # Write the XML string to a file
+            with open(output_path_for_xml, 'w') as f:
+                f.write(xml_string)
     
-    # Else meaning there doesn't exist a corresponding XML file to this segment's image
+    # Else meaning there doesn't exist a corresponding XML file to this segment's image, means it's clean, don't bother running all previous functions
     else:
-        segment_info_loss = 0.0
-
-    # Update XML file
-    annotation_info_loss = cutoff_thres_info.find('annotation_info_loss')
-    annotation_info_loss.text = str(segment_info_loss) + r"%"
-    
-    # Update log_dict
-    log_dict["segment_info_loss"] = segment_info_loss
-    
-    # Get new coordinates after applying mask plane
-    new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment = find_new_coordinate_to_crop()
-    # Crop the image
-    cropped_img = mask_out_image_by_coordinates(img=segment_img, xmin=new_xmin_of_cropped_segment, xmax=new_xmax_of_cropped_segment, ymin=new_ymin_of_cropped_segment, ymax=new_ymax_of_cropped_segment)
-    # Save the image
-    cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned" + "."+filename.split(".")[-1]), cropped_img)
-
-    # Update cropped coordinates
-    # If x_min = 0, means no cropping was done on the left side
-    # If x_max = segment_width, means no cropping done on right
-    # If y_min = 0, means no crop done on top
-    # If y_max = segment_height, means no crop done at bot
-    x_min_offset = offset.find("x_min_offset")
-    x_min_offset.text = str(new_xmin_of_cropped_segment)
-    x_max_offset = offset.find("x_max_offset")
-    x_max_offset.text = str(new_xmax_of_cropped_segment)
-    y_min_offset = offset.find("y_min_offset")
-    y_min_offset.text = str(new_ymin_of_cropped_segment)
-    y_max_offset = offset.find("y_max_offset")
-    y_max_offset.text = str(new_ymax_of_cropped_segment)
-
-    # Update new image size
-    new_width_size = size.find('width')
-    new_width_size.text = str(new_xmax_of_cropped_segment - new_xmin_of_cropped_segment)
-    new_height_size = size.find('height')
-    new_height_size.text = str(new_ymax_of_cropped_segment - new_ymin_of_cropped_segment)
-
-    # Check if previous annotation of objects is within new offsets, if not, adjust it so that it's within it
-    readjust_annotations(new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment)
-
-    # Create an XML string with pretty formatting
-    xml_string = minidom.parseString(ET.tostring(segmented_annotation)).toprettyxml(indent='    ')
-
-    # Write the XML string to a file
-    with open(output_path_for_xml, 'w') as f:
-        f.write(xml_string)
+        # Update log_dict
+        log_dict["segment_info_loss"] = 0.0
+        # Save the image
+        cv2.imwrite(os.path.join(output_path, gs.change_file_extension(filename, "") + "_cleaned" + "."+filename.split(".")[-1]), segment_img)
 
     return log_dict
 
@@ -775,12 +787,12 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
     list_of_images = [i for i in gs.load_images(path_to_dir) if "adjusted" in i]
     
     # Segment up the images
-    # print("Processing images...")
-    # os.chdir(path_to_dir)
-    # for image in tqdm(list_of_images):
-    #     segment_image(image_path=image,
-    #                 segment_size=int(args.segment_size), 
-    #                 overlap_percent=float(args.overlap_portion))
+    print("Processing images...")
+    os.chdir(path_to_dir)
+    for image in tqdm(list_of_images):
+        segment_image(image_path=image,
+                    segment_size=int(args.segment_size), 
+                    overlap_percent=float(args.overlap_portion))
 
     # Segment up the annotation
     print("Processing XML files...")
@@ -911,7 +923,6 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
             log_dict[r"Overall % of reject"] = str(round((total_rejects_for_all_images/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1)) * 100, 2)) + r"%"
             log_dict["Overall total num of passed"] = total_annotation_for_all_images - total_rejects_for_all_images
             log_dict[r"Overall % of passed"] = str(round((total_annotation_for_all_images - total_rejects_for_all_images)/(total_annotation_for_all_images if total_annotation_for_all_images!=0 else 1) * 100, 2)) + r"%"
-            # info_loss_list = [f"{image_name}: {segment_name}" for image_name, image_info in image_stats_dict.items() for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0]
             info_loss_dict = {'{} -> {}'.format(image_name, round(image_info["image's total info loss"], 3)): [f"{segment_name} -> {segment_info['segment_info_loss']}" for segment_name, segment_info in image_info["image's segment info"].items() if segment_info["segment_info_loss"] != 0.0] for image_name, image_info in image_stats_dict.items() if any(segment_info["segment_info_loss"] != 0.0 for segment_info in image_info["image's segment info"].values())}
 
             log_dict["Info loss info"] = {
@@ -921,7 +932,13 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args):
             log_dict["image info"] = image_stats_dict
 
             head, _ = gs.path_leaf(args.root_dir)
-            with open(os.path.join(head, f"busxray_stats_with_{args.cutoff_threshold}_threshold.json"), 'w') as outfile:
+
+            # Get the current datetime
+            current_datetime = datetime.datetime.now()
+            # Format the datetime as a string
+            formatted_datetime = current_datetime.strftime("%d-%m-%Y_%H-%M-%S")
+
+            with open(os.path.join(head, f"busxray_stats_with_{args.cutoff_threshold}_threshold_{formatted_datetime}.json"), 'w') as outfile:
                 json.dump(log_dict, outfile, indent=4)
 
 def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):

@@ -1,12 +1,12 @@
 """
-The script consolidates all the images and txt files from the adjusted folder.
+The script consolidates all the images and txt files from <ROOT_DIR> folder into a new directory specified by <TARGET_DIR>.
 """
 import os, shutil
 import general_scripts as gs
 from tqdm import tqdm
 
-ROOT_DIR = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy"
-TARGET_DIR = r"D:\BusXray\scanbus_training\segmented_master_file_for_both_clean_and_threat_images_dualenergy"
+ROOT_DIR = r"D:\BusXray\scanbus_training\temp"
+TARGET_DIR = r"D:\BusXray\scanbus_training\seg_temp"
 
 # Create the output directory if it does not exist
 if not os.path.exists(TARGET_DIR):

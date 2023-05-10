@@ -1,79 +1,85 @@
+# Clean busxray images
+A pre-processing tool that:
+1. Crops excess black and white space
+2. Segments it via cropping away artefacts with the least information loss
+
+## Usage
 To run the pre-processing on the images. Run the scripts in this order: 
-1) compile_annotations_busxray.py
-2) crop_bus_images.py
-3) segment_bus_images.py
-4) xml2yolo.py (manually go into script and change variable)
-5) consolidate_segmented_files.py (manually go into script and change variable)
+1. ```compile_annotations_busxray.py```
+2. ```crop_bus_images_v2.py```
+3. ```segment_bus_images_v3.py```
+4. ```xml2yolo.py``` (manually go into script and change variable)
+5. ```consolidate_segmented_files.py``` (manually go into script and change variable)
 
 The current folder should contain a "exp" folder which contains sub-folders of each image.
 
 For in-depth explanation of each script, can look below or at the explanation given within the script.
 
-#######################################################################################################################
-To run all one shot, copy and paste below:
+To run both the cropping and segmented function:
+```
 python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome" & python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
-####################################################################################################################### 
+```
+To run `xml2yolo.py` and `consolidate_segmented_files.py`:
 
+Go to each folder and change their respective **<ROOT_DIR>** and **<TARGET_DIR>** variables
 
-1) compile_annotations_busxray.py (run this file only if you need to consolidate all images and annotation into one folder, if such a folder already exist, no need run this)
-Command to run:
-python compile_annotations_busxray.py
+## Detailed explanation
+### 1) compile_annotations_busxray.py
+<span style="font-size: smaller;">Note: Run this file only if you need to consolidate all images and annotation from [exp] folder into one folder, if such a folder already exist, no need run this.</span>
 
-Additional arguments:
---root-dir <root directory>
---target-dir <annotation directory>
+#### Command to run:
+```python compile_annotations_busxray.py```
+[--root-dir /path/to/rootdirectory]
+[--target-dir /path/to/annotationdirectory]
 
-Meaning:
-<root directory>: Path to the subfolders to your images and xml files
-<annotation directory>:  Path to compile the images and xml file in
+##### Meaning
+root directory: Path to the subfolders to your images and xml files  
+annotation directory: Path to compile the images and xml file in
 
-Arguments explanation:
+Arguments explanation:  
 --root-dir: It'll check the folder specified at --root-dir for subfolders. If none is specified, it'll check the "exp" folder.
 --annotation-dir: It'll check and create a new directory specified at --annotation-dir. If none is specified, it'll create a folder called "annotations" at the current directory.
 
-Command examples: 
+Command examples:  
 If you run straight from the thumbdrive:
 python compile_annotations_busxray.py
 If you run from other source:
 python compile_annotations_busxray.py --root-dir "<path to exp>\exp" --annotation-dir "<path to annotations>\annotations"
 
-####################################################################################################################### 
-2) crop_bus_images.py
-Command to run:
-python crop_bus_images.py
+### 2) crop_bus_images.py
+#### Command to run  
+`python crop_bus_images.py`
 
-To display the already cropped images without running the cropping function:
-python crop_bus_images.py --display-only 
+To display the already cropped images without running the cropping function:  
+`python crop_bus_images.py --display-only`
 
-Additional arguments:
---root-dir <root directory>
---target-dir <target directory>
---display-path <image file>
+Additional arguments:  
+[--root-dir /path/to/root directory]  
+[--target-dir /path/to/target directory]  
+[--display-path /path/to/image file]
 
-Meaning:
-<root directory>: Path to the folder containing the compiled images and xml files
-<target directory>:  Path to compile the adjusted images and xml file in
-<image file>: Path to a singular image
+##### Meaning
+root directory: Path to the folder containing the compiled images and xml files.  
+target directory:  Path to compile the adjusted images and xml file in.  
+image file: Path to a singular image.  
 
-Arguments explanation:
---root-dir: It'll check the folder specified at --root-dir for image and xml files. If none is specified, it'll check the "annotations" folder.
---target-dir: It'll check and create a new directory specified at --annotation-dir. If none is specified, it'll create a folder called "annotations_adjusted" at the current directory and store the adjusted image and xml files in there.
---display: an optional argument that can be specified to allow the display of the cropped annotated image after 
-	To use, just include the '--display-only' in, no need to specify any path, it'll take path from --target-dir and display all images there.
---display-path: specifies a singular image file to display after adjustments.
+##### Arguments explanation
+--root-dir: It'll check the folder specified at --root-dir for image and xml files. If none is specified, it'll check the "annotations" folder.  
+--target-dir: It'll check and create a new directory specified at --annotation-dir. If none is specified, it'll create a folder called "annotations_adjusted" at the current directory and store the adjusted image and xml files in there.  
+--display: an optional argument that can be specified to allow the display of the cropped annotated image after.
+    To use, just include the '--display-only' in, no need to specify any path, it'll take path from --target-dir and display all images there.  
+--display-path: specifies a singular image file to display after adjustments.  
 
-Command examples:
-If you run straight from the thumbdrive:
-python crop_bus_images.py
-If you run from other source:
-python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
+##### Command examples
+If you run straight from the thumbdrive:  
+`python crop_bus_images.py`  
+If you run from other source:  
+`python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"`
 
-#######################################################################################################################
-3) segment_bus_images.py
-Command to run:
-python segment_bus_images.py 
+### 3) segment_bus_images.py
+**Command to run:**
 
-Additional arguments:
+**Additional arguments:**
 --root-dir <root directory>
 --overlap-portion <specify float overlap value>
 --segment-size <specify integer pixel size>
@@ -152,10 +158,11 @@ PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_320_cleaned.tiff
 
 Additional information on the try-it-out example file IDs:
 
-ID	time		content													detected							actual_results		remarks
-353 	1125 		clean 													1 x fp (gun)
-354	1138		clean																						
-355	1146		10 cigs													9 cig 1 exp							9TP,1FP			(1 cig detected as exp)
+| ID | time | content | detected | actual_results | remarks |  
+| -- | ---- | ------- | -------- | -------------- | ------- |
+|353 | 1125 |clean    |1 x fp (gun)|              |         |
+|54	 | 1138	|clean||||
+|355	|1146|	10 cigs	|9 cig 1 exp|9TP,1FP|(1 cig detected as exp)|
 356	1212		10 cigs (8 carton, 2 unpacked)									3 cig								3TP,7FN	
 357	1257		10 cigs, cigs same as 356, 5 guns on aisle, 2 rear seats	(G GL T ASG SMG SG M4), 1 human	1 cig 1 human				2TP, 15FN	
 358	1343		4 cigs (3 carton, 1 unpacked) yong chun knives and drugs in back storage		3 guns 1 human 4 knives 1 drug 1 exp		...
