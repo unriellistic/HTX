@@ -1,1 +1,0 @@
-the alp folder contains all the scripts I used while working on the various tasks. Also includes the exploration/cleaning of all the tasks.
