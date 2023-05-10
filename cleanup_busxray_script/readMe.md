@@ -53,7 +53,7 @@ python compile_annotations_busxray.py --root-dir "<path to exp>\exp" --annotatio
 To display the already cropped images without running the cropping function:  
 `python crop_bus_images.py --display-only`
 
-Additional arguments:  
+**Additional arguments:**  
 [--root-dir /path/to/root directory]  
 [--target-dir /path/to/target directory]  
 [--display-path /path/to/image file]
@@ -64,17 +64,19 @@ target directory:  Path to compile the adjusted images and xml file in.
 image file: Path to a singular image.  
 
 ##### Arguments explanation
---root-dir: It'll check the folder specified at --root-dir for image and xml files. If none is specified, it'll check the "annotations" folder.  
---target-dir: It'll check and create a new directory specified at --annotation-dir. If none is specified, it'll create a folder called "annotations_adjusted" at the current directory and store the adjusted image and xml files in there.  
---display: an optional argument that can be specified to allow the display of the cropped annotated image after.
+`--root-dir`: It'll check the folder specified at --root-dir for image and xml files. If none is specified, it'll check the "annotations" folder.  
+`--target-dir`: It'll check and create a new directory specified at --annotation-dir. If none is specified, it'll create a folder called "annotations_adjusted" at the current directory and store the adjusted image and xml files in there.  
+`--display`: an optional argument that can be specified to allow the display of the cropped annotated image after.
     To use, just include the '--display-only' in, no need to specify any path, it'll take path from --target-dir and display all images there.  
---display-path: specifies a singular image file to display after adjustments.  
+`--display-path`: specifies a singular image file to display after adjustments.  
 
 ##### Command examples
 If you run straight from the thumbdrive:  
 `python crop_bus_images.py`  
 If you run from other source:  
-`python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"`
+```
+python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
+```
 
 ### 3) segment_bus_images.py
 **Command to run:**
@@ -107,9 +109,9 @@ If you want to change overlap size:
 python segment_bus_images.py --overlap-portion 0.2
 -> reduce overlap from 50% to 20%
 
-After generating the try-it-out example thumbdrive:
-Should have 34 files in a folder called "annotations", consist of 17 jpg, and 17 xml.
-Should have 51 items in a fodler called "annotations_adjusted", consist of 34 files (17 jpg, 17 xml) and 17 folders, and each folder contains divided segments in 640x640 images with 320 increment.
+**After generating the try-it-out example thumbdrive:**  
+Should have 34 files in a folder called "annotations", consist of 17 jpg, and 17 xml.  
+Should have 51 items in a fodler called "annotations_adjusted", consist of 34 files (17 jpg, 17 xml) and 17 folders, and each folder contains divided segments in 640x640 images with 320 increment.  
 	E.g. in adjusted_355_annotated_segment:
 	segment_0_0.jpg, segment_0_320.jpg, segment_0_640.jpg, ..., segment_0_1999.jpg,
 	segment_320_0.jpg, segment_320_320.jpg, segment_320_640.jpg, ..., segment_320_1999.jpg,
@@ -119,16 +121,16 @@ Should have 51 items in a fodler called "annotations_adjusted", consist of 34 fi
 	segment_960_0.jpg, segment_960_320.jpg, segment_960_640.jpg, ..., segment_960_1999.jpg,
 	segment_1150_0.jpg, segment_1150_320.jpg, segment_1150_640.jpg, ..., segment_1150_1999.jpg,
 
-Correct results:
-for 1832:
+**Correct results:**  
+for 1832:  
 adjusted_1832_annotated_segmented": {
             "image's total annotation": 42,
             "image's total reject": 6,
             "image's total info loss": 0.0,
             "image's segment info": { ...
-			}
+			}  
 
-for 1833:
+for 1833:  
 adjusted_1833_annotated_segmented": {
             "image's total annotation": 82,
             "image's total reject": 17,
@@ -138,10 +140,9 @@ adjusted_1833_annotated_segmented": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
                     "info_loss": 56.99
-			}
-#######################################################################################################################
-4) xml2yolo.py
-Command to run:
+			}  
+### 4) xml2yolo.py
+**Command to run:**  
 Open up script, change variable "ROOT_DIR" to the correct directory. It'll recursively search into all sub-folders in ROOT_DIR and create a converted copy of the XML file into txt, and store it in the same directory where it was found.
 
 #######################################################################################################################

@@ -5,8 +5,8 @@ import os, shutil
 import general_scripts as gs
 from tqdm import tqdm
 
-ROOT_DIR = r"D:\BusXray\scanbus_training\temp"
-TARGET_DIR = r"D:\BusXray\scanbus_training\seg_temp"
+ROOT_DIR = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
+TARGET_DIR = r"D:\BusXray\scanbus_training\segmented_master_file_for_both_clean_and_threat_images_monochrome"
 
 # Create the output directory if it does not exist
 if not os.path.exists(TARGET_DIR):
