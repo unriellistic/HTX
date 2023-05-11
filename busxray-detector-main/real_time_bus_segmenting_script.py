@@ -45,9 +45,9 @@ class ImageProcessor:
 
         # Nothing is cropped at the start
         self.image_dict = {"cropped_coordinates": {"xmin": 0,
-                                                  "xmax": 0,
+                                                  "xmax": self.original_image.shape[1],
                                                   "ymin": 0,
-                                                  "ymax": 0}}
+                                                  "ymax": self.original_image.shape[0]}}
         self.segment_image_info = {}
 
     # Define function to store the cropped coordinates
@@ -230,6 +230,11 @@ class ImageProcessor:
         # Get the height and width of the image
         height, width = img.shape[:2]
 
+        # Check if segment size specified is within height/width of image
+        if segment_size > min(width, height):
+            segment_size = min(width, height)
+            print(f"Segment size larger than image's dimension. Changing segment_size to be {segment_size}")
+        
         # Calculate the number of rows and columns required to segment the image
         overlap_pixels = int(segment_size * overlap_percent)
         segment_stride = segment_size - overlap_pixels
@@ -255,7 +260,7 @@ class ImageProcessor:
                 segment = img[y_start:y_end, x_start:x_end]
                 self.segment_image_info['segment_{}_{}'.format(y_start + self.image_dict["cropped_coordinates"]["ymin"], x_start + self.image_dict["cropped_coordinates"]["xmin"])] = segment
 
-    def get_segment_info(self):
+    def get_segment_cv2_info(self):
         """
         Helper function that returns the dict segment_image_info dictionary. 
         Key contains the segment name, segment_0_0 means the image was taken from the xmin=0, ymin=0 portion of the cropped image.

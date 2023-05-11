@@ -92,6 +92,11 @@ def segment_image(image_path, segment_size, overlap_percent):
     # Get the height and width of the image
     height, width = img.shape[:2]
 
+    # Check if segment size specified is within height/width of image
+    if segment_size > min(width, height):
+        segment_size = min(width, height)
+        print(f"Segment size larger than image's dimension. Changing segment_size to be {segment_size}")
+
     # Calculate the number of rows and columns required to segment the image
     overlap_pixels = int(segment_size * overlap_percent)
     segment_stride = segment_size - overlap_pixels
