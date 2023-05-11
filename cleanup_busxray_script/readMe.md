@@ -1,19 +1,63 @@
 # Clean busxray images
-A pre-processing tool that:
-1. Crops excess black and white space
-2. Segments it via cropping away artefacts with the least information loss
+**Pre-processing tool for segmenting images**
+## About
+A pre-processing tool that contains several functions:
+1. Compile files from exp folder
+2. Crops excess black and white space
+3. Segments big image into smaller images (segments)
+4. Compiles segmented images and it's respective labels into `train/test/val` folder
 
 ## Usage
 To run the pre-processing on the images. Run the scripts in this order: 
-1. ```compile_annotations_busxray.py```
-2. ```crop_bus_images_v2.py```
-3. ```segment_bus_images_v3.py```
-4. ```xml2yolo.py``` (manually go into script and change variable)
-5. ```consolidate_segmented_files.py``` (manually go into script and change variable)
+1. `compile_annotations_busxray.py` (Optional: To compile files from exp folder)
+2. `crop_bus_images_v2.py` (Optional: To crop away excess black and white space)
+3. `segment_bus_images_v3.py`
+4. `convert_and_organise_files.py`
 
-The current folder should contain a "exp" folder which contains sub-folders of each image.
+The current folder should contain a "exp" folder which contains sub-folders in a running order, and each subfolder contains a copy of the image and it's label in Pascal VOC format (.xml files).
 
 For in-depth explanation of each script, can look below or at the explanation given within the script.
+
+### 1. Compile files from exp folder
+If images and labels are already compiled into a single folder, skip this step.
+
+To run the `compile_annotations_busxray.py` script:
+```
+python compile_annotations_busxray.py --root-dir /path/to/exp/folder --target-dir /path/to/new/folder
+```
+*Note: The image and corresponding label must have `annotated` in their name. The script finds the `annotated` keyword and copies to `--target-dir`.  Look for `if "annotated" in file:`*
+
+### 2. Crops excess black and white space
+If not necessary to crop images, skip this step.
+
+To run the `crop_bus_images_v2.py` script:
+```
+python crop_bus_images_v2.py --root-dir-images path/to/images --root-dir-annotations path/to/annotations --target-dir path/to/new/folder
+```
+*Note: This function is designed for busxray images only. To customise it for other domains, look at code for more details*
+
+Optional arguments:
+|Parameter|Default|Description|
+|---------|-------|-----------|
+|--recursive-search|False|if true, will search both image and root dir recursively.|
+|--store|False|if true, will save both image and root dir in the directory found at|
+|--display|False|if true, it displays the all annotated images in the `--target-dir` after the script finishes running|
+|--display-path||specify path to display a single image file|
+
+**Parameter `--recursive-search`**
+When `--recursive-search` is inputted, script will search recursively into all the subdirs The `labels` can be in different folders from the `images`, but the path structure will have to be identical to image path structure.
+
+Example:  
+|image folder directory|label folder directory|Correct or Wrong|
+|----------------------|----------------------|----------------|
+|images/01/01_annotated.jpg|labels/01/01_annotated.xml|Correct. Same subdirectory path. <image/label>/01/<image/label> |
+|images/01/01_annotated.jpg|labels/02/01_annotated.xml|Wrong. Different subdirectory path. 01 != 02. <image/label>/**01**/<image/label>|
+|images/02/01_annotated.jpg|labels/02/01_annotated.xml|Correct. Same <image/label>/02/<image/label> subdirectory path|
+|images/02/abc/01_annotated.jpg|labels/02/abc/01_annotated.xml|Correct. Same <image/label>/02/abc/<image/label> subdirectory path|
+|images/02/abc/01_annotated.jpg|labels/02/abc/02_annotated.xml|Wrong. Different label file name. labels/02/abc/0**2**_annotated.xml|
+
+### 3. Segments big image into smaller images (segments)
+This function segments images into segments and adjusts the Pascal VOC annotation file relative to the segments. Additionally, it also crops out features that have a total area less than the threshold limit set, while ensuring minimal information loss.
 
 To run both the cropping and segmented function:
 ```
