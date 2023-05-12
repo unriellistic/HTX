@@ -79,6 +79,7 @@ The third gun object had no change to it's `xmin`, but had a change to the `ymin
 During the segmentation process, sometimes one part of the image contains a very tiny bounding box from an object.
 
 E.g.
+![diagram for explaining cleaning function](https://github.com/AlphaeusNg/HTX/assets/78588510/742a52c5-5b43-43ee-bdb0-5be20157b0bb)
 
 Additionally, it also crops out features that have a total area less than the threshold limit set, while ensuring minimal information loss.
 
