@@ -26,9 +26,11 @@ A place to store common functions:
 
 import os
 from pathlib import Path
+from typing import Union, Tuple
 from tqdm import tqdm
 
-def load_images(path_to_images, file_type="all", recursive=False):
+
+def load_images(path_to_images: Union[str, Path], file_type: str="all", recursive: bool=False) -> list:
     """
     Function returns a list of full paths to images found in the path_to_image user specify.
 
@@ -102,7 +104,7 @@ def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=Fa
 
 
 
-def change_file_extension(filename, new_file_extension):
+def change_file_extension(filename: Union[str, Path], new_file_extension:str) -> str:
     """
     Function that replaces file extension names.
 
@@ -130,7 +132,7 @@ def change_file_extension(filename, new_file_extension):
     return filename
 
 import ntpath # Rename path variables
-def path_leaf(path):
+def path_leaf(path: Union[str, Path]) -> Tuple[Union[str, Path], str]:
     """
     Function that returns the path that leads to the filename, and the filename itself.
     Args:
