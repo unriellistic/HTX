@@ -69,9 +69,6 @@ from tqdm import tqdm
 import json # For tracking of stats
 import datetime # To save filename dynamically
 
-# A constant thres variable for special items
-CUTOFF_THRES_FOR_SPECIAL_ITEMS = 0.1 # 0.1 stands for 10%. To adjust the acceptable threshold for special items.
-
 def segment_image(image_path, segment_size, overlap_percent):
     """
     Segments an image of any dimension into pieces of specified by <segment_size>,
@@ -131,7 +128,7 @@ def segment_image(image_path, segment_size, overlap_percent):
             cv2.imwrite(segment_path, segment)
 
 
-def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation_path, output_path, cutoff_threshold, special_items):
+def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation_path, output_path, cutoff_threshold, special_items, special_items_threshold):
     """
     Adjusts the Pascal VOC annotation standard for an image segment.
 
@@ -683,7 +680,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                 original_area = calculate_size_of_area(xmin=xmin_original, xmax=xmax_original, ymin=ymin_original, ymax=ymax_original)
 
                 # Check if annotation is above threshold, or if annotation is in special_items and above 10% threshold. If either, create annotation for it.
-                if ((adjusted_area/original_area) >= float(cutoff_threshold)) or (any(object_name.text == item for item in special_items) and (adjusted_area/original_area) >= CUTOFF_THRES_FOR_SPECIAL_ITEMS):
+                if ((adjusted_area/original_area) >= float(cutoff_threshold)) or (any(object_name.text == item for item in special_items) and (adjusted_area/original_area) >= special_items_threshold):
                     # Store annotation in XML file
                     create_new_object_annotation(xmin_adjusted, ymin_adjusted, xmax_adjusted, ymax_adjusted)
 
@@ -779,7 +776,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
 
     return log_dict
 
-def bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir, args_segment_size, args_overlap_portion, args_cutoff_threshold, args_special_items):
+def bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir, args_segment_size, args_overlap_portion, args_cutoff_threshold, args_special_items, args_special_items_threshold):
     """
     Function does analysis on a dir folder that contains the adjusted image and XML files. 
     It creates a folder for each image and segments it up, readjusting the annotation XML file and tabulates the information loss with the given threshold.
@@ -885,7 +882,8 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir, args_
                                                     original_annotation_path=os.path.join(root, name_of_original_xml_file),
                                                     output_path=os.path.join(root, subdir),
                                                     cutoff_threshold=args_cutoff_threshold,
-                                                    special_items=args_special_items)
+                                                    special_items=args_special_items,
+                                                    special_items_threshold=args_special_items_threshold)
                         
                 # Tabulate total statistics for single image
                 total_rejects_for_one_image = 0
@@ -982,12 +980,7 @@ if __name__ == "__main__":
     parser.add_argument("--segment-size", help="size of each segment", default=640)
     parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
     parser.add_argument("--special-items", help="a list of string items to supercede the threshold set", default=['cig', 'human'])
-    
-    # uncomment below if want to debug in IDE
-    # import sys
-    # Manually set the command-line arguments for debugging
-    # sys.argv = ['segment_bus_images_v3.py', '--root-dir', r"D:\leann\busxray_woodlands\annotations_adjusted", '--overlap-portion', "0.5", '--cutoff-threshold', "0.3"]
-
+    parser.add_argument("--special-items-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.1)
     args = parser.parse_args()
 
     # Get path to directory
@@ -1003,7 +996,8 @@ if __name__ == "__main__":
                                                             args_overlap_portion=args.overlap_portion,
                                                             args_cutoff_threshold=args.cutoff_threshold,
                                                             args_segment_size=args.segment_size,
-                                                            args_special_items=args.special_items)
+                                                            args_special_items=args.special_items,
+                                                            args_special_items_threshold=args.special_items_threshold)
     
     # For individual folder testing, uncomment if applicable.
     """
