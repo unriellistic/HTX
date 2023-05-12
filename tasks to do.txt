@@ -1,7 +1,4 @@
 - word doc for hscode
-- pptx for tuas trial (done on tues)
-- Then finish up the check_filename_and_copy_over... script, I think the main bulk of logic is coded in, just need to test it out. (done on tues)
-- There are some images that wasn't cropped properly, need to figure out why it's so.
 - Perform pre-processing for monochrome images
 	+ 3/5/2023
 	+ Performed it fully through once, haven't checked yet.
@@ -14,6 +11,8 @@
 	+ Fixed bug, YOLO conversion used width and height of xml, but that wasn't updated.
 	+ Fixed bug, added checking for annotation that has been completely removed by cropping.
 
-- Understand the current data class split information
-	+ The data split between train/test/val, based off it's bus model and class.
+Create inference for busxray
+	+ 11/5/23
+	+ Trying to understand what image input TridentNetPredictor takes in, current predictions are way off 640x640, up to 1700. Trying to see whether I can access the image scaling it uses (or if it even scales for this, but if not then why is the prediction so off?)
+
 

@@ -4,7 +4,7 @@
 A pre-processing tool that contains several functions:
 1. Compile files from exp folder
 2. Crops excess black and white space
-3. Segments big image into smaller images (segments)
+3. Segmenting big image into smaller images (segments)
 4. Compiles segmented images and it's respective labels into `train/test/val` folder
 
 ## Usage
@@ -44,8 +44,8 @@ Optional arguments:
 |--display|False|if true, it displays the all annotated images in the `--target-dir` after the script finishes running|
 |--display-path||specify path to display a single image file|
 
-**Parameter `--recursive-search`**
-When `--recursive-search` is inputted, script will search recursively into all the subdirs The `labels` can be in different folders from the `images`, but the path structure will have to be identical to image path structure.
+**Parameter `--recursive-search`**  
+When `--recursive-search` is inputted, script will search recursively into all the subdirs specified at `--root-dir-images` and `--root-dir-annotations`. The `labels` can be in different folders from the `images`, but the path structure will have to be identical to image path structure.
 
 Example:  
 |image folder directory|label folder directory|Correct or Wrong|
@@ -56,8 +56,12 @@ Example:
 |images/02/abc/01_annotated.jpg|labels/02/abc/01_annotated.xml|Correct. Same <image/label>/02/abc/<image/label> subdirectory path|
 |images/02/abc/01_annotated.jpg|labels/02/abc/02_annotated.xml|Wrong. Different label file name. labels/02/abc/0**2**_annotated.xml|
 
-### 3. Segments big image into smaller images (segments)
-This function segments images into segments and adjusts the Pascal VOC annotation file relative to the segments. Additionally, it also crops out features that have a total area less than the threshold limit set, while ensuring minimal information loss.
+### 3. Segmenting big image into smaller images (segments)
+This function segments images into segments and adjusts the Pascal VOC annotation file relative to the segments.  
+e.g. Notice the change in the label coordinates before and after segmentation:   
+![diagram of segmenting]("diagram of segmenting process.jpg")
+
+Additionally, it also crops out features that have a total area less than the threshold limit set, while ensuring minimal information loss.
 
 To run both the cropping and segmented function:
 ```
