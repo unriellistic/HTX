@@ -61,21 +61,11 @@ To run the segmenting script:
 ```
 python segment_bus_images_v3.py --root-dir path/to/root/dir
 ```
-Optional arguments:
-|Parameter|Default|Description|
-|---------|-------|-----------|
-|--overlap-portion|0.5|the amount in fraction of each segment that should overlap adjacent segments. From 0 to 1.|
-|--segment-size|640|size of each square segment in pixel width.|
-|--cutoff-threshold|0.3|`cutoff threshold` to determine whether to exclude annotation that has an area less than `cutoff threshold` of it's original size from the new segment|
-|--special-items|['cig', 'human']|a list of string items to supercede the threshold set.|
-|--special-items-threshold|0.1|`special item thres` to determine whether to exclude annotation that has an area less than `special item thres` of it's original size from the new segment|
+There's two main functions being performed in this script:
 
-**Parameter `--recursive-search`**  
-When `--recursive-search` is inputted, script will search recursively into all the subdirs specified at `--root-dir-images` and `--root-dir-annotations`. The `labels` can be in different folders from the `images`, but the path structure will have to be identical to image path structure.
+#### Segmenting + Pascal VOC adjustment
+This function segments images into segments and adjusts the [Pascal VOC annotation](https://albumentations.ai/docs/getting_started/bounding_boxes_augmentation/#pascal_voc) file relative to the segments.
 
-
-
-This function segments images into segments and adjusts the [Pascal VOC annotation](https://albumentations.ai/docs/getting_started/bounding_boxes_augmentation/#pascal_voc) file relative to the segments. 
 e.g. Notice the change in the label coordinates before and after segmentation:   
 ![diagram of segmenting](https://github.com/AlphaeusNg/HTX/assets/78588510/9558146a-a2ea-4849-9813-11901fb0c9ee)
 
@@ -85,7 +75,44 @@ The second sword object had a change in it's `xmin`. Previously it was `130` sin
 
 The third gun object had no change to it's `xmin`, but had a change to the `ymin`. Was at the far-bottom in the original image, but is now flushed to the top in the segmented image.
 
+#### Cleaning up image artefacts
+During the segmentation process, sometimes one part of the image contains a very tiny bounding box from an object.
+
+E.g.
+
 Additionally, it also crops out features that have a total area less than the threshold limit set, while ensuring minimal information loss.
+
+Optional arguments:
+|Parameter|Default|Description|
+|---------|-------|-----------|
+|--overlap-portion|0.5|the amount in fraction of each segment that should overlap adjacent segments. From 0 to 1.|
+|--segment-size|640|size of each square segment in pixel width.|
+|--cutoff-threshold|0.3|`cutoff threshold` to determine whether to exclude annotation that has an area less than `cutoff threshold` of it's original size from the new segment|
+|--special-items|['cig', 'human']|a list of string items to supercede the threshold set.|
+|--special-items-threshold|0.1|`special item thres` to determine whether to exclude annotation that has an area less than `special item thres` of it's original size from the new segment|
+
+**Parameter `--cutoff-threshold`**  
+Can experiment with the `threshold value` to see which results in the least information loss while maximising model performance.
+
+**Parameter `--special-items`**  
+The items that are to be included in this parameter consist of classes that have features that are highly distinctive even if majority of the object is cut out. And thus, it would still be highly recognisable by the model even if a small percentage of the object is shown.
+
+**Parameter `--special-items-threshold`**  
+Can experiment with the special items `threshold value` to see which results in the least information loss while maximising model performance.
+
+### 4. Compiles segmented images and it's respective labels into `train/test/val` folder
+To run the compiling and organising script:
+```
+python convert_and_organise_files.py --root-dir path/to/segmented/files
+```
+Optional arguments:
+|Parameter|Default|Description|
+|---------|-------|-----------|
+|--train|0.8|value for train folder split.|
+|--test|0.1|value for test folder split.|
+|--valid|0.1|value for validation folder split.|
+|--seed|42|value for randomiser seed.|
+
 
 To run both the cropping and segmented function:
 ```
