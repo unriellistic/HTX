@@ -59,7 +59,7 @@ Example:
 ### 3. Segmenting big image into smaller images (segments)
 This function segments images into segments and adjusts the Pascal VOC annotation file relative to the segments.  
 e.g. Notice the change in the label coordinates before and after segmentation:   
-![diagram of segmenting]("diagram of segmenting process.jpg")
+![diagram of segmenting](https://github.com/AlphaeusNg/HTX/assets/78588510/9558146a-a2ea-4849-9813-11901fb0c9ee)
 
 Additionally, it also crops out features that have a total area less than the threshold limit set, while ensuring minimal information loss.
 
