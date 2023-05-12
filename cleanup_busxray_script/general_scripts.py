@@ -1,11 +1,11 @@
 """
 A place to store common functions:
-- load_images: Loading all images from a directory
-    - function: def load_images(folder, file_type="all"):
+- load_files: Loading all images from a directory
+    - function: def load_files(folder, file_type="images"):
     - e.g. To load all image file type:
-        load_images(<filepath_to_folder>, file_type="all")
+        load_files(<filepath_to_folder>, file_type="images")
     - e.g. To load only png file type:
-        load_images(<filepath_to_folder>, file_type=[".png"])
+        load_files(<filepath_to_folder>, file_type=[".png"])
 
 - save_to_excel: saves information to an excel file in the current directory
     - function: def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=False):
@@ -21,40 +21,45 @@ A place to store common functions:
     - e.g. change_file_extension("xray_scan.tiff", ".jpg")
 
 @author: alp
-@last modified: 2/5/23 11:27am
+@last modified: 12/5/23 4:38pm
 """
 
 import os
 from pathlib import Path
 from typing import Union, Tuple
-from tqdm import tqdm
 
 
-def load_images(path_to_images: Union[str, Path], file_type: str="all", recursive: bool=False) -> list:
+def load_files(path_to_files: Union[str, Path], file_type: str="images", recursive: bool=False) -> list:
     """
     Function returns a list of full paths to images found in the path_to_image user specify.
 
     Args:
-        path_to_images: A path variable that contains the full path to the directory of interest, which contains images. 
-        file_type: A tuple or a string that specifies what file type to look for. e.g. (".jpg", ".tiff") or ".jpg". Default = "all"
+        path_to_files: A path variable that contains the full path to the directory of interest, which contains images. 
+        file_type: A tuple or a string that specifies what file type to look for. e.g. (".jpg", ".tiff") or ".jpg". Default = "images"
         recursive: A boolean variable that specifies whether the function should look recursively into each folder in the directory specified. default=False
         exclude_string: A string variable that specifies the pattern of string to avoid collecting
 
     Returns:
         images: A list containing the full paths to the images.
     """
-    p = str(Path(path_to_images).absolute())  # os-agnostic absolute path
+    p = str(Path(path_to_files).absolute())  # os-agnostic absolute path
 
     images_path = []
     list_of_image_file_format = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')
 
-    def check_if_file_is_an_image(path_to_images):
-        if file_type == "all":
-            if path_to_images.lower().endswith(list_of_image_file_format) and path_to_images is not None:
-                images_path.append(path_to_images)
-        else:    
-            if path_to_images.lower().endswith(file_type) and path_to_images is not None:
-                images_path.append(path_to_images)
+    def check_if_file_is_an_image(path_to_files):
+        # Append only images
+        if file_type == "images":
+            if path_to_files.lower().endswith(list_of_image_file_format) and path_to_files is not None:
+                images_path.append(path_to_files)
+        # Append every file type
+        elif file_type == "all":
+            if path_to_files is not None:
+                images_path.append(path_to_files)
+        # Append specific file type
+        else:
+            if path_to_files.lower().endswith(file_type) and path_to_files is not None:
+                images_path.append(path_to_files)
                 
     # Checks if path specified is a file, folder, or a directory of subdirectories
     if os.path.isfile(p):

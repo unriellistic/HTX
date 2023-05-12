@@ -15,7 +15,7 @@ SCAN_BUS_DATASET_DIR_IMAGE = r"D:\BusXray\scanbus_training\scanbus_training_4_da
 SCAN_BUS_DATASET_DIR_LABEL = r"D:\BusXray\scanbus_training\scanbus_training_4_dataset\labels"
 
 # identify all the files in the scanbus_dataset
-dataset_files = gs.load_images(path_to_images=SCAN_BUS_DATASET_DIR_IMAGE, file_type=('jpg', '.tiff'), recursive=True)
+dataset_files = gs.load_files(path_to_files=SCAN_BUS_DATASET_DIR_IMAGE, file_type=('jpg', '.tiff'), recursive=True)
 
 # Gather segmented file name
 segmented_file_name = [item[item.find('_')+1:item.rfind('_')] for item in os.listdir(SEGMENTED_DIR)]
@@ -45,9 +45,9 @@ for file in tqdm(dataset_files):
     else:
         if "Dual" in filename:
             # Get the path to all the segmented images in the segmented image folder. Excluding the annotations.
-            temp_files = gs.load_images(path_to_images=os.path.join(SEGMENTED_DIR, f"adjusted_{base_filename} Monochrome_segmented"), file_type="all")
+            temp_files = gs.load_files(path_to_files=os.path.join(SEGMENTED_DIR, f"adjusted_{base_filename} Monochrome_segmented"), file_type="images")
         elif "final" in filename:
-            temp_files = gs.load_images(path_to_images=os.path.join(SEGMENTED_DIR, f"adjusted_{base_filename}temp_image_low_segmented"), file_type="all")
+            temp_files = gs.load_files(path_to_files=os.path.join(SEGMENTED_DIR, f"adjusted_{base_filename}temp_image_low_segmented"), file_type="images")
         clean_folder = False
         # Check if name of folder has clean in it, if it does, then perform copying for all images in folder
         if "clean" in base_filename:

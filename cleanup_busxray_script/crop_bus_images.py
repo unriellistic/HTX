@@ -438,7 +438,7 @@ if __name__ == '__main__':
     # If user didn't specify display, just perform cropping without displaying
     if not args.display_path or not args.display:
         # Load images from folder
-        images = gs.load_images(path_to_root_dir_images, recursive=args.recursive_search, file_type="all")
+        images = gs.load_files(path_to_root_dir_images, recursive=args.recursive_search, file_type="images")
         # Create the output directory if it does not exist
         if args.store==False and not os.path.exists(path_to_target_dir):
             os.makedirs(path_to_target_dir)

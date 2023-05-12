@@ -9,10 +9,10 @@ A pre-processing tool that contains several functions:
 
 ## Usage
 To run the pre-processing on the images. Run the scripts in this order: 
-1. `compile_annotations_busxray.py` (Optional: To compile files from exp folder)
-2. `crop_bus_images_v2.py` (Optional: To crop away excess black and white space)
-3. `segment_bus_images_v3.py`
-4. `convert_and_organise_files.py`
+1. `python compile_annotations_busxray.py` (Optional: To compile files from exp folder)
+2. `python crop_bus_images_v2.py` (Optional: To crop away excess black and white space)
+3. `python segment_bus_images_v3.py`
+4. `python convert_and_organise_files.py`
 
 The current folder should contain a "exp" folder which contains sub-folders in a running order, and each subfolder contains a copy of the image and it's label in Pascal VOC format (.xml files).
 
@@ -235,59 +235,60 @@ labels
 ```
 There'll be 3 subdirs in `images` and `labels` each containing randomly splitted data.
 
+**Breakdown of script function**
+
+The `convert_and_organise_files.py` script calls these other script:
+
+`xml2yolo.py`: Converts .xml files into .txt files (YOLO format). It'll recursively search into all sub-folders in ROOT_DIR and create a converted copy of the XML file into txt, and store it in the same directory where it was found.  
+`consolidate_segmented_files.py`: It'll recursively search into all sub-folders in ROOT_DIR and copy over the files that have "cleaned" in the name into the new TARGET_DIR, while renaming the image and label files to their respective original images.  
+*Example:*
+
+For files:  
+1. adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented//segment_0_0_cleaned.tiff  
+2. adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented//segment_0_320_cleaned.tiff  
+3. adjusted_&lt;image_name&gt;_segmented//segment_640_320_cleaned.jpg
+4. adjusted_&lt;image_name&gt;_segmented//segment_640_320_cleaned.txt
+
+it becomes:  
+1. PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_0_cleaned.tiff  
+2. PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_320_cleaned.tiff  
+3. &lt;image_name&gt;_segment_640_320_cleaned.jpg  
+4. &lt;image_name&gt;_segment_640_320_cleaned.txt
+
 ## Run everything together
 
 To run the default arguments in `compile_annotations_busxray.py`, `crop_bus_images_v2.py`, `segment_bus_images_v3.py`, and `convert_and_organise_files.py` together:
 
-Navigate to folder containing the `exp folder` + the `scripts` and run:
+Navigate to folder containing the *exp folder* and the *scripts* and run:
 ```
 python compile_annotations_busxray.py & python crop_bus_images_v2.py & python segment_bus_images_v3.py & convert_and_organise_files.py
 ```
 
-### 4) xml2yolo.py
-**Command to run:**  
-Open up script, change variable "ROOT_DIR" to the correct directory. It'll recursively search into all sub-folders in ROOT_DIR and create a converted copy of the XML file into txt, and store it in the same directory where it was found.
+## Additional Information on try-it-out examples:
 
-#######################################################################################################################
-5) consolidate_segmented_files.py
-Command to run:
-Open up script, change variable "ROOT_DIR" to the correct directory and "TARGET_DIR" to the new directory you want to store it in. It'll recursively search into all sub-folders in ROOT_DIR and copy over the files that have "cleaned" in the name into the new TARGET_DIR, while renaming the image and label files to their respective original images.
-E.g. 
-adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented -> segment_0_0_cleaned.tiff
-adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented -> segment_0_320_cleaned.tiff
-becomes
-PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_0_cleaned.tiff
-PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_320_cleaned.tiff
-
-
-Additional information on the try-it-out example file IDs:
-
-| ID | time | content | detected | actual_results | remarks |  
-| -- | ---- | ------- | -------- | -------------- | ------- |
-|353 | 1125 |clean    |1 x fp (gun)|              |         |
-|54	 | 1138	|clean||||
-|355	|1146|	10 cigs	|9 cig 1 exp|9TP,1FP|(1 cig detected as exp)|
-356	1212		10 cigs (8 carton, 2 unpacked)									3 cig								3TP,7FN	
-357	1257		10 cigs, cigs same as 356, 5 guns on aisle, 2 rear seats	(G GL T ASG SMG SG M4), 1 human	1 cig 1 human				2TP, 15FN	
-358	1343		4 cigs (3 carton, 1 unpacked) yong chun knives and drugs in back storage		3 guns 1 human 4 knives 1 drug 1 exp		...
-359	1416		cigs, 2 fongyun, 1 yong chun										1 human 1 knive						...
-360	1441		guns (ASG SG M4 GL), fongyun sword, drug, cigs							1 human 5 knives 1 exp
-
-
-ID 	time		content													detected							actual_results		remarks
-1830	1059		clean														3 gunss, 1 knives
-1831	1106		clean														1 guns, 1 knives
-1832	1119		6 guns, 1 cig, 1 drug											1 knives
-1833	1131		6 guns, 2 knives, 1 cig, 1 drug, 1 human								3 cigs, 7 guns
-1834	1150		6 guns, 2 knives, 2 cig, 1 drug, 1 human								2 cigs, 5 guns, 1 human, 1 knives
-1835	1209		6 guns, 3 knives, 2 cig, 1 drug, 1 human								7 guns, 1 human, 2 knives, 1 drugs
-1836	1227		6 guns, 4 knives, 1 cig, 1 drug, 1 human								3 cigs, 4 guns, 1 human, 1 exp
-1837	1246		6 guns, 3 knives, 1 cig, 1 drug, 1 human								6 guns, 1 human, 2 knives
-1838	1328		6 guns, 3 knives, 2 cig, 1 drug									7 guns
-1839	1347		6 guns, 1 knives, 1 drug, 5 cig									5 cigs, 7 guns
-1840	1411		6 guns, 1 knives, 1 drug, 1 cig									4 guns
-1841	duplicate of 1840
-1842	1435		6 guns, 1 drug, 1 cig, 1 human									4 gunss, 1 knives, 1 drugs, 1 exp
-1843	1453		6 guns, 1 drug, 1 cig, 1 human									4 guns, 2 knives
+|ID|time|content|detected|actual_results|remarks|  
+|--|----|-------|--------|--------------|-------|
+|353|1125|clean|1 x fp (gun)|||
+|54|1138|clean|
+|355|1146|10 cigs	|9 cig 1 exp|9TP,1FP|(1 cig detected as exp)|
+|356|1212|10 cigs (8 carton, 2 unpacked)|3 cig|3TP,7FN|
+|357|1257|10 cigs|cigs same as 356, 5 guns on aisle, 2 rear seats	(G GL T ASG SMG SG M4)|1 human	1 cig 1 human				2TP, 15FN|
+|358|1343|4 cigs (3 carton, 1 unpacked), yong chun knives, and drugs in back storage|3 guns 1 human 4 knives 1 drug 1 exp|
+|359|1416|cigs, 2 fongyun, 1 yong chun|1 human 1 knive|
+|360|1441|guns (ASG SG M4 GL), fongyun sword, drug, cigs|1 human 5 knives 1 exp|
+|1830|1059|clean|3 gunss, 1 knives|
+|1831|1106|clean|1 guns, 1 knives|
+|1832|1119|6 guns, 1 cig, 1 drug|1 knives|
+|1833|1131|6 guns, 2 knives, 1 cig, 1 drug, 1 human|3 cigs, 7 guns|
+|1834|1150|6 guns, 2 knives, 2 cig, 1 drug, 1 human|2 cigs, 5 guns, 1 human, 1 knives|
+|1835|1209|6 guns, 3 knives, 2 cig, 1 drug, 1 human|7 guns, 1 human, 2 knives, 1 drugs|
+|1836|1227|6 guns, 4 knives, 1 cig, 1 drug, 1 human|3 cigs, 4 guns, 1 human, 1 exp|
+|1837|1246|6 guns, 3 knives, 1 cig, 1 drug, 1 human|6 guns, 1 human, 2 knives|
+|1838|1328|6 guns, 3 knives, 2 cig, 1 drug|7 guns|
+|1839|1347|6 guns, 1 knives, 1 drug, 5 cig|5 cigs, 7 guns|
+|1840|1411|6 guns, 1 knives, 1 drug, 1 cig|4 guns|
+|1841|||||duplicate of 1840|
+|1842|1435|6 guns, 1 drug, 1 cig, 1 human|4 gunss, 1 knives, 1 drugs, 1 exp|
+|1843|1453|6 guns, 1 drug, 1 cig, 1 human|4 guns, 2 knives|
 
 

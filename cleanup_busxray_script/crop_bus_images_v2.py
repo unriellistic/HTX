@@ -411,10 +411,10 @@ def extract_unique_number(filename):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"compiled_annotations")
-    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"compiled_annotations")
+    parser.add_argument("--root-dir-images", help="folder containing the image files", default="compiled_annotations")
+    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default="compiled_annotations")
     parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
-    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
+    parser.add_argument("--target-dir", help="folder to place the cropped bus images", default="annotations_adjusted")
     parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     parser.add_argument("--display", help="display the annotated images", action="store_true")
     parser.add_argument("--display-path", help="path to display a single image file", required=False)
@@ -462,7 +462,7 @@ if __name__ == '__main__':
     # If user didn't specify display_path, perform cropping as per normal
     if not args.display_path:
         # Load images from folder
-        images = gs.load_images(path_to_root_dir_images, recursive=args.recursive_search, file_type="all")
+        images = gs.load_files(path_to_root_dir_images, recursive=args.recursive_search, file_type="images")
         # Create the output directory if it does not exist
         if args.store==False and not os.path.exists(path_to_target_dir):
             os.makedirs(path_to_target_dir)

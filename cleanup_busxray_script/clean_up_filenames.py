@@ -19,7 +19,7 @@ def extract_unique_number(filename):
     else:
         return None
 
-clean_images = gs.load_images(r"D:\BusXray\scanbus_training\Compiled_Clean_Images")
+clean_images = gs.load_files(r"D:\BusXray\scanbus_training\Compiled_Clean_Images")
 # Start from 610 since there's a 609 copy
 NUMBER_OF_IMAGES_IN_ORIGINAL += 1
 for image in tqdm(clean_images):

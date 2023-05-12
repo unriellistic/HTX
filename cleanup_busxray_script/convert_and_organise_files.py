@@ -1,5 +1,5 @@
 """
-Combines segment_bus_images_v3.py, xml2yolo.py, consolidate_segmented_files.py, and split_train_test_val.py.
+Combines xml2yolo.py, consolidate_segmented_files.py, and split_train_test_val.py.
 """
 import xml2yolo as x2y
 import consolidate_segmented_files as csf
@@ -8,7 +8,7 @@ import argparse, general_scripts as gs, os
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\temp")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"annotations_adjusted")
     parser.add_argument("--train", help="value for train folder split", default=0.8)
     parser.add_argument("--test", help="value for test folder split", default=0.1)
     parser.add_argument("--valid", help="value for validation folder split", default=0.1)

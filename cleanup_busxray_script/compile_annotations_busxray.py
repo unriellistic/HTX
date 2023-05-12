@@ -9,7 +9,7 @@ them over into a folder called "annotated".
 E.g. if image and xml were saved in subdirectory named 355, it'll re-save the image and xml as 355_annotated.jpg and 355_annotated.xml
 
 To alter the script to compile different files,
-look at line 35 and update the <if "annotated" in file:> to contain whatever unique description the file name has, 
+look at line 36 and update the <if "annotated" in file:> to contain whatever unique description the file name has, 
 else if you want to compile all the files in the subdirectory, delete that portion.
 
 Input Arguments:
@@ -33,7 +33,7 @@ def compile_annotations(ROOT_DIR, ANNOTATION_DIR):
     
     # Create the output directory if it does not exist
     os.makedirs(ANNOTATION_DIR, exist_ok=True)
-    files = [file for file in gs.load_images(ROOT_DIR, recursive=True) if "annotated" in file]
+    files = [file for file in gs.load_files(ROOT_DIR, recursive=True, file_type="all") if "annotated" in file]
     print(f"Copying over from {ROOT_DIR} ...")
     for file in tqdm(files):
         file_path, file_name = gs.path_leaf(file)
@@ -41,7 +41,6 @@ def compile_annotations(ROOT_DIR, ANNOTATION_DIR):
         _, file_type = os.path.splitext(file_name)
         new_name = os.path.join(ANNOTATION_DIR, f"{subdir_name}_annotated{file_type}")
         shutil.copy(file, new_name)
-        shutil.copy(file, gs.change_file_extension(new_name, ".xml"))
         print(f"Copied over '{file}' to '{ANNOTATION_DIR}'")                   
 
 if __name__ == "__main__":

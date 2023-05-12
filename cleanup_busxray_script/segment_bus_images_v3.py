@@ -785,10 +785,10 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir, args_
     None: It directly outputs the log file into the root directory specified.
     """
     # Load the images. exclude_string is for when we're re-running the code, we don't want to fetch the cleaned images again
-    list_of_images = [i for i in gs.load_images(args_root_dir) if "adjusted" in i]
+    list_of_images = [i for i in gs.load_files(args_root_dir) if "adjusted" in i]
     
     # Segment up the images
-    print("Processing images...")
+    print("Segmenting images...")
     os.chdir(args_root_dir)
     for image in tqdm(list_of_images):
         segment_image(image_path=image,
@@ -796,7 +796,7 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir, args_
                     overlap_percent=float(args_overlap_portion))
 
     # Segment up the annotation
-    print("Processing XML files...")
+    print("Processing XML files and adjusting segmented images...")
 
     """
     Log file in the form of:
@@ -975,7 +975,7 @@ def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\BusXray\scanbus_training\temp")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"annotations_adjusted")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
     parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)
@@ -1004,7 +1004,7 @@ if __name__ == "__main__":
     SEGMENT_DIR = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated_segmented"
     ANNOTATION_PATH = r"D:\leann\busxray_woodlands\annotations_adjusted\adjusted_1610_annotated.xml"
     os.chdir(SEGMENT_DIR)
-    segment_list = gs.load_images(SEGMENT_DIR)
+    segment_list = gs.load_files(SEGMENT_DIR)
     for image in segment_list:
         adjust_annotations_for_segment_and_mask_it(image, ANNOTATION_PATH)
     """

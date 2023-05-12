@@ -9,7 +9,7 @@ def consolidate_files(ROOT_DIR, TARGET_DIR):
     # Create the output directory if it does not exist
     os.makedirs(TARGET_DIR, exist_ok=True)
 
-    files = [file for file in gs.load_images(ROOT_DIR, recursive=True) if "cleaned" in file]
+    files = [file for file in gs.load_files(ROOT_DIR, recursive=True) if "cleaned" in file]
 
     print("Copying over files...")
     # Copy over the temp_files into a folder equivalent to it's basepath.
@@ -37,7 +37,8 @@ def consolidate_files(ROOT_DIR, TARGET_DIR):
                 pass
 
 if __name__ == "__main__":
-    print("debugging...")
+    print("This script is not meant to be run directly.")
+    print("Please import it as a module and call the consolidate_files() function, unless you're debuging.")
     ROOT_DIR = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
     TARGET_DIR = r"D:\BusXray\scanbus_training\segmented_master_file_for_both_clean_and_threat_images_monochrome"
     consolidate_files(ROOT_DIR, TARGET_DIR)

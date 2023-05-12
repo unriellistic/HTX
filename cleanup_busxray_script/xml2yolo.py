@@ -25,7 +25,7 @@ def convert(size, box):
 def convert_xml_to_yolo(root_dir, classes):
 
     # identify all the image files in the folder (input directory)
-    files = gs.load_images(path_to_images=root_dir, file_type="all", recursive=True)
+    files = gs.load_files(path_to_files=root_dir, file_type="images", recursive=True)
     
     print("Converting xml file to txt...")
     # loop through each image
@@ -64,8 +64,8 @@ def convert_xml_to_yolo(root_dir, classes):
                 out_file.close()
 
 if __name__ == "__main__":
-    # For self debugging
-    print("debugging...")
+    print("This script is not meant to be run directly.")
+    print("Please import it as a module and call the convert_xml_to_yolo() function, unless you're debuging.")
     ROOT_DIR = r"D:\BusXray\scanbus_training\temp"
     CLASSES = ["cig", "guns", "human", "knives", "drugs", "exp"]
     convert_xml_to_yolo(root_dir=ROOT_DIR, classes=CLASSES)
