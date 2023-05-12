@@ -51,7 +51,7 @@ def compile_annotations(ROOT_DIR, ANNOTATION_DIR):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--root-dir", help="folder containing the X-ray images", default=r"exp")
-    parser.add_argument("--target-dir", help="folder containing the annotation files", default=r"annotations")
+    parser.add_argument("--target-dir", help="path to folder to store consolidated image + annotation files", default=r"compiled_annotations")
 
     args = parser.parse_args()
     compile_annotations(args.root_dir, args.target_dir)

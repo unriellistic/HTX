@@ -19,13 +19,32 @@ The current folder should contain a "exp" folder which contains sub-folders in a
 For in-depth explanation of each script, can look below or at the explanation given within the script.
 
 ### 1. Compile files from exp folder
-If images and labels are already compiled into a single folder, skip this step.
+<span style="font-size: smaller;">Note: Run this file only if you need to consolidate all images and annotation from [exp] folder into one folder, if such a folder already exist, no need run this.</span>
 
 To run the `compile_annotations_busxray.py` script:
 ```
-python compile_annotations_busxray.py --root-dir /path/to/exp/folder --target-dir /path/to/new/folder
+python compile_annotations_busxray.py --root-dir /path/to/exp/folder
 ```
 *Note: The image and corresponding label must have `annotated` in their name. The script finds the `annotated` keyword and copies to `--target-dir`.  Look for `if "annotated" in file:`*
+
+Optional arguments:
+|Parameter|Default|Description|
+|---------|-------|-----------|
+|--target-dir|./conpile_annotations|path to store compiled image and labels|
+
+**Parameter `--root-dir`**  
+Path to the subfolders that contains the images and xml files.
+
+It'll check the folder specified at `--root-dir` for subfolders. If none is specified, it'll check the default `exp` folder.
+
+**Parameter `--target-dir`**  
+Path to folder to compile the images and xml files in.
+
+It'll check and create a new directory specified at `--target-dir`. If none is specified, it'll create a folder called `compiled_annotations` at the current directory.
+
+##### Command examples:
+If you run straight from the thumbdrive: `python compile_annotations_busxray.py`  
+If you run from other source:  ```python compile_annotations_busxray.py --root-dir [<path to exp>\exp] --target-dir [<path to compiled_annotations>\compiled_annotations]```
 
 ### 2. Crops excess black and white space
 If not necessary to crop images, skip this step.
@@ -40,9 +59,17 @@ Optional arguments:
 |Parameter|Default|Description|
 |---------|-------|-----------|
 |--recursive-search|False|if true, will search both image and root dir recursively.|
-|--store|False|if true, will save both image and root dir in the directory found at|
-|--display|False|if true, it displays the all annotated images in the `--target-dir` after the script finishes running|
-|--display-path||specify path to display a single image file|
+|--store|False|if true, will save both image and label at the directory it was at.|
+|--display|False|if true, it displays the all annotated images in the `--target-dir` after the script finishes running.|
+|--display-path|required=False|specify path to display a single image file.|
+
+**Parameter `--root-dir`**  
+Path variable.  
+It'll check the folder specified at `--root-dir` for image and xml files. If no path is specified, it'll check the `./compiled_annotations` folder.
+
+**Parameter `--target-dir`**  
+Path variable.  
+It'll check and create a new directory specified at `--target-dir`. If none is specified, it'll create a folder `./annotations_adjusted` at the current directory and store the adjusted image and xml files in there.
 
 **Parameter `--recursive-search`**  
 When `--recursive-search` is inputted, script will search recursively into all the subdirs specified at `--root-dir-images` and `--root-dir-annotations`. The `labels` can be in different folders from the `images`, but the path structure will have to be identical to image path structure.
@@ -56,33 +83,30 @@ Example:
 |images/02/abc/01_annotated.jpg|labels/02/abc/01_annotated.xml|Correct. Same <image/label>/02/abc/<image/label> subdirectory path|
 |images/02/abc/01_annotated.jpg|labels/02/abc/02_annotated.xml|Wrong. Different label file name. labels/02/abc/0**2**_annotated.xml|
 
+**Parameter `--store`**  
+A boolean variable.  
+If true, saves the image and labels at the directory where it was found.
+
+**Parameter `--display`**  
+An `on/off flag` optional argument.  
+If inputted, it'll display the cropped annotated images after. This is for testing and debugging the cropping algorithm.
+
+**Parameter `--display-path`**  
+Path to a singular image file.  
+To display a single image without running the cropping function. This is for testing and debugging the cropping algorithm.
+ 
+##### Command examples:
+If you run straight from the thumbdrive:  
+`python crop_bus_images.py`  
+If you run from other source:  
+```python crop_bus_images_v2.py --root-dir [<path to compiled_annotations>\compiled_annotations] --target-dir [<path to adjusted_annotations>\adjusted_annotations]```
+
+
 ### 3. Segmenting big image into smaller images (segments)
 To run the segmenting script:
 ```
 python segment_bus_images_v3.py --root-dir path/to/root/dir
 ```
-There's two main functions being performed in this script:
-
-#### Segmenting + Pascal VOC adjustment
-This function segments images into segments and adjusts the [Pascal VOC annotation](https://albumentations.ai/docs/getting_started/bounding_boxes_augmentation/#pascal_voc) file relative to the segments.
-
-e.g. Notice the change in the label coordinates before and after segmentation:   
-![diagram of segmenting](https://github.com/AlphaeusNg/HTX/assets/78588510/9558146a-a2ea-4849-9813-11901fb0c9ee)
-
-The first pistol object had no change to it's `xmin` and `ymin` since it's segment starts from the top-left.
-
-The second sword object had a change in it's `xmin`. Previously it was `130` since it was at the far-right in the original image. But after segmenting, the `xmin` became `0` since it's now at the left edge of the image.
-
-The third gun object had no change to it's `xmin`, but had a change to the `ymin`. Was at the far-bottom in the original image, but is now flushed to the top in the segmented image.
-
-#### Cleaning up image artefacts
-During the segmentation process, sometimes one part of the image contains a very tiny bounding box from an object.
-
-E.g.
-![diagram for explaining cleaning function](https://github.com/AlphaeusNg/HTX/assets/78588510/742a52c5-5b43-43ee-bdb0-5be20157b0bb)
-
-Additionally, it also crops out features that have a total area less than the threshold limit set, while ensuring minimal information loss.
-
 Optional arguments:
 |Parameter|Default|Description|
 |---------|-------|-----------|
@@ -91,6 +115,18 @@ Optional arguments:
 |--cutoff-threshold|0.3|`cutoff threshold` to determine whether to exclude annotation that has an area less than `cutoff threshold` of it's original size from the new segment|
 |--special-items|['cig', 'human']|a list of string items to supercede the threshold set.|
 |--special-items-threshold|0.1|`special item thres` to determine whether to exclude annotation that has an area less than `special item thres` of it's original size from the new segment|
+
+**Parameter `--root-dir`**  
+Path variabe.  
+It'll check the folder specified at `--root-dir` for the **adjusted** image and xml files. If none is specified, it'll check the `./annotations_adjusted` folder.
+
+**Parameter `--overlap-portion`**  
+A float value.  
+Specify the float value for percentage of overlap. Default=0.5 (50%) of image.
+
+**Parameter `--segment-size`**  
+An integer value.  
+Specify the integer value for image size. default=640 (640x640 pixel image)
 
 **Parameter `--cutoff-threshold`**  
 Can experiment with the `threshold value` to see which results in the least information loss while maximising model performance.
@@ -101,127 +137,52 @@ The items that are to be included in this parameter consist of classes that have
 **Parameter `--special-items-threshold`**  
 Can experiment with the special items `threshold value` to see which results in the least information loss while maximising model performance.
 
-### 4. Compiles segmented images and it's respective labels into `train/test/val` folder
-To run the compiling and organising script:
-```
-python convert_and_organise_files.py --root-dir path/to/segmented/files
-```
-Optional arguments:
-|Parameter|Default|Description|
-|---------|-------|-----------|
-|--train|0.8|value for train folder split.|
-|--test|0.1|value for test folder split.|
-|--valid|0.1|value for validation folder split.|
-|--seed|42|value for randomiser seed.|
+#### Explanation
+There's two main functions being performed in this script:
 
+**Segmenting + Pascal VOC adjustment**  
 
-To run both the cropping and segmented function:
-```
-python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome" & python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
-```
-To run `xml2yolo.py` and `consolidate_segmented_files.py`:
+This function segments images into segments and adjusts the [Pascal VOC annotation](https://albumentations.ai/docs/getting_started/bounding_boxes_augmentation/#pascal_voc) file relative to the segments.  
+E.g. Notice the change in the label coordinates before and after segmentation:   
+![diagram of segmenting](https://github.com/AlphaeusNg/HTX/assets/78588510/9558146a-a2ea-4849-9813-11901fb0c9ee)  
+The *first pistol object* had no change to it's `xmin` and `ymin` since it's segment starts from the top-left.  
+The *second sword object* had a change in it's `xmin`. Previously it was `130` since it was at the far-right in the original image. But after segmenting, the `xmin` became `0` since it's now at the left edge of the image.  
+The *third gun object* had no change to it's `xmin`, but had a change to the `ymin`. Was at the far-bottom in the original image, but is now flushed to the top in the segmented image.
 
-Go to each folder and change their respective **<ROOT_DIR>** and **<TARGET_DIR>** variables
+**Cleaning up image artefacts**
 
-## Detailed explanation
-### 1) compile_annotations_busxray.py
-<span style="font-size: smaller;">Note: Run this file only if you need to consolidate all images and annotation from [exp] folder into one folder, if such a folder already exist, no need run this.</span>
+During the segmentation process, sometimes one part of the image contains a very tiny bounding box from an object.
 
-#### Command to run:
-```python compile_annotations_busxray.py```
-[--root-dir /path/to/rootdirectory]
-[--target-dir /path/to/annotationdirectory]
+E.g.  
+![diagram for explaining cleaning function](https://github.com/AlphaeusNg/HTX/assets/78588510/742a52c5-5b43-43ee-bdb0-5be20157b0bb)
 
-##### Meaning
-root directory: Path to the subfolders to your images and xml files  
-annotation directory: Path to compile the images and xml file in
+Take note of the purple arrows. Note that in one segment of the image, there was a small green gun sticking through. We do not want to train the model on this small feature, and thus we performed cleaning whereby we crop the segment into such that the gun gets cropped out and the model doesn't train on that tiny feature.
 
-Arguments explanation:  
---root-dir: It'll check the folder specified at --root-dir for subfolders. If none is specified, it'll check the "exp" folder.
---annotation-dir: It'll check and create a new directory specified at --annotation-dir. If none is specified, it'll create a folder called "annotations" at the current directory.
+It crops out features that have a total area less than the `--cutoff-threshold` value set, while ensuring minimal information loss. The function currently finds the best plane to cut while minimising information loss; if 2 or more planes have zero information loss when cut, script selects plane that has the least amount of area being cut.
 
-Command examples:  
-If you run straight from the thumbdrive:
-python compile_annotations_busxray.py
-If you run from other source:
-python compile_annotations_busxray.py --root-dir "<path to exp>\exp" --annotation-dir "<path to annotations>\annotations"
+##### Command examples:
+If you run straight from the thumbdrive: `python segment_bus_images.py`
 
-### 2) crop_bus_images.py
-#### Command to run  
-`python crop_bus_images.py`
-
-To display the already cropped images without running the cropping function:  
-`python crop_bus_images.py --display-only`
-
-**Additional arguments:**  
-[--root-dir /path/to/root directory]  
-[--target-dir /path/to/target directory]  
-[--display-path /path/to/image file]
-
-##### Meaning
-root directory: Path to the folder containing the compiled images and xml files.  
-target directory:  Path to compile the adjusted images and xml file in.  
-image file: Path to a singular image.  
-
-##### Arguments explanation
-`--root-dir`: It'll check the folder specified at --root-dir for image and xml files. If none is specified, it'll check the "annotations" folder.  
-`--target-dir`: It'll check and create a new directory specified at --annotation-dir. If none is specified, it'll create a folder called "annotations_adjusted" at the current directory and store the adjusted image and xml files in there.  
-`--display`: an optional argument that can be specified to allow the display of the cropped annotated image after.
-    To use, just include the '--display-only' in, no need to specify any path, it'll take path from --target-dir and display all images there.  
-`--display-path`: specifies a singular image file to display after adjustments.  
-
-##### Command examples
-If you run straight from the thumbdrive:  
-`python crop_bus_images.py`  
 If you run from other source:  
+```python segment_bus_images_v3.py --root-dir [<path to annotations_adjusted folder>/annotations_adjusted]```
+
+**After generating the try-it-out example thumbdrive:**
+
+Should have 34 files in a folder called `compiled_annotations`, consist of 17 jpg, and 17 xml.  
+Should have 51 items in a fodler called `annotations_adjusted`, consist of 34 files (17 jpg, 17 xml) and 17 folders, and each folder contains divided segments in 640x640 images with 320 increment.  
 ```
-python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python crop_bus_images_v2.py --root-dir-images "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --root-dir-annotations "D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome" --target-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
+E.g. in adjusted_355_annotated_segment:
+segment_0_0.jpg, segment_0_320.jpg, segment_0_640.jpg, ..., segment_0_1999.jpg,
+segment_320_0.jpg, segment_320_320.jpg, segment_320_640.jpg, ..., segment_320_1999.jpg,
+.
+.
+.
+segment_960_0.jpg, segment_960_320.jpg, segment_960_640.jpg, ..., segment_960_1999.jpg,
+segment_1150_0.jpg, segment_1150_320.jpg, segment_1150_640.jpg, ..., segment_1150_1999.jpg,
 ```
-
-### 3) segment_bus_images.py
-**Command to run:**
-
-**Additional arguments:**
---root-dir <root directory>
---overlap-portion <specify float overlap value>
---segment-size <specify integer pixel size>
-
-Meaning:
-<root directory>: Path to the folder containing the adjusted images and xml files
-<specify overlap value>:  Specify the float value for percentage of overlap. default=0.5 (50%)
-<specify integer pixel size>: Specify the integer value for image size. default=640 (640x640 image)
-
-Arguments explanation:
---root-dir: It'll check the folder specified at --root-dir for adjusted image and xml files. If none is specified, it'll check the "annotations_adjusted" folder.
-
-Command examples:
-If you run straight from the thumbdrive:
-python segment_bus_images.py 
-
-If you run from other source:
-python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy" & python segment_bus_images_v3.py --root-dir "D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_monochrome"
-
-If you want to change segmented size:
-python segment_bus_images.py --segment-size 1080
--> result in 1080x1080 images
-
-If you want to change overlap size:
-python segment_bus_images.py --overlap-portion 0.2
--> reduce overlap from 50% to 20%
-
-**After generating the try-it-out example thumbdrive:**  
-Should have 34 files in a folder called "annotations", consist of 17 jpg, and 17 xml.  
-Should have 51 items in a fodler called "annotations_adjusted", consist of 34 files (17 jpg, 17 xml) and 17 folders, and each folder contains divided segments in 640x640 images with 320 increment.  
-	E.g. in adjusted_355_annotated_segment:
-	segment_0_0.jpg, segment_0_320.jpg, segment_0_640.jpg, ..., segment_0_1999.jpg,
-	segment_320_0.jpg, segment_320_320.jpg, segment_320_640.jpg, ..., segment_320_1999.jpg,
-	.
-	.
-	.
-	segment_960_0.jpg, segment_960_320.jpg, segment_960_640.jpg, ..., segment_960_1999.jpg,
-	segment_1150_0.jpg, segment_1150_320.jpg, segment_1150_640.jpg, ..., segment_1150_1999.jpg,
 
 **Correct results:**  
+```
 for 1832:  
 adjusted_1832_annotated_segmented": {
             "image's total annotation": 42,
@@ -240,7 +201,49 @@ adjusted_1833_annotated_segmented": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
                     "info_loss": 56.99
-			}  
+			} 
+```
+
+### 4. Compiles segmented images and it's respective labels into `train/test/val` folder
+To run the compiling and organising script:
+```
+python convert_and_organise_files.py --root-dir path/to/segmented/files
+```
+Optional arguments:
+|Parameter|Default|Description|
+|---------|-------|-----------|
+|--train|0.8|value for train folder split.|
+|--test|0.1|value for test folder split.|
+|--valid|0.1|value for validation folder split.|
+|--seed|42|value for randomiser seed.|
+
+#### Explanation
+The function will save the output in a folder called "*output_&lt;`name of dir`&gt;*".
+
+It'll be in the YOLOv7 format:
+```
+images
+  |->
+    train
+    test
+    validation
+labels
+  |->
+    train
+    test
+    validation
+```
+There'll be 3 subdirs in `images` and `labels` each containing randomly splitted data.
+
+## Run everything together
+
+To run the default arguments in `compile_annotations_busxray.py`, `crop_bus_images_v2.py`, `segment_bus_images_v3.py`, and `convert_and_organise_files.py` together:
+
+Navigate to folder containing the `exp folder` + the `scripts` and run:
+```
+python compile_annotations_busxray.py & python crop_bus_images_v2.py & python segment_bus_images_v3.py & convert_and_organise_files.py
+```
+
 ### 4) xml2yolo.py
 **Command to run:**  
 Open up script, change variable "ROOT_DIR" to the correct directory. It'll recursively search into all sub-folders in ROOT_DIR and create a converted copy of the XML file into txt, and store it in the same directory where it was found.

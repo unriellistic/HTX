@@ -411,8 +411,8 @@ def extract_unique_number(filename):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"annotations")
-    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"annotations")
+    parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"compiled_annotations")
+    parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"compiled_annotations")
     parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
     parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"annotations_adjusted")
     parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
@@ -420,17 +420,13 @@ if __name__ == '__main__':
     parser.add_argument("--display-path", help="path to display a single image file", required=False)
 
     # uncomment below if want to debug in IDE
-    # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy")
-    # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy")
-    # # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\temp")
-    # # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\temp")
+    # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\temp")
+    # parser.add_argument("--root-dir-annotations", help="folder containing annotation files", default=r"D:\BusXray\scanbus_training\temp")
     # parser.add_argument("--recursive-search", help="if true, will search both image and root dir recursively", action="store_true", default=False)
     # parser.add_argument("--target-dir", help="folder to place the cropped bus images", default=r"D:\BusXray\scanbus_training\temp")
     # parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     # parser.add_argument("--display", help="display the annotated images", action="store_true", default=False)
     # parser.add_argument("--display-path", help="path to display a single image file", required=False)
-
-
 
     args = parser.parse_args()
     """
@@ -438,7 +434,7 @@ if __name__ == '__main__':
     """
     # Get path to root directory image
     # Check if default parameter is applied, if so get full path.
-    if args.root_dir_images == "annotations":
+    if args.root_dir_images == "compiled_annotations":
         path_to_root_dir_images = os.path.join(os.getcwd(), args.root_dir_images)
     # Else, use path specified by user
     else:
@@ -446,7 +442,7 @@ if __name__ == '__main__':
 
     # Get path to root directory annotation
     # Check if default parameter is applied, if so get full path.
-    if args.root_dir_annotations == "annotations":
+    if args.root_dir_annotations == "compiled_annotations":
         path_to_root_dir_annotations = os.path.join(os.getcwd(), args.root_dir_annotations)
     # Else, use path specified by user
     else:
@@ -460,8 +456,11 @@ if __name__ == '__main__':
     else:
         path_to_target_dir = args.target_dir
 
-    # If user didn't specify display, just perform cropping without displaying
-    if not args.display_path or not args.display:
+    """
+    Check if user wants to display image, if not, just crop.
+    """
+    # If user didn't specify display_path, perform cropping as per normal
+    if not args.display_path:
         # Load images from folder
         images = gs.load_images(path_to_root_dir_images, recursive=args.recursive_search, file_type="all")
         # Create the output directory if it does not exist
