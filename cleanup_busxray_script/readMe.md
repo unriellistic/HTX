@@ -24,7 +24,7 @@ For in-depth explanation of each script, can look below or at the explanation gi
 <span style="font-size: smaller;">Note: Run this file only if you need to consolidate all images and annotation from [exp] folder into one folder, if such a folder already exist, no need run this.</span>
 
 To run the `compile_annotations_busxray.py` script:
-```console
+```shell
 python compile_annotations_busxray.py
 ```
 *Note: The image and corresponding label must have `annotated` in their name. The script finds the `annotated` keyword and copies to `--target-dir`.  Look for 
@@ -50,14 +50,20 @@ Path to folder to compile the images and xml files in.
 It'll check and create a new directory specified at `--target-dir`. If none is specified, it'll create a folder called `compiled_annotations` at the current directory.
 
 #### Command examples:
-If you run straight from the thumbdrive: `python compile_annotations_busxray.py`  
-If you run from other source:  ```python compile_annotations_busxray.py --root-dir [<path to exp>\exp] --target-dir [<path to compiled_annotations>\compiled_annotations]```
+If you run straight from the thumbdrive:  
+```shell
+python compile_annotations_busxray.py
+```
+If you run from other source:  
+```shell
+python compile_annotations_busxray.py --root-dir path/to/exp/exp --target-dir path/to/compiled_annotations/compiled_annotations
+```
 
 ### 2. Crops excess black and white space
 **If not necessary to crop images, skip this step.**
 
 To run the `crop_bus_images_v2.py` script:
-```
+```shell
 python crop_bus_images_v2.py
 ```
 *Note: This function is designed for busxray images only. To customise it for other domains, look at code for more details*
@@ -112,14 +118,18 @@ To display a single image without running the cropping function. This is for tes
  
 #### Command examples:
 If you run straight from the thumbdrive:  
-`python crop_bus_images.py`  
+```shell
+python crop_bus_images.py
+```
 If you run from other source:  
-```python crop_bus_images_v2.py --root-dir [<path to compiled_annotations>\compiled_annotations] --target-dir [<path to adjusted_annotations>\adjusted_annotations]```
+```shell
+python crop_bus_images_v2.py --root-dir path/to/compiled_annotations/compiled_annotations] --target-dir path/to/adjusted_annotations/adjusted_annotations
+```
 
 
 ### 3. Segmenting big image into smaller images (segments)
 To run the segmenting script:
-```
+```shell
 python segment_bus_images_v3.py
 ```
 Optional arguments:
@@ -178,10 +188,14 @@ Take note of the purple arrows. Note that in one segment of the image, there was
 It crops out features that have a total area less than the `--cutoff-threshold` value set, while ensuring minimal information loss. The function currently finds the best plane to cut while minimising information loss; if 2 or more planes have zero information loss when cut, script selects plane that has the least amount of area being cut.
 
 #### Command examples:
-If you run straight from the thumbdrive: `python segment_bus_images.py`
-
+If you run straight from the thumbdrive: 
+```shell
+python segment_bus_images.py
+```
 If you run from other source:  
-```python segment_bus_images_v3.py --root-dir [<path to annotations_adjusted folder>/annotations_adjusted]```
+```shell
+python segment_bus_images_v3.py --root-dir path/to/annotations_adjustedfolder/annotations_adjusted
+```
 
 **After generating the try-it-out example thumbdrive:**
 
@@ -223,18 +237,23 @@ adjusted_1833_annotated_segmented": {
 
 ### 4. Compiles segmented images and it's respective labels into `train/test/val` folder
 To run the compiling and organising script:
-```
-python convert_and_organise_files.py --root-dir path/to/segmented/files
+```shell
+python convert_and_organise_files.py
 ```
 Optional arguments:
 |Parameter|Default|Description|
 |---------|-------|-----------|
+|--root-dir|./annotations_adjusted|path to segmented files.|
 |--train|0.8|value for train folder split.|
 |--test|0.1|value for test folder split.|
 |--valid|0.1|value for validation folder split.|
 |--seed|42|value for randomiser seed.|
 
 #### Parameters
+**Parameters `--root-dir`**  
+A path variable.  
+It'll check the folder specified at `--root-dir` for the **adjusted and segmented** image and xml files. If none is specified, it'll check the `./annotations_adjusted` folder.
+
 **Parameters `--train`**  
 A float value.  
 Indicate the ratio split for the training dataset.
@@ -294,7 +313,7 @@ it becomes:
 To run the default arguments in `compile_annotations_busxray.py`, `crop_bus_images_v2.py`, `segment_bus_images_v3.py`, and `convert_and_organise_files.py` together:
 
 Navigate to folder containing the *exp folder* and the *scripts* and run:
-```
+```shell
 python compile_annotations_busxray.py & python crop_bus_images_v2.py & python segment_bus_images_v3.py & convert_and_organise_files.py
 ```
 
