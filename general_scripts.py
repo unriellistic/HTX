@@ -5,7 +5,7 @@ A place to store common functions:
     - e.g. To load all image file type:
         load_files(<filepath_to_folder>, file_type="images")
     - e.g. To load only png file type:
-        load_files(<filepath_to_folder>, file_type=[".png"])
+        load_files(<filepath_to_folder>, file_type=(".png"))
 
 - save_to_excel: saves information to an excel file in the current directory
     - function: def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=False):
@@ -21,7 +21,7 @@ A place to store common functions:
     - e.g. change_file_extension("xray_scan.tiff", ".jpg")
 
 @author: alp
-@last modified: 12/5/23 4:38pm
+@last modified: 15/5/23 11:58am
 """
 
 import os
