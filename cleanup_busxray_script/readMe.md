@@ -18,22 +18,29 @@ The current folder should contain a "exp" folder which contains sub-folders in a
 
 For in-depth explanation of each script, can look below or at the explanation given within the script.
 
+## Scripts
+
 ### 1. Compile files from exp folder
 <span style="font-size: smaller;">Note: Run this file only if you need to consolidate all images and annotation from [exp] folder into one folder, if such a folder already exist, no need run this.</span>
 
 To run the `compile_annotations_busxray.py` script:
+```console
+python compile_annotations_busxray.py
 ```
-python compile_annotations_busxray.py --root-dir /path/to/exp/folder
+*Note: The image and corresponding label must have `annotated` in their name. The script finds the `annotated` keyword and copies to `--target-dir`.  Look for 
+```python
+if "annotated" in file:
 ```
-*Note: The image and corresponding label must have `annotated` in their name. The script finds the `annotated` keyword and copies to `--target-dir`.  Look for `if "annotated" in file:`*
 
 Optional arguments:
 |Parameter|Default|Description|
 |---------|-------|-----------|
+|--root-dir|./exp|path to `exp` folder|
 |--target-dir|./conpile_annotations|path to store compiled image and labels|
 
+#### Parameters
 **Parameter `--root-dir`**  
-Path to the subfolders that contains the images and xml files.
+Path to the `exp` folder which contains subfolders that contains the images and xml files.
 
 It'll check the folder specified at `--root-dir` for subfolders. If none is specified, it'll check the default `exp` folder.
 
@@ -42,30 +49,38 @@ Path to folder to compile the images and xml files in.
 
 It'll check and create a new directory specified at `--target-dir`. If none is specified, it'll create a folder called `compiled_annotations` at the current directory.
 
-##### Command examples:
+#### Command examples:
 If you run straight from the thumbdrive: `python compile_annotations_busxray.py`  
 If you run from other source:  ```python compile_annotations_busxray.py --root-dir [<path to exp>\exp] --target-dir [<path to compiled_annotations>\compiled_annotations]```
 
 ### 2. Crops excess black and white space
-If not necessary to crop images, skip this step.
+**If not necessary to crop images, skip this step.**
 
 To run the `crop_bus_images_v2.py` script:
 ```
-python crop_bus_images_v2.py --root-dir-images path/to/images --root-dir-annotations path/to/annotations --target-dir path/to/new/folder
+python crop_bus_images_v2.py
 ```
 *Note: This function is designed for busxray images only. To customise it for other domains, look at code for more details*
 
 Optional arguments:
 |Parameter|Default|Description|
 |---------|-------|-----------|
+|--root-dir-images|./compiled_annotations|path to images.|
+|--root-dir-annotations|./compiled_annotations|path to annotations.|
+|--target-dir|./annotations_adjusted|path to new folder to store adjusted images.|
 |--recursive-search|False|if true, will search both image and root dir recursively.|
 |--store|False|if true, will save both image and label at the directory it was at.|
 |--display|False|if true, it displays the all annotated images in the `--target-dir` after the script finishes running.|
 |--display-path|required=False|specify path to display a single image file.|
 
-**Parameter `--root-dir`**  
+#### Parameters
+**Parameter `--root-dir-images`**  
 Path variable.  
-It'll check the folder specified at `--root-dir` for image and xml files. If no path is specified, it'll check the `./compiled_annotations` folder.
+It'll check the folder specified at `--root-dir-images` for image files. If no path is specified, it'll check the `./compiled_annotations` folder.
+
+**Parameter `--root-dir-annotations`**  
+Path variable.  
+It'll check the folder specified at `--root-dir-annotations` for annotation files (.xml). If no path is specified, it'll check the `./compiled_annotations` folder.
 
 **Parameter `--target-dir`**  
 Path variable.  
@@ -95,7 +110,7 @@ If inputted, it'll display the cropped annotated images after. This is for testi
 Path to a singular image file.  
 To display a single image without running the cropping function. This is for testing and debugging the cropping algorithm.
  
-##### Command examples:
+#### Command examples:
 If you run straight from the thumbdrive:  
 `python crop_bus_images.py`  
 If you run from other source:  
@@ -105,19 +120,21 @@ If you run from other source:
 ### 3. Segmenting big image into smaller images (segments)
 To run the segmenting script:
 ```
-python segment_bus_images_v3.py --root-dir path/to/root/dir
+python segment_bus_images_v3.py
 ```
 Optional arguments:
 |Parameter|Default|Description|
 |---------|-------|-----------|
+|--root-dir|./annotations_adjusted|path to root dir.|
 |--overlap-portion|0.5|the amount in fraction of each segment that should overlap adjacent segments. From 0 to 1.|
 |--segment-size|640|size of each square segment in pixel width.|
 |--cutoff-threshold|0.3|`cutoff threshold` to determine whether to exclude annotation that has an area less than `cutoff threshold` of it's original size from the new segment|
 |--special-items|['cig', 'human']|a list of string items to supercede the threshold set.|
 |--special-items-threshold|0.1|`special item thres` to determine whether to exclude annotation that has an area less than `special item thres` of it's original size from the new segment|
 
+#### Parameters
 **Parameter `--root-dir`**  
-Path variabe.  
+Path variable.  
 It'll check the folder specified at `--root-dir` for the **adjusted** image and xml files. If none is specified, it'll check the `./annotations_adjusted` folder.
 
 **Parameter `--overlap-portion`**  
@@ -137,7 +154,7 @@ The items that are to be included in this parameter consist of classes that have
 **Parameter `--special-items-threshold`**  
 Can experiment with the special items `threshold value` to see which results in the least information loss while maximising model performance.
 
-#### Explanation
+#### Detailed Explanation
 There's two main functions being performed in this script:
 
 **Segmenting + Pascal VOC adjustment**  
@@ -160,7 +177,7 @@ Take note of the purple arrows. Note that in one segment of the image, there was
 
 It crops out features that have a total area less than the `--cutoff-threshold` value set, while ensuring minimal information loss. The function currently finds the best plane to cut while minimising information loss; if 2 or more planes have zero information loss when cut, script selects plane that has the least amount of area being cut.
 
-##### Command examples:
+#### Command examples:
 If you run straight from the thumbdrive: `python segment_bus_images.py`
 
 If you run from other source:  
@@ -216,6 +233,23 @@ Optional arguments:
 |--test|0.1|value for test folder split.|
 |--valid|0.1|value for validation folder split.|
 |--seed|42|value for randomiser seed.|
+
+#### Parameters
+**Parameters `--train`**  
+A float value.  
+Indicate the ratio split for the training dataset.
+
+**Parameters `--test`**  
+A float value.  
+Indicate the ratio split for the test dataset.
+
+**Parameters `--valid`**  
+A float value.  
+Indicate the ratio split for the validation dataset.
+
+**Parameters `--seed`**  
+An Integer value.  
+Indicates the random seed number.
 
 #### Explanation
 The function will save the output in a folder called "*output_&lt;`name of dir`&gt;*".

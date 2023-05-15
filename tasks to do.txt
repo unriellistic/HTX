@@ -16,3 +16,6 @@ Create inference for busxray
 	+ Trying to understand what image input TridentNetPredictor takes in, current predictions are way off 640x640, up to 1700. Trying to see whether I can access the image scaling it uses (or if it even scales for this, but if not then why is the prediction so off?)
 
 
+12/5/23
+Update Correct results.
+Check through the task soo kng set. Create empty excel.
