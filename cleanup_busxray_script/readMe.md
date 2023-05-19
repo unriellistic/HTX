@@ -360,7 +360,7 @@ There'll be 3 subdirs in `images` and `labels` each containing randomly splitted
 
 The `convert_and_organise_files.py` script calls these other script:
 
-`xml2yolo.py`: Converts .xml files into .txt files (YOLO format). It'll recursively search into all sub-folders in ROOT_DIR and create a converted copy of the XML file into txt, and store it in the same directory where it was found.  
+`xml2yolo.py`: Converts .xml files into .txt files (YOLO format). It'll recursively search into all sub-folders in ROOT_DIR and create a converted copy of the XML file into txt, and store it in the same directory where it was found. If no corresponding .xml file is found, creates an empty .txt file.  
 `consolidate_segmented_files.py`: It'll recursively search into all sub-folders in ROOT_DIR and copy over the files that have "cleaned" in the name into the new TARGET_DIR, while renaming the image and label files to their respective original images.  
 *Example:*
 
