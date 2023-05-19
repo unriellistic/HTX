@@ -27,7 +27,7 @@ To run the `compile_annotations_busxray.py` script:
 ```shell
 python compile_annotations_busxray.py
 ```
-*Note: The image and corresponding label must have `annotated` in their name. The script finds the `annotated` keyword and copies to `--target-dir`.  Look for 
+*Note: The image and corresponding label must have `annotated` in their name. The script finds the `annotated` keyword and copies to `--target-dir`.  Look for this line* 
 ```python
 if "annotated" in file:
 ```
@@ -138,9 +138,9 @@ Optional arguments:
 |--root-dir|./annotations_adjusted|path to root dir.|
 |--overlap-portion|0.5|the amount in fraction of each segment that should overlap adjacent segments. From 0 to 1.|
 |--segment-size|640|size of each square segment in pixel width.|
-|--cutoff-threshold|0.3|`cutoff threshold` to determine whether to exclude annotation that has an area less than `cutoff threshold` of it's original size from the new segment|
+|--cutoff-threshold|0.3|`--cutoff-threshold` to determine whether to exclude annotation that has an area less than `--cutoff-threshold` of it's original size from the new segment|
 |--special-items|['cig', 'human']|a list of string items to supercede the threshold set.|
-|--special-items-threshold|0.1|`special item thres` to determine whether to exclude annotation that has an area less than `special item thres` of it's original size from the new segment|
+|--special-items-threshold|0.1|`--special-item-threshold` to determine whether to exclude annotation that has an area less than `--special-item-threshold` of it's original size from the new segment|
 
 #### Parameters
 **Parameter `--root-dir`**  
