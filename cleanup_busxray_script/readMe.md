@@ -123,7 +123,7 @@ python crop_bus_images.py
 ```
 If you run from other source:  
 ```shell
-python crop_bus_images_v2.py --root-dir path/to/compiled_annotations/compiled_annotations] --target-dir path/to/adjusted_annotations/adjusted_annotations
+python crop_bus_images_v2.py --root-dir path/to/compiled_annotations/compiled_annotations --target-dir path/to/adjusted_annotations/adjusted_annotations
 ```
 
 
@@ -214,25 +214,93 @@ segment_1150_0.jpg, segment_1150_320.jpg, segment_1150_640.jpg, ..., segment_115
 
 **Correct results:**  
 ```
-for 1832:  
-adjusted_1832_annotated_segmented": {
-            "image's total annotation": 42,
-            "image's total reject": 6,
-            "image's total info loss": 0.0,
-            "image's segment info": { ...
-			}  
-
-for 1833:  
-adjusted_1833_annotated_segmented": {
+{
+    "Percentage threshold value set": 0.3,
+    "Overall total num of annotation": 1291,
+    "Overall total num of reject": 190,
+    "Overall % of reject": "14.72%",
+    "Overall total num of passed": 1101,
+    "Overall % of passed": "85.28%",
+    "Info loss info": {
+        "Overall % of info loss": "0.19%",
+        "list of images with loss": {
+            "adjusted_1833_annotated_segmented -> 0.303": [
+                "segment_320_640.jpg -> 1.55",
+                "segment_640_640.jpg -> 1.11",
+                "segment_640_960.jpg -> 2.92",
+                "segment_960_640.jpg -> 3.59",
+                "segment_960_960.jpg -> 2.95"
+            ],
+            "adjusted_1835_annotated_segmented -> 0.47": [
+                "segment_1077_320.jpg -> 18.81"
+            ],
+            "adjusted_1837_annotated_segmented -> 0.262": [
+                "segment_640_1280.jpg -> 10.47"
+            ],
+            "adjusted_1838_annotated_segmented -> 0.005": [
+                "segment_960_1969.jpg -> 0.22"
+            ],
+            "adjusted_357_annotated_segmented -> 0.723": [
+                "segment_640_1920.jpg -> 1.89",
+                "segment_640_1972.jpg -> 2.12",
+                "segment_960_640.jpg -> 24.9"
+            ],
+            "adjusted_358_annotated_segmented -> 0.576": [
+                "segment_640_640.jpg -> 24.1",
+                "segment_640_960.jpg -> -4.66",
+                "segment_960_640.jpg -> 3.61"
+            ],
+            "adjusted_359_annotated_segmented -> 0.905": [
+                "segment_320_640.jpg -> 9.96",
+                "segment_640_640.jpg -> 26.24"
+            ],
+            "adjusted_360_annotated_segmented -> 0.069": [
+                "segment_1147_640.jpg -> 0.48",
+                "segment_960_640.jpg -> 2.27"
+            ]
+        }
+    },
+    ...
+    "adjusted_1833_annotated_segmented": {
             "image's total annotation": 82,
-            "image's total reject": 17,
-            "image's total info loss": 1.6285,
+            "image's total reject": 14,
+            "image's total info loss": 0.30300000000000005,
             "image's segment info": {
-			"segment_320_640.jpg": {
+                "segment_0_0.jpg": {
+                    "num_of_reject": 0,
+                    "num_of_total": 1,
+                    "segment_info_loss": 0.0
+                },
+                ...,
+                "segment_320_640.jpg": {
                     "num_of_reject": 1,
                     "num_of_total": 4,
-                    "info_loss": 56.99
-			} 
+                    "segment_info_loss": 1.55
+                },
+                ...,
+                "segment_640_640.jpg": {
+                    "num_of_reject": 1,
+                    "num_of_total": 8,
+                    "segment_info_loss": 1.11
+                },
+                "segment_640_960.jpg": {
+                    "num_of_reject": 3,
+                    "num_of_total": 8,
+                    "segment_info_loss": 2.92
+                },
+                ...,
+                "segment_960_640.jpg": {
+                    "num_of_reject": 1,
+                    "num_of_total": 6,
+                    "segment_info_loss": 3.59
+                },
+                "segment_960_960.jpg": {
+                    "num_of_reject": 1,
+                    "num_of_total": 6,
+                    "segment_info_loss": 2.95
+                }
+            }
+        },
 ```
 
 ### 4. Compiles segmented images and it's respective labels into `train/test/val` folder
