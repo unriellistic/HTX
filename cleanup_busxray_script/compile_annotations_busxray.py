@@ -33,7 +33,10 @@ def compile_annotations(ROOT_DIR, ANNOTATION_DIR):
     
     # Create the output directory if it does not exist
     os.makedirs(ANNOTATION_DIR, exist_ok=True)
-    files = [file for file in gs.load_files(ROOT_DIR, recursive=True, file_type="all") if "annotated" in file]
+    image_files = [file for file in gs.load_files(ROOT_DIR, recursive=True, file_type="all") if ".jpg" in file and "annotated" not in file]
+    annotation_files = [file for file in gs.load_files(ROOT_DIR, recursive=True, file_type=".xml") if "annotated" in file]
+    files = image_files + annotation_files
+
     print(f"Copying over from {ROOT_DIR} ...")
     for file in tqdm(files):
         file_path, file_name = gs.path_leaf(file)

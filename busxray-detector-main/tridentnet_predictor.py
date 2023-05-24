@@ -12,8 +12,12 @@ def parse_detectron2_inference(inference: Instances) -> list[dict]:
     parsed = []
     fields = inference.get_fields()
     for i in range(len(inference)):
+        bbox = fields["pred_boxes"].tensor.cpu().numpy().tolist()[i]
+        # convert xmax and ymax to width and height respectively
+        bbox[2] -= bbox[0]
+        bbox[3] -= bbox[1]
         parsed.append({
-            "bbox": fields["pred_boxes"].tensor.cpu().numpy().tolist()[i],
+            "bbox": bbox,
             "score": fields["scores"].cpu().numpy().tolist()[i],
             "pred_class": fields["pred_classes"].cpu().numpy().tolist()[i]
         })
