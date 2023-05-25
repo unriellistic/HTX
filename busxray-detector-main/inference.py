@@ -11,6 +11,8 @@ import real_time_bus_segmenting_script as rtbss
 import copy
 from typing import Union, Tuple, List, Dict, Any
 
+CLASS_NAMES = ["cig", "guns", "human", "knives", "drugs", "exp"]
+
 def calculate_iou(box1: Union[Tuple, List], box2: Union[Tuple, List]) -> float:
     """
     Calculate IoU (Intersection over Union) between two bounding boxes in the format of (xmin, ymin, width, height).
@@ -210,7 +212,8 @@ def draw_annotations(cv2_image, list_of_predictions) -> None:
     for prediction in list_of_predictions:
         bbox = prediction['bbox']
         score = prediction['score']
-        pred_class = prediction['pred_class']
+        pred_class = CLASS_NAMES[prediction['pred_class']]
+        # pred_class = prediction['pred_class']
 
         xmin, ymin, width, height = bbox
         xmax = xmin + width
@@ -226,6 +229,25 @@ def draw_annotations(cv2_image, list_of_predictions) -> None:
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def save_annotations(cv2_image, list_of_predictions: list, save: str) -> None:
+    annotated_image = cv2_image.copy()
+    for prediction in list_of_predictions:
+        bbox = prediction['bbox']
+        score = prediction['score']
+        pred_class = CLASS_NAMES[prediction['pred_class']]
+        # pred_class = prediction['pred_class']
+
+        xmin, ymin, width, height = bbox
+        xmax = xmin + width
+        ymax = ymin + height
+        cv2.rectangle(annotated_image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 0, 255), 4)
+        cv2.putText(annotated_image, f"Class: {pred_class}", (int(xmin)-4, int(ymin)-14), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+        cv2.putText(annotated_image, f"Score: {score:.2f}", (int(xmin)-4, int(ymin)-44), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+
+    # save the annotated image
+    if save:
+        cv2.imwrite(save, annotated_image)
+
 def draw_predictions_vs_results(cv2_image, list_of_predictions: list, list_of_NMSed_bbox: list) -> None:
     # Make a copy of the image to draw on
     annotated_image = cv2_image.copy()
@@ -234,7 +256,8 @@ def draw_predictions_vs_results(cv2_image, list_of_predictions: list, list_of_NM
     for prediction in list_of_predictions:
         bbox = prediction['bbox']
         score = prediction['score']
-        pred_class = prediction['pred_class']
+        pred_class = CLASS_NAMES[prediction['pred_class']]
+        # pred_class = prediction['pred_class']
 
         xmin, ymin, width, height = bbox
         xmax = xmin + width
@@ -248,7 +271,8 @@ def draw_predictions_vs_results(cv2_image, list_of_predictions: list, list_of_NM
     for prediction in list_of_NMSed_bbox:
         bbox = prediction['bbox']
         score = prediction['score']
-        pred_class = prediction['pred_class']
+        pred_class = CLASS_NAMES[prediction['pred_class']]
+        # pred_class = prediction['pred_class']
 
         xmin, ymin, width, height = bbox
         xmax = xmin + width
