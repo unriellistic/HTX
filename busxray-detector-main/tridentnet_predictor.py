@@ -51,36 +51,3 @@ class TridentNetPredictor(DefaultPredictor):
         # process the predictions into a JSON-compatible format
         predictions = parse_detectron2_inference(raw_predictions["instances"])
         return predictions
-    
-class TridentNetSlicePredictor(TridentNetPredictor):
-    """
-    TridentNetPredictor that slices the image into smaller pieces first, for better detection of small objects.
-    """
-    def __init__(self, config_file: str, opts: list[str], confidence_threshold: float = 0.5, segment_size: int = 640, 
-                 overlap_portion: float = 0.5):
-        super().__init__(config_file, opts, confidence_threshold)
-        self.segment_size = segment_size
-        self.overlap_portion = overlap_portion
-
-    def preprocess(self, original_image):
-        # Preprocessing step: slices the image into multiple slices, for feeding to the model
-        slices = slice_image(original_image, self.segment_size, self.overlap_portion)
-        return slices
-    
-    def __call__(self, original_image):
-        slices = self.preprocess(original_image)
-        predictions = []
-        for imgslice in slices:
-            slice_preds = super().__call__(imgslice.img) # bboxes are (x1, y1, x2, y2)
-            for pred in slice_preds:
-                # add x-offset
-                pred["bbox"][0] += imgslice.x_offset
-                pred["bbox"][2] += imgslice.x_offset
-                # add y-offset
-                pred["bbox"][1] += imgslice.y_offset
-                pred["bbox"][3] += imgslice.y_offset
-
-                # add to the final predictions
-                predictions.append(pred)
-
-        return predictions

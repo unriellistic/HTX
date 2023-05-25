@@ -1,0 +1,34 @@
+'''
+This script runs inference on a set of images, using the segmenting algorithm, and calculates the average recall (AR) of the results.
+This is to make up for the fact that Detectron2 doesn't calculate recall for you by default.
+'''
+
+import argparse
+from pathlib import Path
+
+import cv2
+
+from inference import inference, draw_annotations
+from tridentnet_predictor import TridentNetPredictor
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--img-source", help="source folder for the images", type=str)
+    parser.add_argument("-a", "--anno-source", help="source annotation file in COCO format", type=str)
+    parser.add_argument("-c", "--config-file", type=str)
+    parser.add_argument("-w", "--model-weights", type=str)
+    args = parser.parse_args()
+
+    predictor = TridentNetPredictor(
+        config_file=args.config_file,
+        opts=["MODEL.WEIGHTS", args.model_weights]
+    )
+
+    for file in Path(args.img_source).glob("183*.jpg"):
+        print("=" * 16)
+        print("Processing", str(file))
+        cv2_img = cv2.imread(str(file))
+        _, nms_preds = inference(cv2_img, predictor=predictor, segment_size=640, crop_image=False, IOU_THRESHOLD=0.5, display=False)
+        draw_annotations(cv2_img, nms_preds)
+
+        # Recall function hasn't been implemented yet.
