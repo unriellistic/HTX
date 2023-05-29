@@ -40,7 +40,7 @@ def convert_xml_to_yolo(root_dir, classes):
             out_file = open(os.path.join(filepath, f"{filename}.txt"), 'w')
             # check if the image contains the corresponding label file
             if not os.path.exists(label_file):
-                print(f"{label_file} label does not exist! Creating empty txt file...")
+                # print(f"{label_file} label does not exist! Creating empty txt file...")
                 out_file.close()
             else:
                 # parse the content of the xml file
@@ -65,7 +65,7 @@ def convert_xml_to_yolo(root_dir, classes):
 
 if __name__ == "__main__":
     print("This script is not meant to be run directly.")
-    print("Please import it as a module and call the convert_xml_to_yolo() function, unless you're debuging.")
+    print("Please import it as a module and call the convert_xml_to_yolo() function, unless you're debugging.")
     ROOT_DIR = r"D:\BusXray\scanbus_training\temp"
     CLASSES = ["cig", "guns", "human", "knives", "drugs", "exp"]
     convert_xml_to_yolo(root_dir=ROOT_DIR, classes=CLASSES)
