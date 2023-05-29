@@ -6,3 +6,4 @@ cleanup_busxray_script/compiled_annotations
 cleanup_busxray_script/annotations_adjusted
 cleanup_busxray_script/exp
 .idea/
+.venv/
