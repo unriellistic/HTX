@@ -39,4 +39,5 @@ if __name__ == "__main__":
             draw_annotations(cv2_img, nms_preds)
 
     if args.output:
-        orjson.dumps(images_to_predictions, option=orjson.OPT_INDENT_2)
+        with open(Path(args.output) / "inference.json", "wb") as f:
+            f.write(orjson.dumps(images_to_predictions, option=orjson.OPT_INDENT_2))
