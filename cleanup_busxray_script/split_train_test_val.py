@@ -29,14 +29,14 @@ def split_data(input_folder, output_folder, train_ratio=0.8, test_ratio=0.1, val
 
     images_train_dir = os.path.join(images_dir, 'train')
     images_test_dir = os.path.join(images_dir, 'test')
-    images_val_dir = os.path.join(images_dir, 'validation')
+    images_val_dir = os.path.join(images_dir, 'val')
     os.makedirs(images_train_dir, exist_ok=True)
     os.makedirs(images_test_dir, exist_ok=True)
     os.makedirs(images_val_dir, exist_ok=True)
 
     labels_train_dir = os.path.join(labels_dir, 'train')
     labels_test_dir = os.path.join(labels_dir, 'test')
-    labels_val_dir = os.path.join(labels_dir, 'validation')
+    labels_val_dir = os.path.join(labels_dir, 'val')
     os.makedirs(labels_train_dir, exist_ok=True)
     os.makedirs(labels_test_dir, exist_ok=True)
     os.makedirs(labels_val_dir, exist_ok=True)
@@ -61,87 +61,49 @@ def split_data(input_folder, output_folder, train_ratio=0.8, test_ratio=0.1, val
     test_files = subdirectories[num_train:num_train + num_test]
     val_files = subdirectories[num_train + num_test:]
 
+    # Dict structure to reuse code
+    ttv_dict = {"test": {"files": test_files, "image_dir": images_test_dir, "label_dir": labels_test_dir},
+                "val": {"files": val_files, "image_dir": images_val_dir, "label_dir": labels_val_dir},
+                "train": {"files": train_files, "image_dir": images_train_dir, "label_dir": labels_train_dir}
+                }
     """
     Copy subdirs to respective directories
     """
-    # Copy for train folder
-    for subdir in tqdm(train_files):
-        # Get list of image files
-        image_files = gs.load_files(subdir, file_type="images")
-        segmented_subdir_path, segmented_subdir_name = gs.path_leaf(subdir)
-        # Get rid of segmented at back of file name
-        segmented_subdir_name = segmented_subdir_name[:-10]
+    # Iterate through each folder
+    for ttv_folder, ttv_data in ttv_dict.items():
+        print(f"Transferring images to {ttv_folder.upper()} folder...")
+        for subdir in tqdm(ttv_data["files"]):
+            # Get list of image files
+            image_files = [i for i in gs.load_files(subdir, file_type="images") if "cleaned" in i]
+            segmented_subdir_path, segmented_subdir_name = gs.path_leaf(subdir)
+            # Get rid of segmented at back of file name
+            segmented_subdir_name = segmented_subdir_name[:-10]
 
-        # Copy each image to target folder
-        for file in image_files:
-            # Clean up image name
-            segmented_filename = f"{segmented_subdir_name}_{file}"
-            dst_path = f"{segmented_subdir_path}_{segmented_filename}"
-            try:
-                src_image_path = os.path.join(subdir, file)
-                shutil.copy(src_image_path, os.path.join(images_train_dir, dst_path))
-            except:
-                print(f"{src_image_path} already exists")
-            try:
-                annotation_path = gs.change_file_extension(src_image_path, '.txt')
-                shutil.copy(annotation_path, os.path.join(labels_train_dir, dst_path))
-            except:
-                print(f"{annotation_path} already exists")
-
-    # Copy for test folder
-    for subdir in tqdm(test_files):
-        # Get list of image files
-        image_files = gs.load_files(subdir, file_type="images")
-        segmented_subdir_path, segmented_subdir_name = gs.path_leaf(subdir)
-        # Get rid of segmented at back of file name
-        segmented_subdir_name = segmented_subdir_name[:-10]
-
-        # Copy each image to target folder
-        for file in image_files:
-            # Clean up image name
-            segmented_filename = f"{segmented_subdir_name}_{file}"
-            dst_path = f"{segmented_subdir_path}_{segmented_filename}"
-            try:
-                src_image_path = os.path.join(subdir, file)
-                shutil.copy(src_image_path, os.path.join(images_test_dir, dst_path))
-            except:
-                print(f"{src_image_path} already exists")
-            try:
-                annotation_path = gs.change_file_extension(src_image_path, '.txt')
-                shutil.copy(annotation_path, os.path.join(labels_test_dir, dst_path))
-            except:
-                print(f"{annotation_path} already exists")
-    # Copy for val folder
-    for subdir in tqdm(val_files):
-        # Get list of image files
-        image_files = gs.load_files(subdir, file_type="images")
-        segmented_subdir_path, segmented_subdir_name = gs.path_leaf(subdir)
-        # Get rid of segmented at back of file name
-        segmented_subdir_name = segmented_subdir_name[:-10]
-
-        # Copy each image to target folder
-        for file in image_files:
-            # Clean up image name
-            segmented_filename = f"{segmented_subdir_name}_{file}"
-            dst_path = f"{segmented_subdir_path}_{segmented_filename}"
-            try:
-                src_image_path = os.path.join(subdir, file)
-                shutil.copy(src_image_path, os.path.join(images_val_dir, dst_path))
-            except:
-                print(f"{src_image_path} already exists")
-            try:
-                annotation_path = gs.change_file_extension(src_image_path, '.txt')
-                shutil.copy(annotation_path, os.path.join(labels_val_dir, dst_path))
-            except:
-                print(f"{annotation_path} already exists")
+            # Copy each image to target folder
+            for file in image_files:
+                # Clean up image name
+                _, filename = gs.path_leaf(file)
+                segmented_filename = f"{segmented_subdir_name}_{filename}"
+                dst_path = os.path.join(ttv_data["image_dir"], segmented_filename)
+                try:
+                    src_image_path = os.path.join(subdir, file)
+                    shutil.copy(src_image_path, dst_path)
+                except:
+                    print(f"{src_image_path} already exists")
+                try:
+                    src_annotation_path = gs.change_file_extension(src_image_path, '.txt')
+                    dst_annotation_path = os.path.join(ttv_data["label_dir"], gs.change_file_extension(segmented_filename, '.txt'))
+                    shutil.copy(src_annotation_path, dst_annotation_path)
+                except:
+                    print(f"{src_annotation_path} already exists")
 
     print('Data split completed successfully.')
 
 if __name__ == "__main__":
     print("This script is not meant to be run directly.")
     print("Please import it as a module and call the split_data() function, unless you're debugging.")
-    input_folder = r"E:\alp\segmented_master_file_for_both_clean_and_threat_images_dualenergy"
-    output_folder = r"E:\alp\output_dualenergy"
+    input_folder = r"D:\busxray\annotations_adjusted"
+    output_folder = rf"{input_folder}_output"
     # Usage example:
     split_data(input_folder, output_folder)
 
