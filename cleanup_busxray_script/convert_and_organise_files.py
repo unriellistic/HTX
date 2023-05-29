@@ -23,5 +23,5 @@ if __name__ == "__main__":
     # The class
     CLASSES = ["cig", "guns", "human", "knives", "drugs", "exp"]
     x2y.convert_xml_to_yolo(args.root_dir, classes=CLASSES)
-    csf.consolidate_files(args.root_dir, target_dir)
+    # csf.consolidate_files(args.root_dir, target_dir)
     sttv.split_data(input_folder=target_dir, output_folder=output_folder, train_ratio=args.train, test_ratio=args.test, val_ratio=args.valid, seed=args.seed)
