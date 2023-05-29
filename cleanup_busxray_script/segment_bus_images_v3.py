@@ -785,7 +785,9 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir, args_
     None: It directly outputs the log file into the root directory specified.
     """
     # Load the images. exclude_string is for when we're re-running the code, we don't want to fetch the cleaned images again
-    list_of_images = [i for i in gs.load_files(args_root_dir) if "adjusted" in i]
+    # exclude_string = "adjusted"
+    # list_of_images = [i for i in gs.load_files(args_root_dir) if exclude_string in i]
+    list_of_images = gs.load_files(path_to_files=args_root_dir)
     
     # Segment up the images
     print("Segmenting images...")
