@@ -133,9 +133,9 @@ To run the segmenting script:
 python segment_bus_images_v3.py
 ```
 Optional arguments:
-|Parameter|Default|Description|
-|---------|-------|-----------|
-|--root-dir|./annotations_adjusted|path to root dir.|
+|Parameter |Default |Description |
+|----------|--------|------------|
+|--root-dir |./annotations_adjusted|path to root dir.|
 |--overlap-portion|0.5|the amount in fraction of each segment that should overlap adjacent segments. From 0 to 1.|
 |--segment-size|640|size of each square segment in pixel width.|
 |--cutoff-threshold|0.3|`--cutoff-threshold` to determine whether to exclude annotation that has an area less than `--cutoff-threshold` of it's original size from the new segment|
@@ -304,7 +304,7 @@ segment_1150_0.jpg, segment_1150_320.jpg, segment_1150_640.jpg, ..., segment_115
 ```
 
 ### 4. Compiles segmented images and it's respective labels into `train/test/val` folder
-To run the compiling and organising script:
+To run the `convert_and_organise_files.py` script:
 ```shell
 python convert_and_organise_files.py
 ```
@@ -358,23 +358,20 @@ There'll be 3 subdirs in `images` and `labels` each containing randomly splitted
 
 **Breakdown of script function**
 
-The `convert_and_organise_files.py` script calls these other script:
+The `convert_and_organise_files.py` script calls 2 other scripts:
 
 `xml2yolo.py`: Converts .xml files into .txt files (YOLO format). It'll recursively search into all sub-folders in ROOT_DIR and create a converted copy of the XML file into txt, and store it in the same directory where it was found. If no corresponding .xml file is found, creates an empty .txt file.  
-`consolidate_segmented_files.py`: It'll recursively search into all sub-folders in ROOT_DIR and copy over the files that have "cleaned" in the name into the new TARGET_DIR, while renaming the image and label files to their respective original images.  
+`split_train_test_val.py`: It'll recursively search into all sub-folders in `--root-dir` and copy over the files that have "cleaned" in the name into the new `--target-dir`, rename the image and label files to their respective original images. It also splits each image folders into train/test/val folders, ensuring that all segmented image from a single image belongs to either train/test/val folder. 
+<small>_Note_: This is to ensure that the `test` folder contains new images.</small>
+
 *Example:*
 
-For files:  
-1. adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented//segment_0_0_cleaned.tiff  
-2. adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented//segment_0_320_cleaned.tiff  
-3. adjusted_&lt;image_name&gt;_segmented//segment_640_320_cleaned.jpg
-4. adjusted_&lt;image_name&gt;_segmented//segment_640_320_cleaned.txt
-
-it becomes:  
-1. PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_0_cleaned.tiff  
-2. PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_320_cleaned.tiff  
-3. &lt;image_name&gt;_segment_640_320_cleaned.jpg  
-4. &lt;image_name&gt;_segment_640_320_cleaned.txt
+| Example | Original file name                                                                           | New file name                                                                     |
+|---------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| 1.      | adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented//segment_0_0_cleaned.tiff   | adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_0_cleaned.tiff   |
+| 2.      | adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segmented//segment_0_320_cleaned.tiff | adjusted_PA8506K Higer 49 seats-clean-610-1 DualEnergy_segment_0_320_cleaned.tiff | 
+| 3.      | adjusted_&lt;image_name&gt;_segmented//segment_640_320_cleaned.jpg                           | adjusted_&lt;image_name&gt;_segment_640_320_cleaned.jpg                           |
+| 4.      | adjusted_&lt;image_name&gt;_segmented//segment_640_320_cleaned.txt                           | adjusted_&lt;image_name&gt;_segment_640_320_cleaned.txt                           |
 
 ## Run everything together
 
@@ -387,29 +384,29 @@ python compile_annotations_busxray.py & python crop_bus_images_v2.py & python se
 
 ## Additional Information on try-it-out examples:
 
-|ID|time|content|detected|actual_results|remarks|  
-|--|----|-------|--------|--------------|-------|
-|353|1125|clean|1 x fp (gun)|||
-|54|1138|clean|
-|355|1146|10 cigs	|9 cig 1 exp|9TP,1FP|(1 cig detected as exp)|
-|356|1212|10 cigs (8 carton, 2 unpacked)|3 cig|3TP,7FN|
-|357|1257|10 cigs|cigs same as 356, 5 guns on aisle, 2 rear seats	(G GL T ASG SMG SG M4)|1 human	1 cig 1 human				2TP, 15FN|
-|358|1343|4 cigs (3 carton, 1 unpacked), yong chun knives, and drugs in back storage|3 guns 1 human 4 knives 1 drug 1 exp|
-|359|1416|cigs, 2 fongyun, 1 yong chun|1 human 1 knive|
-|360|1441|guns (ASG SG M4 GL), fongyun sword, drug, cigs|1 human 5 knives 1 exp|
-|1830|1059|clean|3 gunss, 1 knives|
-|1831|1106|clean|1 guns, 1 knives|
-|1832|1119|6 guns, 1 cig, 1 drug|1 knives|
-|1833|1131|6 guns, 2 knives, 1 cig, 1 drug, 1 human|3 cigs, 7 guns|
-|1834|1150|6 guns, 2 knives, 2 cig, 1 drug, 1 human|2 cigs, 5 guns, 1 human, 1 knives|
-|1835|1209|6 guns, 3 knives, 2 cig, 1 drug, 1 human|7 guns, 1 human, 2 knives, 1 drugs|
-|1836|1227|6 guns, 4 knives, 1 cig, 1 drug, 1 human|3 cigs, 4 guns, 1 human, 1 exp|
-|1837|1246|6 guns, 3 knives, 1 cig, 1 drug, 1 human|6 guns, 1 human, 2 knives|
-|1838|1328|6 guns, 3 knives, 2 cig, 1 drug|7 guns|
-|1839|1347|6 guns, 1 knives, 1 drug, 5 cig|5 cigs, 7 guns|
-|1840|1411|6 guns, 1 knives, 1 drug, 1 cig|4 guns|
-|1841|||||duplicate of 1840|
-|1842|1435|6 guns, 1 drug, 1 cig, 1 human|4 gunss, 1 knives, 1 drugs, 1 exp|
-|1843|1453|6 guns, 1 drug, 1 cig, 1 human|4 guns, 2 knives|
+| ID   | time              | content                                                                    | detected                                                               | actual_results                     | remarks                 |  
+|------|-------------------|----------------------------------------------------------------------------|------------------------------------------------------------------------|------------------------------------|-------------------------|
+| 353  | 1125              | clean                                                                      | 1 x fp (gun)                                                           |                                    |                         |
+| 54   | 1138              | clean                                                                      |
+| 355  | 1146              | 10 cigs	                                                                   | 9 cig 1 exp                                                            | 9TP,1FP                            | (1 cig detected as exp) |
+| 356  | 1212              | 10 cigs (8 carton, 2 unpacked)                                             | 3 cig                                                                  | 3TP,7FN                            |
+| 357  | 1257              | 10 cigs                                                                    | cigs same as 356, 5 guns on aisle, 2 rear seats	(G GL T ASG SMG SG M4) | 1 human	1 cig 1 human				2TP, 15FN |
+| 358  | 1343              | 4 cigs (3 carton, 1 unpacked), yong chun knives, and drugs in back storage | 3 guns 1 human 4 knives 1 drug 1 exp                                   |
+| 359  | 1416              | cigs, 2 fongyun, 1 yong chun                                               | 1 human 1 knive                                                        |
+| 360  | 1441              | guns (ASG SG M4 GL), fongyun sword, drug, cigs                             | 1 human 5 knives 1 exp                                                 |
+| 1830 | 1059              | clean                                                                      | 3 gunss, 1 knives                                                      |
+| 1831 | 1106              | clean                                                                      | 1 guns, 1 knives                                                       |
+| 1832 | 1119              | 6 guns, 1 cig, 1 drug                                                      | 1 knives                                                               |
+| 1833 | 1131              | 6 guns, 2 knives, 1 cig, 1 drug, 1 human                                   | 3 cigs, 7 guns                                                         |
+| 1834 | 1150              | 6 guns, 2 knives, 2 cig, 1 drug, 1 human                                   | 2 cigs, 5 guns, 1 human, 1 knives                                      |
+| 1835 | 1209              | 6 guns, 3 knives, 2 cig, 1 drug, 1 human                                   | 7 guns, 1 human, 2 knives, 1 drugs                                     |
+| 1836 | 1227              | 6 guns, 4 knives, 1 cig, 1 drug, 1 human                                   | 3 cigs, 4 guns, 1 human, 1 exp                                         |
+| 1837 | 1246              | 6 guns, 3 knives, 1 cig, 1 drug, 1 human                                   | 6 guns, 1 human, 2 knives                                              |
+| 1838 | 1328              | 6 guns, 3 knives, 2 cig, 1 drug                                            | 7 guns                                                                 |
+| 1839 | 1347              | 6 guns, 1 knives, 1 drug, 5 cig                                            | 5 cigs, 7 guns                                                         |
+| 1840 | 1411              | 6 guns, 1 knives, 1 drug, 1 cig                                            | 4 guns                                                                 |
+| 1841 ||||| duplicate of 1840 |
+| 1842 | 1435              | 6 guns, 1 drug, 1 cig, 1 human                                             | 4 gunss, 1 knives, 1 drugs, 1 exp                                      |
+| 1843 | 1453              | 6 guns, 1 drug, 1 cig, 1 human                                             | 4 guns, 2 knives                                                       |
 
 
