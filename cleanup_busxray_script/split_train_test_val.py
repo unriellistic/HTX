@@ -102,7 +102,7 @@ def split_data(input_folder, output_folder, train_ratio=0.8, test_ratio=0.1, val
 if __name__ == "__main__":
     print("This script is not meant to be run directly.")
     print("Please import it as a module and call the split_data() function, unless you're debugging.")
-    input_folder = r"D:\busxray\annotations_adjusted"
+    input_folder = r"annotations_adjusted"
     output_folder = rf"{input_folder}_output"
     # Usage example:
     split_data(input_folder, output_folder)
