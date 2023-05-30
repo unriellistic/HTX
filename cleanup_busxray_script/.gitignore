@@ -3,3 +3,5 @@ annotations_adjusted
 exp
 poetry.lock
 pyproject.toml
+dataset_7_dualenergy
+dataset_7_monochrome
