@@ -78,6 +78,7 @@ Optional arguments:
 |--store|False|if true, will save both image and label at the directory it was at.|
 |--display|False|if true, it displays the all annotated images in the `--target-dir` after the script finishes running.|
 |--display-path|required=False|specify path to display a single image file.|
+|--log||prints out a list of unlabelled images|
 
 #### Parameters
 **Parameter `--root-dir-images`**  
@@ -115,7 +116,11 @@ If inputted, it'll display the cropped annotated images after. This is for testi
 **Parameter `--display-path`**  
 Path to a singular image file.  
 To display a single image without running the cropping function. This is for testing and debugging the cropping algorithm.
- 
+
+**Parameter `--log`**  
+A boolean variable optional argument.  
+If true, prints out the list of images without their corresponding label.
+
 #### Command examples:
 If you run straight from the thumbdrive:  
 ```shell

@@ -418,6 +418,7 @@ if __name__ == '__main__':
     parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     parser.add_argument("--display", help="display the annotated images", action="store_true")
     parser.add_argument("--display-path", help="path to display a single image file", required=False)
+    parser.add_argument("--log", help="prints out unlabelled images", action="store_true", required=False)
 
     # uncomment below if want to debug in IDE
     # parser.add_argument("--root-dir-images", help="folder containing the image files", default=r"D:\BusXray\scanbus_training\temp")
@@ -427,6 +428,7 @@ if __name__ == '__main__':
     # parser.add_argument("--store", help="if true, will save both image and root dir in the directory found at", action="store_true", default=False)
     # parser.add_argument("--display", help="display the annotated images", action="store_true", default=False)
     # parser.add_argument("--display-path", help="path to display a single image file", required=False)
+    # parser.add_argument("--log", help="prints out unlabelled images", action="store_true", required=False)
 
     args = parser.parse_args()
     """
@@ -504,8 +506,9 @@ if __name__ == '__main__':
                     resize_image_and_xml_annotation(input_file_image=input_file_image,
                                                     input_file_label=input_file_label,
                                                     output_dir_path=path_to_target_dir)
-        # print out non-existent labels
-        print("List of non-existent labels:", list_of_non_existent_labels)
+        if args.log:
+            # print out non-existent labels
+            print("List of non-existent labels:", list_of_non_existent_labels)
         
     # If display option selected, then display the whole list in the --target-dir, or if a --display-path is specified, display just a singular image
     if args.display or args.display_path:
