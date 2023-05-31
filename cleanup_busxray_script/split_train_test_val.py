@@ -100,8 +100,10 @@ def split_data(input_folder, output_folder, train_ratio=0.8, test_ratio=0.1, val
     print('Data split completed successfully.')
 
 if __name__ == "__main__":
-    print("This script is not meant to be run directly.")
+    print("="*30)
+    print("This script is not meant to be run directly, it is used by convert_and_organise_files.py")
     print("Please import it as a module and call the split_data() function, unless you're debugging.")
+    print("="*30)
     input_folder = r"annotations_adjusted"
     output_folder = rf"{input_folder}_output"
     # Usage example:

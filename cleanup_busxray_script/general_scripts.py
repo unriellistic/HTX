@@ -1,13 +1,13 @@
 """
 A place to store common functions:
-- load_files: Loading all images from a directory
+1) load_files: Loading all images from a directory
     - function: def load_files(folder, file_type="images"):
     - e.g. To load all image file type:
         load_files(<filepath_to_folder>, file_type="images")
     - e.g. To load only png file type:
         load_files(<filepath_to_folder>, file_type=(".png"))
 
-- save_to_excel: saves information to an excel file in the current directory
+2) save_to_excel: saves information to an excel file in the current directory
     - function: def save_to_excel(info, columns, file_name='test', sheet_name='sheet1', index=False):
     - The details can be found in the comments above the function below
     - e.g. save_to_excel(info=[['01feb', true, xray_012345],['02feb',false, xray_12345],...,[...]],
@@ -16,12 +16,15 @@ A place to store common functions:
                         sheet_name='name_of_excel_sheet_you_want_to_save_as',
                         index=False)
 
-- change_file_extension: Finds the last '.' and changes the extension to whatever u input instead.
+3) change_file_extension: Finds the last '.' and changes the extension to whatever u input instead.
     - function: change_file_extension(filename, new_file_extension):
     - e.g. change_file_extension("xray_scan.tiff", ".jpg")
 
+4) path_leaf(path): Returns the basepath, filename.
+5) print_nice_lines(character="=", height=1): prints a nice terminal width sized line.
+
 @author: alp
-@last modified: 15/5/23 11:58am
+@last modified: 31/5/23 10:00am
 """
 
 import os
@@ -136,7 +139,6 @@ def change_file_extension(filename: Union[str, Path], new_file_extension:str) ->
 
     return filename
 
-import ntpath # Rename path variables
 def path_leaf(path: Union[str, Path]) -> Tuple[Union[str, Path], str]:
     """
     Function that returns the path that leads to the filename, and the filename itself.
@@ -148,6 +150,33 @@ def path_leaf(path: Union[str, Path]) -> Tuple[Union[str, Path], str]:
         head: root path to current file
         tail: name of current file
     """
+    import ntpath # Rename path variables
     head, tail = ntpath.split(path)
     return head, (tail or ntpath.basename(head))
+
+def print_nice_lines(character: str = "=", height: int = 1) -> None:
+    """
+    Prints a line of characters until the end of the terminal window.
+    
+    Args:
+        character (str, optional): The character to print. Defaults to "=".
+    Returns:
+        None
+    """
+    import shutil
+    # Get the size of the terminal window
+    terminal_width, _ = shutil.get_terminal_size()
+
+    # Adjust the line_length based on the terminal width
+    line_length = int(terminal_width / len(character))  # Adjust this value if needed
+
+    for _ in range(height):
+        for _ in range(line_length):
+            print(character, end="")
+
+    # Move to the next line
+    print()
+
+
+
 
