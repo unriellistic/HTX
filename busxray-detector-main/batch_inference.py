@@ -35,8 +35,6 @@ if __name__ == "__main__":
 
         if args.output:
             save_annotations(cv2_img, nms_preds, save=str(Path(args.output) / file.name))
-            with open((Path(args.output) / file.name).with_suffix(".json"), "wb") as f:
-                f.write(orjson.dumps(nms_preds, option=orjson.OPT_INDENT_2))
         else:
             draw_annotations(cv2_img, nms_preds)
 

@@ -8,8 +8,8 @@ from matplotlib.pyplot import box
 from tqdm import tqdm
 import cv2
 import real_time_bus_segmenting_script as rtbss
-import copy, math
-from typing import Sequence, Union, Tuple, List, Dict, Any
+import copy
+from typing import Union, Tuple, List, Dict, Any
 
 CLASS_NAMES = ["cig", "guns", "human", "knives", "drugs", "exp"]
 
@@ -85,111 +85,8 @@ def custom_nms(bounding_boxes: List[Dict[str, Any]], iou_threshold: float) -> Li
 
     return selected_boxes
 
-def box_union(bbox_1: Sequence, bbox_2: Sequence) -> list:
-    """
-    Calculate the union of two bounding boxes.
-
-    Args:
-        bbox_1: A list or tuple containing the coordinates of the first bounding box.
-        bbox_2: A list or tuple containing the coordinates of the second bounding box.
-
-    Returns:
-        A list containing the coordinates of the union bounding box.
-    """
-    # Extract coordinates of bbox_1
-    bbox_1_x_min, bbox_1_y_min, bbox_1_width, bbox_1_height = bbox_1
-    bbox_1_x_max = bbox_1_x_min + bbox_1_width
-    bbox_1_y_max = bbox_1_y_min + bbox_1_height
-
-    # Extract coordinates of bbox_2
-    bbox_2_x_min, bbox_2_y_min, bbox_2_width, bbox_2_height = bbox_2
-    bbox_2_x_max = bbox_2_x_min + bbox_2_width
-    bbox_2_y_max = bbox_2_y_min + bbox_2_height
-
-    # Calculate union coordinates
-    union_x_min = min(bbox_1_x_min, bbox_2_x_min)
-    union_y_min = min(bbox_1_y_min, bbox_2_y_min)
-    union_x_max = max(bbox_1_x_max, bbox_2_x_max)
-    union_y_max = max(bbox_1_y_max, bbox_2_y_max)
-
-    # Calculate union width and height
-    union_width = union_x_max - union_x_min
-    union_height = union_y_max - union_y_min
-
-    return [union_x_min, union_y_min, union_width, union_height]
-
-def distance_between_boxes(bbox_1: Sequence, bbox_2: Sequence) -> float:
-    """
-    Calculate the minimum distance between two bounding boxes.
-
-    Args:
-        bbox_1: A list or tuple containing the coordinates of the first bounding box.
-        bbox_2: A list or tuple containing the coordinates of the second bounding box.
-
-    Returns:
-        A float representing the minimum distance between the two bounding boxes.
-    """
-
-    # Extract coordinates of bbox_1
-    bbox_1_x_min, bbox_1_y_min, bbox_1_width, bbox_1_height = bbox_1
-    bbox_1_x_max = bbox_1_x_min + bbox_1_width
-    bbox_1_y_max = bbox_1_y_min + bbox_1_height
-
-    # Extract coordinates of bbox_2
-    bbox_2_x_min, bbox_2_y_min, bbox_2_width, bbox_2_height = bbox_2
-    bbox_2_x_max = bbox_2_x_min + bbox_2_width
-    bbox_2_y_max = bbox_2_y_min + bbox_2_height
-
-    # Calculate the x and y distance between the two bounding boxes
-    x_distance = min(abs(bbox_1_x_min - bbox_2_x_max), abs(bbox_2_x_min - bbox_1_x_max), abs(bbox_1_x_min - bbox_2_x_min), abs(bbox_1_x_max - bbox_2_x_max))
-    y_distance = min(abs(bbox_1_y_min - bbox_2_y_max), abs(bbox_2_y_min - bbox_1_y_max), abs(bbox_1_y_min - bbox_2_y_min), abs(bbox_1_y_max - bbox_2_y_max))
-
-    # Calculate the Euclidean distance
-    distance = math.sqrt(x_distance ** 2 + y_distance ** 2)
-
-    return distance
-
-def merge_bboxes(bounding_boxes: List[Dict[str, Any]], merge_threshold: float = 20.0) -> List[Dict[str, Any]]:
-    """
-    Merge bounding boxes that are close to each other.
-
-    Args:
-        bounding_boxes: A list of dictionaries containing "bbox" as a key. The value of "bbox" is in the format [xmin, ymin, width, height].
-        merge_threshold: Threshold below which bounding boxes will be merged.
-
-    Returns:
-        merged_boxes: List of merged bounding boxes.
-    """
-
-    # Sort bounding boxes by score in descending order
-    sorted_boxes = sorted(bounding_boxes, key=lambda x: x["score"], reverse=True)
-
-    merged_boxes = []
-    while sorted_boxes:
-        # Pop the box with the highest score from the sorted list
-        current_box = sorted_boxes.pop(0)
-
-        # Find boxes that are close to the current box
-        close_boxes = []
-        for box in sorted_boxes:
-            if distance_between_boxes(current_box["bbox"], box["bbox"]) < merge_threshold:
-                close_boxes.append(box)
-
-        # Remove the close boxes from the sorted list
-        sorted_boxes = [box for box in sorted_boxes if box not in close_boxes]
-
-        # Merge the current box with close boxes
-        for box in close_boxes:
-            current_box["bbox"] = box_union(current_box["bbox"], box["bbox"])
-            current_box["score"] = (current_box["score"] + box["score"]) / 2
-
-        merged_boxes.append(current_box)
-
-    return merged_boxes
-
-
 def inference(cv2_image: Any, predictor: Any, segment_size: int, crop_image: bool, IOU_THRESHOLD: float = 0.3,
-              display: bool = False) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+              display: bool = False) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Perform inference on segmented images, and apply non-maximal suppression.
 
@@ -204,7 +101,6 @@ def inference(cv2_image: Any, predictor: Any, segment_size: int, crop_image: boo
     Returns:
         bounding_boxes: Lists containing bounding boxes before non-maximal suppression.
         non_overlapping_boxes: Lists containing bounding boxes after non-maximal suppression.
-        merged_boxes: Lists containing bounding boxes after merging.
     """
     # Crop and segment the image
     rtbss_obj = rtbss.ImageProcessor(cv2_image)
@@ -264,10 +160,7 @@ def inference(cv2_image: Any, predictor: Any, segment_size: int, crop_image: boo
     # Perform non-maximal suppression
     non_overlapping_boxes = custom_nms(bounding_boxes, IOU_THRESHOLD)
 
-    # Merge bounding boxes that are close to each other
-    merged_boxes = merge_bboxes(non_overlapping_boxes)
-
-    return bounding_boxes, non_overlapping_boxes, merged_boxes
+    return bounding_boxes, non_overlapping_boxes
 
 def find_float_value(dictionary: Dict[str, Union[float, int, List]]) -> Union[float, None]:
     """
@@ -431,8 +324,8 @@ if __name__ == "__main__":
     )
     segment_size = 4000
     crop_image = False
-    predictions, nmsed_bbox, merged_bbox = inference(cv2_image, predictor, segment_size, crop_image, IOU_THRESHOLD=0.3, display=False)
-    draw_predictions_vs_results(cv2_image, predictions, merged_bbox)
+    predictions, nmsed_bbox = inference(cv2_image, predictor, segment_size, crop_image, IOU_THRESHOLD=0.3, display=False)
+    draw_predictions_vs_results(cv2_image, predictions, nmsed_bbox)
 
 
     
