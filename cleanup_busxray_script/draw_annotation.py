@@ -3,7 +3,7 @@ A script to check if the xml2yolo works as intended. Plots the annotation on the
 """
 import argparse
 from PIL import Image, ImageDraw
-import cv2, os, random
+import cv2
 
 CLASS_NAMES = ["cig", "guns", "human", "knives", "drugs", "exp"]
 
@@ -87,10 +87,9 @@ if __name__ == "__main__":
     parser.add_argument("--format", type=str, default="yolo")
     args = parser.parse_args()
 
-    if args.format not in ["yolo", "voc"]:
-        raise ValueError("Format must be either 'yolo' or 'voc'")
-    
     if args.format == "yolo":
         draw_yolo_annotations(args.image_path, args.label_path, args.output)
     elif args.format == "voc":
         draw_xml_annotations(args.image_path, args.label_path, args.output)
+    else:
+        raise ValueError("Format must be either 'yolo' or 'voc'")
