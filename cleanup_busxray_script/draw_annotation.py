@@ -1,6 +1,7 @@
 """
 A script to check if the xml2yolo works as intended. Plots the annotation on the image. Code to change at the bottom
 """
+import argparse
 from PIL import Image, ImageDraw
 import cv2, os, random
 
@@ -22,7 +23,7 @@ def plot_one_box(x, image, color=None, label=None, line_thickness=None):
         cv2.putText(image, label, (c1[0], c1[1] - 2), 0, tl / 3,
                     [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
 
-def draw_YOLO_annotations(image_path, txt_path):
+def draw_YOLO_annotations(image_path, txt_path, save_path):
     """
     This function will add rectangle boxes on the images.
     """
@@ -48,7 +49,7 @@ def draw_YOLO_annotations(image_path, txt_path):
 
         plot_one_box([x1, y1, x2, y2], image, line_thickness=None)
 
-        cv2.imwrite(r"C:\Users\User1\Desktop\alp\cleanup_busxray_script\example.jpg", image)
+        cv2.imwrite(save_path, image)
         box_number += 1
     return box_number
 
@@ -58,16 +59,18 @@ To check Pascal VOC images (.xml files)
 import xml.etree.ElementTree as ET
 import cv2
 import general_scripts as gs
-def draw_image(img, bboxes):
+def draw_image(img: Image, bboxes: list[list], save_path: str, display: bool = False):
     draw = ImageDraw.Draw(img)
     for bbox in bboxes:
         draw.rectangle(bbox, outline="red", width=2)
-    # img.save("example.jpg")
-    img.show()
+    img.save(save_path)
 
-def draw_xml_annotations():
+    if display:
+        img.show()
+
+def draw_xml_annotations(image_path: str, xml_path: str):
     # Load the XML file
-    tree = ET.parse(quick_test_xml)
+    tree = ET.parse(xml_path)
 
     # Get the root element
     root = tree.getroot()
@@ -82,17 +85,23 @@ def draw_xml_annotations():
         xmax = int(obj.find('bndbox/xmax').text)
         ymax = int(obj.find('bndbox/ymax').text)
         bbox_list.append([xmin, ymin, xmax, ymax])
-    img = cv2.imread(quick_test)
-    cv2.imwrite(gs.change_file_extension(quick_test, ".jpg"), img)
-    img = Image.open(gs.change_file_extension(quick_test, ".jpg"))
+    img = cv2.imread(image_path)
+    cv2.imwrite(gs.change_file_extension(image_path, ".jpg"), img)
+    img = Image.open(gs.change_file_extension(image_path, ".jpg"))
     draw_image(img, bbox_list)
 
-# To check YOLO annotations (.txt files)
-image_filename = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy\adjusted_PC136L Higer High Deck 49 seats-Threat-95-final_color_segmented\segment_960_320_cleaned.jpg"
-label_filename = r"D:\BusXray\scanbus_training\adjusted_master_file_for_both_clean_and_threat_images_dualenergy\adjusted_PC136L Higer High Deck 49 seats-Threat-95-final_color_segmented\segment_960_320_cleaned.txt"
-# draw_YOLO_annotations(image_path=image_filename, txt_path=label_filename)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--image-path", type=str)
+    parser.add_argument("--label-path", type=str)
+    parser.add_argument("--output", type=str, default="output.jpg")
+    parser.add_argument("--format", type=str, default="yolo")
+    args = parser.parse_args()
 
-# To check Pascal VOC images (.xml files)
-quick_test = r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy\PC136L Higer High Deck 49 seats-Threat-68-final_color.jpg"
-quick_test_xml = r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_dualenergy\PC136L Higer High Deck 49 seats-Threat-68-final_color.xml"
-draw_xml_annotations()
+    if args.format not in ["yolo", "voc"]:
+        raise ValueError("Format must be either 'yolo' or 'voc'")
+    
+    if args.format == "yolo":
+        draw_YOLO_annotations(args.image_path, args.label_path, args.output)
+    elif args.format == "voc":
+        draw_xml_annotations(args.image_path, args.label_path, args.output)
