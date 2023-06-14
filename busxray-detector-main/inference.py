@@ -8,12 +8,12 @@ from matplotlib.pyplot import box
 from tqdm import tqdm
 import cv2
 import real_time_bus_segmenting_script as rtbss
-import copy
-from typing import Union, Tuple, List, Dict, Any
+import copy, math
+from typing import Union, Tuple, List, Dict, Any, Sequence
 
 CLASS_NAMES = ["cig", "guns", "human", "knives", "drugs", "exp"]
 
-def calculate_iou(box1: Union[Tuple, List], box2: Union[Tuple, List]) -> float:
+def calculate_iou(box1: Sequence, box2: Sequence) -> float:
     """
     Calculate IoU (Intersection over Union) between two bounding boxes in the format of (xmin, ymin, width, height).
 
@@ -84,6 +84,118 @@ def custom_nms(bounding_boxes: List[Dict[str, Any]], iou_threshold: float) -> Li
         sorted_boxes = remaining_boxes
 
     return selected_boxes
+
+def box_union(box1: Sequence[int | float], box2: Sequence[int | float]) -> list[int | float]:
+    """
+    Performs union of two bounding boxes.
+
+    Args:
+        box1: Tuple or list representing the first bounding box (xmin, ymin, width, height).
+        box2: Tuple or list representing the second bounding box (xmin, ymin, width, height).
+
+    Returns:
+        A list containing the union of the two bounding boxes.
+    """
+
+    # Extract coordinates of box1
+    box_1_x_min, box_1_y_min, box_1_width, box_1_height = box1
+    box_1_x_max = box_1_x_min + box_1_width
+    box_1_y_max = box_1_y_min + box_1_height
+
+    # Extract coordinates of box2
+    box_2_x_min, box_2_y_min, box_2_width, box_2_height = box2
+    box_2_x_max = box_2_x_min + box_2_width
+    box_2_y_max = box_2_y_min + box_2_height
+
+    # Calculate union area
+    xmin_new = min(box_1_x_min, box_2_x_min)
+    ymin_new = min(box_1_y_min, box_2_y_min)
+    xmax_new = max(box_1_x_max, box_2_x_max)
+    ymax_new = max(box_1_y_max, box_2_y_max)
+
+    width_new = xmax_new - xmin_new
+    height_new = ymax_new - ymin_new
+
+    return [xmin_new, ymin_new, width_new, height_new]
+
+def box_distance(bbox_1: Sequence[int | float], bbox_2: Sequence[int | float]) -> float:
+    """
+    Calculate the (minimum corner) distance between two bounding boxes.
+
+    Args:
+        bbox_1: Tuple or list representing the first bounding box (xmin, ymin, width, height).
+        bbox_2: Tuple or list representing the second bounding box (xmin, ymin, width, height).
+    
+    Returns:
+        The distance between the two bounding boxes.
+    """
+
+     # Extract coordinates of bbox_1
+    bbox_1_x_min, bbox_1_y_min, bbox_1_width, bbox_1_height = bbox_1
+    bbox_1_x_max = bbox_1_x_min + bbox_1_width
+    bbox_1_y_max = bbox_1_y_min + bbox_1_height
+
+    # Extract coordinates of bbox_2
+    bbox_2_x_min, bbox_2_y_min, bbox_2_width, bbox_2_height = bbox_2
+    bbox_2_x_max = bbox_2_x_min + bbox_2_width
+    bbox_2_y_max = bbox_2_y_min + bbox_2_height
+
+    # Calculate the x and y distance between the two bounding boxes
+    x_distance = min(abs(bbox_1_x_min - bbox_2_x_max), abs(bbox_2_x_min - bbox_1_x_max), abs(bbox_1_x_min - bbox_2_x_min), abs(bbox_1_x_max - bbox_2_x_max))
+    y_distance = min(abs(bbox_1_y_min - bbox_2_y_max), abs(bbox_2_y_min - bbox_1_y_max), abs(bbox_1_y_min - bbox_2_y_min), abs(bbox_1_y_max - bbox_2_y_max))
+
+    # Calculate the Euclidean distance
+    distance = math.sqrt(x_distance ** 2 + y_distance ** 2)
+
+    return distance
+
+def get_all_overlaps(source_box: Dict[str, Any], bounding_boxes: List[Dict[str, Any]], max_distance: float = 20.0) -> List[Dict[str, Any]]:
+    """
+    Gets all overlaps of a bounding box with other bounding boxes.
+    """
+    overlaps = []
+    for box in bounding_boxes:
+        if source_box["bbox"] != box["bbox"]:
+            if calculate_iou(source_box["bbox"], box["bbox"]) > 0 or box_distance(source_box["bbox"], box["bbox"]) < max_distance:
+                overlaps.append(box)
+    
+    return overlaps
+    
+
+def merge_cigs(bounding_boxes: List[Dict[str, Any]], max_distance: float = 20.0) -> List[Dict[str, Any]]:
+    """
+    Merges adjacent bounding boxes for cig annotations into larger, clearner annotations.
+
+    Args:
+        bounding_boxes: A list of dictionaries containing "bbox", "pred_class" and "score" as keys.
+        max_distance: The distance below which two bounding boxes will be merged.
+
+    Returns:
+        merged_boxes: List of merged bounding boxes.
+    """
+    # split bounding_boxes into cigs and non-cigs based on pred_class
+    cigs = [box for box in bounding_boxes if box["pred_class"] == "cig"]
+    non_cigs = [box for box in bounding_boxes if box["pred_class"] != "cig"]
+
+    index = 0
+    while index < len(cigs):
+        # get all overlaps of current box
+        overlaps = get_all_overlaps(cigs[index], cigs, max_distance=max_distance)
+
+        # if there are no overlaps, move on to next box
+        if len(overlaps) == 0:
+            index += 1
+            continue
+
+        # otherwise, merge all overlapping boxes
+        for overlap in overlaps:
+            cigs[index]["bbox"] = box_union(cigs[index]["bbox"], overlap["bbox"])
+            cigs[index]["score"] = max(cigs[index]["score"], overlap["score"])
+            cigs.remove(overlap)
+    
+    # merge cigs and non-cigs
+    merged_boxes = cigs + non_cigs
+    return merged_boxes
 
 def inference(cv2_image: Any, predictor: Any, segment_size: int, crop_image: bool, IOU_THRESHOLD: float = 0.3,
               display: bool = False) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
