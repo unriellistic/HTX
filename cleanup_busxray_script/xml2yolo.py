@@ -12,8 +12,8 @@ from tqdm import tqdm
 def convert(size, box):
     dw = 1./(size[0])
     dh = 1./(size[1])
-    x = (box[0] + box[1])/2.0 - 1
-    y = (box[2] + box[3])/2.0 - 1
+    x = max((box[0] + box[1])/2.0 - 1, 0) # In the event that x is so small, that - 1 brings it to a negative value, the max ensures that the smallest possible value is 0.
+    y = max((box[2] + box[3])/2.0 - 1, 0) # In the event that y is so small, that - 1 brings it to a negative value, the max ensures that the smallest possible value is 0.
     w = box[1] - box[0]
     h = box[3] - box[2]
     x = x*dw
@@ -64,8 +64,10 @@ def convert_xml_to_yolo(root_dir, classes):
                 out_file.close()
 
 if __name__ == "__main__":
+    gs.print_nice_lines()
     print("This script is not meant to be run directly.")
     print("Please import it as a module and call the convert_xml_to_yolo() function, unless you're debugging.")
-    ROOT_DIR = r"D:\BusXray\scanbus_training\temp"
+    gs.print_nice_lines()
+    ROOT_DIR = r"D:\busxray\dataset_7_dualenergy\debugging\sacnia\debug"
     CLASSES = ["cig", "guns", "human", "knives", "drugs", "exp"]
     convert_xml_to_yolo(root_dir=ROOT_DIR, classes=CLASSES)
