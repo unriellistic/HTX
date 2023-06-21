@@ -7,7 +7,7 @@ It has a -s to save the images to the current folder.
 # import the necessary packages
 # from blur_detector import detect_blur_fft
 from compare_FFT_images import compare_fft_image
-from general_scripts import load_images_from_folder
+from general_scripts.general_scripts import load_images_from_folder
 import numpy as np
 import argparse
 import imutils

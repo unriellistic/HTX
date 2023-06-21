@@ -20,8 +20,6 @@ from os import listdir, getcwd
 import json
 import argparse
 import pandas as pd
-import openpyxl
-import math
 
 # specifying the required arguments for the function
 parser = argparse.ArgumentParser(description='Counting the number of image sets and detections from the Eyefox archive')

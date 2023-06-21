@@ -16,7 +16,7 @@ from torchvision import transforms as T
 from torch.optim.lr_scheduler import StepLR
 
 # Modified version
-import general_scripts as gs
+from general_scripts import general_scripts as gs
 import torchvision.transforms as transforms
 from PIL import Image
 import os

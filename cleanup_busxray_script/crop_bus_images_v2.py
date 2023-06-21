@@ -53,7 +53,7 @@ This will cause the function to look at root directory at <annotations> and save
 """
 
 import cv2
-import general_scripts as gs
+from general_scripts import general_scripts as gs
 import os, pathlib, argparse
 from tqdm import tqdm
 import xml.dom.minidom as minidom # For pretty formatting

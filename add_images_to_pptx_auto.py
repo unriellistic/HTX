@@ -113,7 +113,7 @@ for index, row in df.iterrows():
                                  str(row['Legend/Notes'])))
 ### --------------------------------------------------------------------
 ### ------------ Clean information and put into pptx -------------------
-from general_scripts import change_file_extension
+from general_scripts.general_scripts import change_file_extension
 log = []
 for set, detail in enumerate(info_about_images):
     

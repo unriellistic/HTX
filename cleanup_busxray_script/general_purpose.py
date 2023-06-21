@@ -4,7 +4,7 @@ This script doesn't contain any constant info, just for me to run a process to c
 
 import os, shutil, re
 from tqdm import tqdm
-import general_scripts as gs
+from general_scripts import general_scripts as gs
 
 images = gs.load_files(r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome", ".xml")
 image_file = gs.load_files(r"D:\BusXray\scanbus_training\master_file_for_both_clean_and_threat_images_monochrome")

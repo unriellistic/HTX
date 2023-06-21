@@ -6,7 +6,7 @@ If no corresponding XML file is found, generates a blank txt file instead.
 """
 import xml.etree.ElementTree as ET
 import os
-import general_scripts as gs
+from general_scripts import general_scripts as gs
 from tqdm import tqdm
 
 def convert(size, box):

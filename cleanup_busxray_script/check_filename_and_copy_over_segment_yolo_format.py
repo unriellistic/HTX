@@ -6,7 +6,7 @@ segmented version of it into the directory of the sub-folders in the form of:
     segmented_val
 """
 
-import general_scripts as gs
+from general_scripts import general_scripts as gs
 from tqdm import tqdm
 import os, shutil
 

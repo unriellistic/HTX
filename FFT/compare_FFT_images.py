@@ -25,7 +25,7 @@ FOLDERS_TO_SAVE_IN = r"D:\BusXray\Compiling_All_subfolder_images\Compiled_Threat
 
 # https://pyimagesearch.com/2020/06/15/opencv-fast-fourier-transform-fft-for-blur-detection-in-images-and-video-streams/
 # import the necessary packages
-import general_scripts as gs
+from general_scripts import general_scripts as gs
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2

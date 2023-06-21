@@ -2,7 +2,7 @@
 The script consolidates all the images and txt files from <ROOT_DIR> folder into a new directory specified by <TARGET_DIR>.
 """
 import os, shutil
-import general_scripts as gs
+from general_scripts import general_scripts as gs
 from tqdm import tqdm
 
 def consolidate_files(ROOT_DIR, TARGET_DIR):

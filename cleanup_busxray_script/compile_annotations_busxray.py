@@ -26,7 +26,8 @@ This will cause the function to look at root directory at <exp> and saves the fi
 @last modified: 12/5/2023 3:29pm
 """
 
-import os, shutil, argparse, general_scripts as gs
+import os, shutil, argparse 
+from general_scripts import general_scripts as gs
 from tqdm import tqdm
 
 def compile_annotations(ROOT_DIR, ANNOTATION_DIR):

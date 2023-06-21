@@ -24,7 +24,7 @@ from skimage.metrics import structural_similarity as ssim
 import numpy as np
 import cv2
 import argparse
-import general_scripts as gs
+from general_scripts import general_scripts as gs
 import os
 import pandas as pd
 from datetime import datetime, timedelta
