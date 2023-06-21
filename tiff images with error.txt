@@ -1,0 +1,18 @@
+below 0
+adjusted_PC1866G Scania KIB4X2 49 seats-Threat-159-final_color_segment_960_320_cleaned.jpg
+adjusted_PC9040U MAN A22 48 seats-Threat-395-final_color_segment_320_640_cleaned.jpg
+
+above 1
+adjusted_PC7036X Yutong ZK6107HE45 seats-Threat-357-final_color_segment_320_640_cleaned.jpg
+adjusted_PC7036X Yutong ZK6107HE45 seats-Threat-358-final_color_segment_320_320_cleaned.jpg
+adjusted_PD3939L Mitsubishi FUSO Rosa 23 seats-Threat-478-final_color_segment_160_404_cleaned.jpg
+
+train: Scanning 'scanbus_training\dataset_7_dualenergy\labels\train' images and labels... 4694 found, 0 missing, 2928 etrain: WARNING: Ignoring corrupted image and/or label scanbus_training\dataset_7_dualenergy\images\train\adjusted_PC1866G Scania KIB4X2 49 seats-Threat-159-final_color_segment_960_320_cleaned.jpg: negative labels
+train: Scanning 'scanbus_training\dataset_7_dualenergy\labels\train' images and labels... 11754 found, 0 missing, 7104 train: WARNING: Ignoring corrupted image and/or label scanbus_training\dataset_7_dualenergy\images\train\adjusted_PC7036X Yutong ZK6107HE45 seats-Threat-357-final_color_segment_320_640_cleaned.jpg: non-normalized or out of bounds coordinate labels
+train: Scanning 'scanbus_training\dataset_7_dualenergy\labels\train' images and labels... 11790 found, 0 missing, 7108 train: WARNING: Ignoring corrupted image and/or label scanbus_training\dataset_7_dualenergy\images\train\adjusted_PC7036X Yutong ZK6107HE45 seats-Threat-358-final_color_segment_320_320_cleaned.jpg: non-normalized or out of bounds coordinate labels
+train: Scanning 'scanbus_training\dataset_7_dualenergy\labels\train' images and labels... 13190 found, 0 missing, 7863 train: WARNING: Ignoring corrupted image and/or label scanbus_training\dataset_7_dualenergy\images\train\adjusted_PC9040U MAN A22 48 seats-Threat-395-final_color_segment_320_640_cleaned.jpg: negative labels
+train: Scanning 'scanbus_training\dataset_7_dualenergy\labels\train' images and labels... 15035 found, 0 missing, 8876 train: WARNING: Ignoring corrupted image and/or label scanbus_training\dataset_7_dualenergy\images\train\adjusted_PD3939L Mitsubishi FUSO Rosa 23 seats-Threat-478-final_color_segment_160_404_cleaned.jpg: non-normalized or out of bounds coordinate labels
+train: Scanning 'scanbus_training\dataset_7_dualenergy\labels\train' images and labels... 17631 found, 0 missing, 10513
+train: New cache created: scanbus_training\dataset_7_dualenergy\labels\train.cache
+val: Scanning 'scanbus_training\dataset_7_dualenergy\labels\val' images and labels... 2362 found, 0 missing, 1475 empty
+val: New cache created: scanbus_training\dataset_7_dualenergy\labels\val.cache

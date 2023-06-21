@@ -16,10 +16,11 @@ def convert(size, box):
     y = max((box[2] + box[3])/2.0 - 1, 0) # In the event that y is so small, that - 1 brings it to a negative value, the max ensures that the smallest possible value is 0.
     w = box[1] - box[0]
     h = box[3] - box[2]
-    x = x*dw
-    w = w*dw
-    y = y*dh
-    h = h*dh
+    # Check if it exceeds 1, if it does, set it to 1.
+    x = x*dw if x*dw <= 1 else 1
+    w = w*dw if w*dw <= 1 else 1
+    y = y*dh if y*dh <= 1 else 1
+    h = h*dh if h*dh <= 1 else 1
     return (x,y,w,h)
 
 def convert_xml_to_yolo(root_dir, classes):
