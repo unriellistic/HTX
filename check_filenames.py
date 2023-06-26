@@ -2,7 +2,7 @@
 To quickly check through whether names in excel match names in tif for SeeTrue excel sheet
 """
 
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 import os
 from tqdm import tqdm
 from pathlib import Path

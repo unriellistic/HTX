@@ -1,4 +1,4 @@
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 
 dualenergy_files = gs.load_files(r"H:\busxray\master_file_for_both_clean_and_threat_images_dualenergy")
 monochrome_files = gs.load_files(r"H:\busxray\master_file_for_both_clean_and_threat_images_monochrome")

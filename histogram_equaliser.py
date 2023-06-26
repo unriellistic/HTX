@@ -12,7 +12,7 @@ python ssim_script_modified.py
 """
 import cv2
 import matplotlib.pyplot as plt
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 import os, numpy as np
 
 # Constants to change depending on which folder you want to retrieve from and save to.

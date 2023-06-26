@@ -47,7 +47,7 @@ To check Pascal VOC images (.xml files)
 """
 import xml.etree.ElementTree as ET
 import cv2
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 def draw_image(img: Image, bboxes: list[list], save_path: str, display: bool = False):
     draw = ImageDraw.Draw(img)
     for bbox in bboxes:

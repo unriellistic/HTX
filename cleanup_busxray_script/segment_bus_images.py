@@ -39,7 +39,7 @@ txt file. 30, 40, 50. How many segment we'll need to discard.
 """
 import cv2
 import os
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 import numpy as np
 # For adjusting XML segmentation
 import xml.etree.ElementTree as ET

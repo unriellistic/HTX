@@ -4,7 +4,7 @@ Combines xml2yolo.py, consolidate_segmented_files.py, and split_train_test_val.p
 import xml2yolo as x2y
 import split_train_test_val as sttv
 import argparse, os
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

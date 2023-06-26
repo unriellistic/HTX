@@ -4,7 +4,7 @@ The script converts the images in "D:\BusXray\scanbus_training\Compiled_Clean_Im
 """
 
 import os, re, shutil
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 from tqdm import tqdm
 
 NUMBER_OF_IMAGES_IN_ORIGINAL = 609

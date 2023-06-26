@@ -27,7 +27,7 @@ This will cause the function to look at root directory at <exp> and saves the fi
 """
 
 import os, shutil, argparse 
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 from tqdm import tqdm
 
 def compile_annotations(ROOT_DIR, ANNOTATION_DIR):

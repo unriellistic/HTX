@@ -1,6 +1,6 @@
 import os
 from tqdm import tqdm
-from general_scripts import general_scripts as gs
+import general_scripts as gs
 
 """
 To create empty txt files for clean images
