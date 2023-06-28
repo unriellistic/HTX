@@ -537,6 +537,40 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
             xmax = int(bbox.find('xmax').text)
             ymax = int(bbox.find('ymax').text)
 
+            # temp variables to store new coordinates, so that we can compare original coordinates for logic processing.
+            new_xmin = xmin
+            new_ymin = ymin
+            new_xmax = xmax
+            new_ymax = ymax
+            '''
+            Need to check for multiple scanarios:
+            1. In all situations, if xmin was cropped, adjust all values as such
+            2. In all situations, if ymin was cropped, adjust all values as such
+            3. If xmax was cropped, adjust values if annotation overlaps with cropped area
+            4. If ymax was cropped, adjust values if annotation overlaps with cropped area
+            '''
+
+            # If xmax was cropped, adjust values if annotation overlaps with cropped area
+            if new_xmax_of_cropped_segment < segment_width:
+                # If xmin is further right than new xmax being cropped, it means the whole annotation is cut off.
+                if xmin - new_xmax_of_cropped_segment >= 0:
+                    segmented_annotation.remove(obj)
+                    continue
+                # Check whether xmax is within cropped xmax range, if it is, adjust annotation xmax accordingly 
+                # Update new_xmax by subtracting cropped new_xmax_of_cropped_segment value.
+                else:
+                    new_xmax = new_xmax_of_cropped_segment if new_xmax > new_xmax_of_cropped_segment else new_xmax
+
+            # If ymax was cropped, adjust values if annotation overlaps with cropped area
+            if new_ymax_of_cropped_segment < segment_height:
+                if ymin - new_ymax_of_cropped_segment >= 0:
+                    segmented_annotation.remove(obj)
+                    continue
+                # Check whether ymax is within cropped ymax range, if it is, adjust annotation ymax accordingly
+                # Update new_ymax by subtracting cropped new_ymax_of_cropped_segment value.
+                else:
+                    new_ymax = new_ymax_of_cropped_segment if new_ymax > new_ymax_of_cropped_segment else new_ymax
+
             # If xmin was cropped, adjust all values as such
             if new_xmin_of_cropped_segment > 0:
                 # If xmax drops below zero from xmin being cropped, it means the whole annotation is cut off.
@@ -544,9 +578,10 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                     segmented_annotation.remove(obj)
                     continue
                 else:
-                    xmax = xmax - new_xmin_of_cropped_segment
-                # If cropped xmin is more than annotation x min, then just set coordinate to 0
-                xmin = xmin - new_xmin_of_cropped_segment if xmin - new_xmin_of_cropped_segment > 0 else 0
+                    # Subtract new_xmax because it'll be shifted to the left by new_xmin_of_cropped_segment
+                    new_xmax = new_xmax - new_xmin_of_cropped_segment
+                    # re-adjusts xmin to adjusted value if it is more than 0, else set to 0
+                    new_xmin = new_xmin - new_xmin_of_cropped_segment if new_xmin - new_xmin_of_cropped_segment > 0 else 0
 
             # If ymin was cropped, adjust all values as such
             if new_ymin_of_cropped_segment > 0:
@@ -555,37 +590,20 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
                     segmented_annotation.remove(obj)
                     continue
                 else:
-                    ymax = ymax - new_ymin_of_cropped_segment
-                ymin = ymin - new_ymin_of_cropped_segment if ymin - new_ymin_of_cropped_segment > 0 else 0
-
-            # If xmax was cropped, adjust all values as such
-            if new_xmax_of_cropped_segment < segment_width:
-                # If xmin is further right than new xmax being cropped, it means the whole annotation is cut off.
-                if xmin - new_xmax_of_cropped_segment >= 0:
-                    segmented_annotation.remove(obj)
-                    continue
-                # Check whether xmax is within cropped xmax range, if it is, adjust annotation xmax accordingly taking into account potential difference in new_xmin.
-                # Else set xmax to account for potential difference in new_xmin.
-                xmax = new_xmax_of_cropped_segment - new_xmin_of_cropped_segment if xmax > new_xmax_of_cropped_segment else xmax - new_xmin_of_cropped_segment
-
-            # If ymax was cropped, adjust all values as such
-            if new_ymax_of_cropped_segment < segment_height:
-                if ymin - new_ymax_of_cropped_segment >= 0:
-                    segmented_annotation.remove(obj)
-                    continue
-                # Check whether ymax is within cropped ymax range, if it is, adjust annotation ymax accordingly taking into account potential difference in new_ymin.
-                # Else set ymax to account for potential difference in new_ymin.
-                ymax = new_ymax_of_cropped_segment - new_ymin_of_cropped_segment if ymax > new_ymax_of_cropped_segment else ymax - new_ymin_of_cropped_segment
+                    # Subtract new_ymax because it'll be shifted to the left by new_ymin_of_cropped_segment
+                    new_ymax = new_ymax - new_ymin_of_cropped_segment
+                    # re-adjusts ymin to adjusted value if it is more than 0, else set to 0
+                    new_ymin = new_ymin - new_ymin_of_cropped_segment if new_ymin - new_ymin_of_cropped_segment > 0 else 0
 
             # Update the values
             readjusted_xmin = bbox.find("xmin")
-            readjusted_xmin.text = str(xmin)
+            readjusted_xmin.text = str(new_xmin)
             readjusted_xmax = bbox.find("xmax")
-            readjusted_xmax.text = str(xmax)
+            readjusted_xmax.text = str(new_xmax)
             readjusted_ymin = bbox.find("ymin")
-            readjusted_ymin.text = str(ymin)
+            readjusted_ymin.text = str(new_ymin)
             readjusted_ymax = bbox.find("ymax")
-            readjusted_ymax.text = str(ymax)
+            readjusted_ymax.text = str(new_ymax)
 
 
     # Load the segment image to get its dimensions
@@ -750,7 +768,7 @@ def adjust_annotations_for_segment_and_mask_it(segment_path, original_annotation
         new_height_size = size.find('height')
         new_height_size.text = str(new_ymax_of_cropped_segment - new_ymin_of_cropped_segment)
 
-        # Check if previous annotation of objects is within new offsets, if not, adjust it so that it's within it
+        # re-adjust annotations to be within new cleaned image
         readjust_annotations(new_xmin_of_cropped_segment, new_xmax_of_cropped_segment, new_ymin_of_cropped_segment, new_ymax_of_cropped_segment)
 
         # Check if there is any object in xml, if there is, write an XML file, if not, don't write.
@@ -792,16 +810,19 @@ def bulk_image_analysis_of_info_loss_and_segment_annotation(args_root_dir, args_
     list_of_images = gs.load_files(path_to_files=args_root_dir)
     
     # Segment up the images
-    print("Segmenting images...")
-    os.chdir(args_root_dir)
-    for image in tqdm(list_of_images):
-        segment_image(image_path=image,
-                    segment_size=int(args_segment_size), 
-                    overlap_percent=float(args_overlap_portion))
+    # gs.print_nice_lines()
+    # print("Segmenting images...")
+    # gs.print_nice_lines()
+    # os.chdir(args_root_dir)
+    # for image in tqdm(list_of_images):
+    #     segment_image(image_path=image,
+    #                 segment_size=int(args_segment_size), 
+    #                 overlap_percent=float(args_overlap_portion))
 
     # Segment up the annotation
+    gs.print_nice_lines()
     print("Processing XML files and adjusting segmented images...")
-
+    gs.print_nice_lines()  
     """
     Log file in the form of:
     {
@@ -979,7 +1000,7 @@ def mask_out_image_by_coordinates(img, xmin, xmax, ymin, ymax):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\busxray\dataset_7_dualenergy\debugging\sacnia")
+    parser.add_argument("--root-dir", help="directory to the image and annotation files", default=r"D:\busxray\dataset_7_dualenergy\debugging\yuton 2")
     parser.add_argument("--overlap-portion", help="fraction of each segment that should overlap adjacent segments. from 0 to 1", default=0.5)
     parser.add_argument("--segment-size", help="size of each segment", default=640)
     parser.add_argument("--cutoff-threshold", help="cutoff threshold to determine whether to exclude annotation from the new segment", default=0.3)

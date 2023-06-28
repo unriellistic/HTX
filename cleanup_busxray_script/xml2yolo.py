@@ -10,6 +10,8 @@ import general_scripts as gs
 from tqdm import tqdm
 
 def convert(size, box):
+    # size = (width, height) of image
+    # box = (xmin, xmax, ymin, ymax)
     dw = 1./(size[0])
     dh = 1./(size[1])
     x = max((box[0] + box[1])/2.0 - 1, 0) # In the event that x is so small, that - 1 brings it to a negative value, the max ensures that the smallest possible value is 0.
@@ -23,12 +25,18 @@ def convert(size, box):
     h = h*dh if h*dh <= 1 else 1
     return (x,y,w,h)
 
+def check_if_box_within_size(size, box):
+    if box[0] < 0 or box[1] > size[0] or box[2] < 0 or box[3] > size[1]:
+        return False
+    return True
 def convert_xml_to_yolo(root_dir, classes):
 
+    error_log = []
     # identify all the image files in the folder (input directory)
     files = gs.load_files(path_to_files=root_dir, file_type="images", recursive=True)
-    
-    print("Converting xml file to txt...")
+    gs.print_nice_lines()
+    print("Converting xml file to YOLO txt...")
+    gs.print_nice_lines()
     # loop through each image
     for file in tqdm(files):
         filepath, basename = gs.path_leaf(file)
@@ -59,16 +67,26 @@ def convert_xml_to_yolo(root_dir, classes):
                     cls_id = classes.index(cls)
                     xmlbox = obj.find('bndbox')
                     b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text), float(xmlbox.find('ymax').text))
-                    bb = convert((w,h), b)
-                    out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
+                    if not check_if_box_within_size((w,h), b):
+                        error_log.append(f"{label_file}: {b}")
+                    else:
+                        bb = convert((w,h), b)
+                        out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
                 # close file
                 out_file.close()
+    if error_log:
+        with open("error_log.txt", "w") as file:
+            for error in error_log:
+                file.write(error + "\n")
+        print(f"Error list saved as error_log.txt at {os.getcwd()}")
+    else:
+        print("No errors found.")
 
 if __name__ == "__main__":
     gs.print_nice_lines()
     print("This script is not meant to be run directly.")
     print("Please import it as a module and call the convert_xml_to_yolo() function, unless you're debugging.")
     gs.print_nice_lines()
-    ROOT_DIR = r"D:\busxray\dataset_7_dualenergy\debugging\sacnia\debug"
+    ROOT_DIR = r"D:\busxray\dataset_8_dualenergy\debug\adjusted_PC136L Higer High Deck 49 seats-Threat-85-final_color_segmented"
     CLASSES = ["cig", "guns", "human", "knives", "drugs", "exp"]
     convert_xml_to_yolo(root_dir=ROOT_DIR, classes=CLASSES)

@@ -21,3 +21,6 @@ Check through the task soo kng set. Create empty excel.
 
 29/5/23
 Something wrong with one of the subdir linkage in train folder, need to check tmr (preferably using gigabyte cos it takes awhile)
+
+26/6/23
+-Run xml2yolo for monochrome dataset. Afterwards rename to dataset_8 and update readMe docs.

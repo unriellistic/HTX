@@ -70,17 +70,17 @@ def load_files(path_to_files: Union[str, Path], file_type: str="images", recursi
     
     # Checks for current directory's files
     elif os.path.isdir(p) and not recursive:
-        print("Collecting a list of images from", p)
         for file in os.listdir(p):
             if os.path.isfile(os.path.join(p, file)):
                 check_if_file_is_an_image(os.path.join(p, file))
+        print("Collected a list of images from", p)
 
     # Checks for current directory file and recursively searches each folder
     elif os.path.isdir(p) and recursive:
-        print("Collecting a list of images from", p)
         for root, _, files in os.walk(p):
             for file in files:
                 check_if_file_is_an_image(os.path.join(root, file))
+        print("Collected a list of images from", p)
     else:
         raise Exception(f'ERROR: {p} does not exist')
 

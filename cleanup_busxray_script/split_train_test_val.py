@@ -20,7 +20,9 @@ from tqdm import tqdm
 
 def split_data(input_folder, output_folder, train_ratio=0.8, test_ratio=0.1, val_ratio=0.1, seed=42):
     random.seed(seed)
-
+    gs.print_nice_lines()
+    print("Splitting data using seed: ", seed)
+    gs.print_nice_lines()
     # Create output directories
     images_dir = os.path.join(output_folder, 'images')
     labels_dir = os.path.join(output_folder, 'labels') 
